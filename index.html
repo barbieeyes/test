@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>우리들의 방명록 (연습용)</title>
+  <title>우리들의 방명록 (파이어베이스 연동)</title>
   <style>
     /* ================= 꾸미기 (CSS) ================= */
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -123,7 +123,6 @@
 </head>
 <body>
 
-  <!-- ================= 표지 화면 ================= -->
   <section id="cover" class="active">
     <div class="cover-inner">
       <div class="cover-emoji">📖</div>
@@ -133,7 +132,6 @@
     </div>
   </section>
 
-  <!-- ================= 보드 화면 ================= -->
   <section id="board" class="screen">
     <div class="board-top">
       <div class="left">
@@ -145,7 +143,6 @@
     <div class="board" id="notes"></div>
   </section>
 
-  <!-- ================= 작성 창 (모달) ================= -->
   <div class="modal-bg" id="modalBg">
     <div class="modal">
       <h3>✏️ 방명록 남기기</h3>
@@ -168,53 +165,98 @@
       <div class="status-msg" id="statusMsg"></div>
       <div class="modal-btns">
         <button class="btn-cancel" onclick="closeModal()">취소</button>
-        <button class="btn-save" onclick="submitEntry()">남기기</button>
+        <button class="btn-save" id="btnSubmit">남기기</button>
       </div>
     </div>
   </div>
 
-  <script>
-    /* =========================================================
-       ⚠️ 이 버전은 파이어베이스(서버)가 없습니다.
-       데이터는 브라우저 메모리에만 잠깐 저장돼서,
-       새로고침하면 모두 사라집니다. (서버가 없으면 저장이 안 되는 걸 체험용)
-       ========================================================= */
+  <script type="module">
+    // 파이어베이스 SDK 모듈 가져오기
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+    import { 
+      getFirestore, 
+      collection, 
+      addDoc, 
+      onSnapshot, 
+      query, 
+      orderBy 
+    } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
-    // 방명록 데이터를 담아둘 배열 (메모리에만 존재)
-    let entries = [];
+    // 전달해주신 파이어베이스 설정값
+    const firebaseConfig = {
+      apiKey: "AIzaSyBoxrrJwmCykxUStiA5sFpx1eHx5k-DIRw",
+      authDomain: "test-bb040.firebaseapp.com",
+      projectId: "test-bb040",
+      storageBucket: "test-bb040.firebasestorage.app",
+      messagingSenderId: "699133236842",
+      appId: "1:699133236842:web:705ee258edf8ab513c5c13"
+    };
+
+    // 파이어베이스 초기화
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 전역 변수 및 설정
     let photoData = null; // 선택한 사진(base64)
     const colors = ["#6a5acd", "#e07a5f", "#3d9970", "#e6a817", "#c0559f", "#2e86de"];
 
-    /* ================= 화면 전환 ================= */
-    function enter() {
-      document.getElementById("cover").classList.remove("active");
-      document.getElementById("board").classList.add("active");
-      window.scrollTo(0, 0);
-    }
-    function goCover() {
-      document.getElementById("board").classList.remove("active");
-      document.getElementById("cover").classList.add("active");
+    /* ================= 실시간 데이터 가져오기 (Firestore 수신) ================= */
+    // 'guestbook' 컬렉션의 데이터를 시간순(내림차순)으로 정렬해 실시간으로 감시합니다.
+    const q = query(collection(db, "guestbook"), orderBy("timestamp", "desc"));
+    
+    onSnapshot(q, (snapshot) => {
+      const entries = [];
+      snapshot.forEach((doc) => {
+        entries.push(doc.data());
+      });
+      render(entries); // 데이터가 바뀔 때마다 화면을 새로 그립니다.
+    });
+
+    /* ================= 방명록 추가 (Firestore 송신) ================= */
+    async function submitEntry() {
+      const name = document.getElementById("nameInput").value.trim();
+      const msg = document.getElementById("msgInput").value.trim();
+      const status = document.getElementById("statusMsg");
+      const btnSubmit = document.getElementById("btnSubmit");
+
+      if (!name || !msg) {
+        status.textContent = "이름과 메시지를 모두 입력해주세요.";
+        return;
+      }
+
+      try {
+        btnSubmit.disabled = true;
+        status.style.color = "#555";
+        status.textContent = "저장 중...";
+
+        // Firestore에 데이터 추가
+        await addDoc(collection(db, "guestbook"), {
+          name: name,
+          message: msg,
+          photo: photoData,
+          // 정렬을 위한 타임스탬프 (현재 시간 밀리초)
+          timestamp: Date.now(), 
+          // 작성 시간 텍스트 형태로 변환 저장
+          time: new Date().toLocaleString("ko-KR"),
+          // 랜덤 카드 상단 테두리 색상 지정
+          color: colors[Math.floor(Math.random() * colors.length)]
+        });
+
+        closeModal();
+      } catch (error) {
+        console.error("Error adding document: ", error);
+        status.style.color = "#c0392b";
+        status.textContent = "저장 중 오류가 발생했습니다. 콘솔을 확인하세요.";
+      } finally {
+        btnSubmit.disabled = false;
+      }
     }
 
-    /* ================= 모달 열기/닫기 ================= */
-    function openModal() {
-      document.getElementById("modalBg").classList.add("active");
-    }
-    function closeModal() {
-      document.getElementById("modalBg").classList.remove("active");
-      resetForm();
-    }
-    function resetForm() {
-      document.getElementById("nameInput").value = "";
-      document.getElementById("msgInput").value = "";
-      document.getElementById("fileInput").value = "";
-      document.getElementById("preview").style.display = "none";
-      document.getElementById("statusMsg").textContent = "";
-      photoData = null;
-    }
+    // 모듈 스크립트에서는 함수가 전역 공간에 잡히지 않으므로 버튼 이벤트에 직접 바인딩합니다.
+    document.getElementById("btnSubmit").addEventListener("click", submitEntry);
 
-    /* ================= 사진 선택 & 압축 ================= */
-    function handleFile(event) {
+    /* ================= 사진 선택 & 압축 처리 ================= */
+    window.handleFile = function(event) {
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -237,31 +279,38 @@
       reader.readAsDataURL(file);
     }
 
-    /* ================= 방명록 추가 ================= */
-    function submitEntry() {
-      const name = document.getElementById("nameInput").value.trim();
-      const msg = document.getElementById("msgInput").value.trim();
-      const status = document.getElementById("statusMsg");
-
-      if (!name || !msg) {
-        status.textContent = "이름과 메시지를 모두 입력해주세요.";
-        return;
-      }
-
-      entries.unshift({
-        name: name,
-        message: msg,
-        photo: photoData,
-        time: new Date().toLocaleString("ko-KR"),
-        color: colors[Math.floor(entries.length) % colors.length]
-      });
-
-      closeModal();
-      render();
+    /* ================= 화면 전환 및 모달 제어 함수 전역 등록 ================= */
+    window.enter = function() {
+      document.getElementById("cover").classList.remove("active");
+      document.getElementById("board").classList.add("active");
+      window.scrollTo(0, 0);
+    }
+    
+    window.goCover = function() {
+      document.getElementById("board").classList.remove("active");
+      document.getElementById("cover").classList.add("active");
     }
 
-    /* ================= 보드 그리기 ================= */
-    function render() {
+    window.openModal = function() {
+      document.getElementById("modalBg").classList.add("active");
+    }
+    
+    window.closeModal = function() {
+      document.getElementById("modalBg").classList.remove("active");
+      resetForm();
+    }
+
+    function resetForm() {
+      document.getElementById("nameInput").value = "";
+      document.getElementById("msgInput").value = "";
+      document.getElementById("fileInput").value = "";
+      document.getElementById("preview").style.display = "none";
+      document.getElementById("statusMsg").textContent = "";
+      photoData = null;
+    }
+
+    /* ================= 보드 화면 렌더링 ================= */
+    function render(entries) {
       const box = document.getElementById("notes");
       if (entries.length === 0) {
         box.innerHTML = '<div class="empty">아직 방명록이 없어요.<br>+ 추가하기로 첫 글을 남겨보세요!</div>';
@@ -284,15 +333,11 @@
           img.className = "note-photo";
           img.src = d.photo;
           img.alt = "첨부 사진";
-          // 사진은 이름 아래, 메시지 위에 넣기
           note.insertBefore(img, note.querySelector(".note-time"));
         }
         box.appendChild(note);
       });
     }
-
-    // 첫 화면 그리기
-    render();
   </script>
 </body>
 </html>
