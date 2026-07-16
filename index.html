@@ -1,343 +1,768 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>우리들의 방명록 (파이어베이스 연동)</title>
-  <style>
-    /* ================= 꾸미기 (CSS) ================= */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-      color: #2b2b3a;
-      background: #f4f1ec;
-      -webkit-font-smoothing: antialiased;
-    }
+import { useState, useEffect, useRef } from "react";
 
-    .screen { display: none; min-height: 100vh; }
-    .screen.active { display: block; }
+// ─────────────────────────────────────────────────────────────
+//  2026 영수네 핵가족 강릉여행 🌊  (여행 · 앨범 · 한마디 탭)
+// ─────────────────────────────────────────────────────────────
 
-    /* ---------- 표지 화면 ---------- */
-    #cover {
-      display: none;
-      align-items: center; justify-content: center; text-align: center;
-      background: linear-gradient(160deg, #6a5acd 0%, #8e7cc3 45%, #d8b4a0 100%);
-      color: #fff; padding: 24px; min-height: 100vh;
-    }
-    #cover.active { display: flex; }
-    .cover-inner { max-width: 480px; }
-    .cover-emoji { font-size: 64px; margin-bottom: 12px; }
-    #cover h1 { font-size: 40px; letter-spacing: -1px; margin-bottom: 14px; }
-    #cover p { font-size: 17px; opacity: .92; line-height: 1.6; margin-bottom: 36px; }
-    .enter-btn {
-      background: #fff; color: #6a5acd; border: none;
-      padding: 16px 44px; font-size: 18px; font-weight: 700;
-      border-radius: 999px; cursor: pointer;
-      box-shadow: 0 8px 24px rgba(0,0,0,.18);
-      transition: transform .15s ease, box-shadow .15s ease;
-    }
-    .enter-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,0,0,.24); }
-    .enter-btn:active { transform: translateY(0); }
+const STORAGE_KEY = "gangneung-trip-2026-v2";
+const PHOTO_PREFIX = "gtphoto:";
 
-    /* ---------- 보드 화면 ---------- */
-    .board-top {
-      position: sticky; top: 0; z-index: 10;
-      background: rgba(244,241,236,.9); backdrop-filter: blur(6px);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px; border-bottom: 1px solid #e6e2da;
-    }
-    .board-top h2 { font-size: 22px; letter-spacing: -.5px; }
-    .board-top .left { display: flex; align-items: center; gap: 10px; }
-    .back-link {
-      background: none; border: none; color: #6a5acd;
-      font-size: 14px; cursor: pointer;
-    }
-    .add-btn {
-      background: #6a5acd; color: #fff; border: none;
-      padding: 10px 18px; font-size: 15px; font-weight: 700;
-      border-radius: 999px; cursor: pointer;
-      box-shadow: 0 4px 12px rgba(106,90,205,.35);
-      transition: background .15s ease;
-    }
-    .add-btn:hover { background: #5a4bbf; }
+const DEFAULT_MEMBERS = [
+  { id: "m1", name: "아빠", nick: "든든이 아빠", emoji: "🧔", attending: true, stars: 0 },
+  { id: "m2", name: "엄마", nick: "천사 엄마", emoji: "👩", attending: true, stars: 0 },
+  { id: "m3", name: "첫째딸", nick: "야무진 첫째", emoji: "👧", attending: true, stars: 0 },
+  { id: "m4", name: "둘째딸", nick: "사랑둥이 둘째", emoji: "💕", attending: true, stars: 0 },
+  { id: "m5", name: "셋째딸", nick: "귀염둥이 셋째", emoji: "🐣", attending: true, stars: 0 },
+  { id: "m6", name: "하율", nick: "애교둥이 하율", emoji: "👶", attending: true, stars: 0 },
+];
 
-    /* 패들렛 스타일 카드 보드 (벽돌형 레이아웃) */
-    .board {
-      column-count: 3; column-gap: 16px;
-      padding: 20px; max-width: 960px; margin: 0 auto;
-    }
-    @media (max-width: 760px) { .board { column-count: 2; } }
-    @media (max-width: 480px) { .board { column-count: 1; } }
+const NICK_MAP = {
+  아빠: "든든이 아빠",
+  엄마: "천사 엄마",
+  첫째딸: "야무진 첫째",
+  하율: "애교둥이 하율",
+};
+function migrateNicks(list) {
+  return list.map((m) =>
+    !m.nick && NICK_MAP[m.name] ? { ...m, nick: NICK_MAP[m.name] } : m
+  );
+}
 
-    .note {
-      break-inside: avoid;
-      background: #fff; border-radius: 14px;
-      padding: 16px; margin-bottom: 16px;
-      box-shadow: 0 3px 12px rgba(0,0,0,.06);
-      border-top: 4px solid var(--c, #6a5acd);
-    }
-    .note-name { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
-    .note-msg { font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; }
-    .note-photo { margin-top: 12px; width: 100%; border-radius: 10px; display: block; }
-    .note-time { font-size: 11px; color: #b3ada3; margin-top: 10px; }
+const EMOJI_PALETTE = ["🧔", "👩", "👧", "🧒", "👶", "🥰", "🐣", "💕", "🦄", "🐥", "🐰", "🐻", "🌸", "⭐", "🍑", "🐢"];
 
-    .empty {
-      text-align: center; color: #b3ada3; padding: 60px 20px;
-      column-span: all;
-    }
+const DAYS = [
+  { key: "d1", date: "2026-07-30", label: "첫째날", title: "집결 · 계곡 바베큐", emoji: "🔥",
+    desc: "다 같이 강릉 도착! 저녁엔 계곡에서 시원하게 바베큐 🍖", color: "#FF8A7A", meals: ["저녁"] },
+  { key: "d2", date: "2026-07-31", label: "둘째날", title: "바닷가 해수욕", emoji: "🏖️",
+    desc: "하루 종일 바다에서 물놀이! 파도 타고 모래놀이 🌊", color: "#3FA9D6", meals: ["아침", "점심", "저녁"] },
+  { key: "d3", date: "2026-08-01", label: "셋째날", title: "아침 먹고 마무리", emoji: "👋",
+    desc: "맛있는 아침 먹고 아쉬운 작별 인사 🥲", color: "#FFB84D", meals: ["아침"] },
+];
 
-    /* ---------- 작성 창 (모달) ---------- */
-    .modal-bg {
-      display: none;
-      position: fixed; inset: 0; z-index: 50;
-      background: rgba(30,25,50,.45);
-      align-items: center; justify-content: center; padding: 20px;
-    }
-    .modal-bg.active { display: flex; }
-    .modal {
-      background: #fff; border-radius: 18px;
-      width: 100%; max-width: 440px;
-      padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
-    }
-    .modal h3 { font-size: 19px; margin-bottom: 18px; }
-    .field { margin-bottom: 14px; }
-    .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #555; }
-    .field input[type="text"], .field textarea {
-      width: 100%; border: 1px solid #e0ddd6; border-radius: 10px;
-      padding: 11px 12px; font-size: 15px; font-family: inherit; background: #fafaf8;
-    }
-    .field textarea { resize: vertical; min-height: 80px; }
-    .field input:focus, .field textarea:focus { outline: none; border-color: #6a5acd; background: #fff; }
+const WEATHER = {
+  clear: { e: "☀️", t: "맑음" }, fewclouds: { e: "🌤️", t: "구름 조금" }, cloud: { e: "☁️", t: "흐림" },
+  fog: { e: "🌫️", t: "안개" }, drizzle: { e: "🌦️", t: "이슬비" }, rain: { e: "🌧️", t: "비" },
+  snow: { e: "❄️", t: "눈" }, shower: { e: "🌦️", t: "소나기" }, storm: { e: "⛈️", t: "뇌우" },
+};
+function codeToWeather(c) {
+  if (c === 0) return WEATHER.clear;
+  if (c === 1 || c === 2) return WEATHER.fewclouds;
+  if (c === 3) return WEATHER.cloud;
+  if (c === 45 || c === 48) return WEATHER.fog;
+  if (c >= 51 && c <= 57) return WEATHER.drizzle;
+  if (c >= 61 && c <= 67) return WEATHER.rain;
+  if (c >= 71 && c <= 77) return WEATHER.snow;
+  if (c >= 80 && c <= 82) return WEATHER.shower;
+  if (c >= 95) return WEATHER.storm;
+  return WEATHER.fewclouds;
+}
 
-    .photo-row { display: flex; align-items: center; gap: 12px; }
-    .photo-btn { background: #f0edff; color: #6a5acd; padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-    #fileInput { display: none; }
-    #preview { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; display: none; border: 1px solid #e0ddd6; }
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+function fmtDate(iso) {
+  const d = new Date(iso + "T00:00:00+09:00");
+  return `${d.getMonth() + 1}.${d.getDate()} (${WEEKDAYS[d.getDay()]})`;
+}
 
-    .modal-btns { display: flex; gap: 10px; margin-top: 18px; }
-    .btn-cancel { flex: 1; background: #f0eee9; color: #666; border: none; padding: 13px; font-size: 15px; font-weight: 600; border-radius: 11px; cursor: pointer; }
-    .btn-save { flex: 2; background: #6a5acd; color: #fff; border: none; padding: 13px; font-size: 15px; font-weight: 700; border-radius: 11px; cursor: pointer; }
-    .btn-save:hover { background: #5a4bbf; }
-    .status-msg { text-align: center; font-size: 13px; color: #c0392b; min-height: 16px; margin-top: 8px; }
-  </style>
-</head>
-<body>
-
-  <section id="cover" class="active">
-    <div class="cover-inner">
-      <div class="cover-emoji">📖</div>
-      <h1>우리들의 방명록</h1>
-      <p>입장해서 보드를 둘러보고,<br />+ 버튼으로 흔적을 남겨보세요.</p>
-      <button class="enter-btn" onclick="enter()">입장하기 →</button>
-    </div>
-  </section>
-
-  <section id="board" class="screen">
-    <div class="board-top">
-      <div class="left">
-        <button class="back-link" onclick="goCover()">←</button>
-        <h2>📖 방명록</h2>
-      </div>
-      <button class="add-btn" onclick="openModal()">+ 추가하기</button>
-    </div>
-    <div class="board" id="notes"></div>
-  </section>
-
-  <div class="modal-bg" id="modalBg">
-    <div class="modal">
-      <h3>✏️ 방명록 남기기</h3>
-      <div class="field">
-        <label for="nameInput">이름</label>
-        <input type="text" id="nameInput" placeholder="이름 또는 닉네임" maxlength="20" />
-      </div>
-      <div class="field">
-        <label for="msgInput">메시지</label>
-        <textarea id="msgInput" placeholder="남기고 싶은 말을 적어주세요" maxlength="500"></textarea>
-      </div>
-      <div class="field">
-        <label>사진 (선택)</label>
-        <div class="photo-row">
-          <label for="fileInput" class="photo-btn">📷 사진 선택</label>
-          <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)" />
-          <img id="preview" alt="미리보기" />
-        </div>
-      </div>
-      <div class="status-msg" id="statusMsg"></div>
-      <div class="modal-btns">
-        <button class="btn-cancel" onclick="closeModal()">취소</button>
-        <button class="btn-save" id="btnSubmit">남기기</button>
-      </div>
-    </div>
-  </div>
-
-  <script type="module">
-    // 파이어베이스 SDK 모듈 가져오기
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-    import { 
-      getFirestore, 
-      collection, 
-      addDoc, 
-      onSnapshot, 
-      query, 
-      orderBy 
-    } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
-
-    // 전달해주신 파이어베이스 설정값
-    const firebaseConfig = {
-      apiKey: "AIzaSyBoxrrJwmCykxUStiA5sFpx1eHx5k-DIRw",
-      authDomain: "test-bb040.firebaseapp.com",
-      projectId: "test-bb040",
-      storageBucket: "test-bb040.firebasestorage.app",
-      messagingSenderId: "699133236842",
-      appId: "1:699133236842:web:705ee258edf8ab513c5c13"
-    };
-
-    // 파이어베이스 초기화
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // 전역 변수 및 설정
-    let photoData = null; // 선택한 사진(base64)
-    const colors = ["#6a5acd", "#e07a5f", "#3d9970", "#e6a817", "#c0559f", "#2e86de"];
-
-    /* ================= 실시간 데이터 가져오기 (Firestore 수신) ================= */
-    // 'guestbook' 컬렉션의 데이터를 시간순(내림차순)으로 정렬해 실시간으로 감시합니다.
-    const q = query(collection(db, "guestbook"), orderBy("timestamp", "desc"));
-    
-    onSnapshot(q, (snapshot) => {
-      const entries = [];
-      snapshot.forEach((doc) => {
-        entries.push(doc.data());
-      });
-      render(entries); // 데이터가 바뀔 때마다 화면을 새로 그립니다.
-    });
-
-    /* ================= 방명록 추가 (Firestore 송신) ================= */
-    async function submitEntry() {
-      const name = document.getElementById("nameInput").value.trim();
-      const msg = document.getElementById("msgInput").value.trim();
-      const status = document.getElementById("statusMsg");
-      const btnSubmit = document.getElementById("btnSubmit");
-
-      if (!name || !msg) {
-        status.textContent = "이름과 메시지를 모두 입력해주세요.";
-        return;
-      }
-
-      try {
-        btnSubmit.disabled = true;
-        status.style.color = "#555";
-        status.textContent = "저장 중...";
-
-        // Firestore에 데이터 추가
-        await addDoc(collection(db, "guestbook"), {
-          name: name,
-          message: msg,
-          photo: photoData,
-          // 정렬을 위한 타임스탬프 (현재 시간 밀리초)
-          timestamp: Date.now(), 
-          // 작성 시간 텍스트 형태로 변환 저장
-          time: new Date().toLocaleString("ko-KR"),
-          // 랜덤 카드 상단 테두리 색상 지정
-          color: colors[Math.floor(Math.random() * colors.length)]
-        });
-
-        closeModal();
-      } catch (error) {
-        console.error("Error adding document: ", error);
-        status.style.color = "#c0392b";
-        status.textContent = "저장 중 오류가 발생했습니다. 콘솔을 확인하세요.";
-      } finally {
-        btnSubmit.disabled = false;
-      }
-    }
-
-    // 모듈 스크립트에서는 함수가 전역 공간에 잡히지 않으므로 버튼 이벤트에 직접 바인딩합니다.
-    document.getElementById("btnSubmit").addEventListener("click", submitEntry);
-
-    /* ================= 사진 선택 & 압축 처리 ================= */
-    window.handleFile = function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const img = new Image();
-        img.onload = function () {
-          const maxW = 600;
-          const scale = Math.min(1, maxW / img.width);
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width * scale;
-          canvas.height = img.height * scale;
-          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-          photoData = canvas.toDataURL("image/jpeg", 0.7);
-          const preview = document.getElementById("preview");
-          preview.src = photoData;
-          preview.style.display = "block";
-        };
-        img.src = e.target.result;
+// 사진 다운스케일 → dataURL
+function fileToDataURL(file, maxDim = 1100, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round((height * maxDim) / width); width = maxDim; }
+        else if (height >= width && height > maxDim) { width = Math.round((width * maxDim) / height); height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        try { resolve(canvas.toDataURL("image/jpeg", quality)); }
+        catch (e) { resolve(reader.result); }
       };
-      reader.readAsDataURL(file);
-    }
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
-    /* ================= 화면 전환 및 모달 제어 함수 전역 등록 ================= */
-    window.enter = function() {
-      document.getElementById("cover").classList.remove("active");
-      document.getElementById("board").classList.add("active");
-      window.scrollTo(0, 0);
-    }
-    
-    window.goCover = function() {
-      document.getElementById("board").classList.remove("active");
-      document.getElementById("cover").classList.add("active");
-    }
+export default function App() {
+  const [tab, setTab] = useState("trip"); // trip | album | guestbook
+  const [members, setMembers] = useState(DEFAULT_MEMBERS);
+  const [wishes, setWishes] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [photos, setPhotos] = useState([]); // {id, src, caption, ts}
+  const [loaded, setLoaded] = useState(false);
 
-    window.openModal = function() {
-      document.getElementById("modalBg").classList.add("active");
-    }
-    
-    window.closeModal = function() {
-      document.getElementById("modalBg").classList.remove("active");
-      resetForm();
-    }
+  const [inputs, setInputs] = useState({});
+  const [newMember, setNewMember] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [msgName, setMsgName] = useState("");
+  const [msgText, setMsgText] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [weather, setWeather] = useState({ status: "loading" });
 
-    function resetForm() {
-      document.getElementById("nameInput").value = "";
-      document.getElementById("msgInput").value = "";
-      document.getElementById("fileInput").value = "";
-      document.getElementById("preview").style.display = "none";
-      document.getElementById("statusMsg").textContent = "";
-      photoData = null;
-    }
+  const saveTimer = useRef(null);
+  const fileRef = useRef(null);
 
-    /* ================= 보드 화면 렌더링 ================= */
-    function render(entries) {
-      const box = document.getElementById("notes");
-      if (entries.length === 0) {
-        box.innerHTML = '<div class="empty">아직 방명록이 없어요.<br>+ 추가하기로 첫 글을 남겨보세요!</div>';
-        return;
+  // ── load main data (기본 로컬스토리지 보완) ──
+  useEffect(() => {
+    try {
+      // 1순위: 브라우저 표준 localStorage 확인
+      const localData = localStorage.getItem(STORAGE_KEY);
+      if (localData) {
+        const data = JSON.parse(localData);
+        if (Array.isArray(data.members)) setMembers(migrateNicks(data.members));
+        if (data.wishes && typeof data.wishes === "object") setWishes(data.wishes);
+        if (Array.isArray(data.messages)) setMessages(data.messages);
+      } else if (typeof window !== "undefined" && window.storage) {
+        // 2순위: 기존 특수 저장 플랫폼 대응
+        (async () => {
+          const res = await window.storage.get(STORAGE_KEY, true);
+          if (res && res.value) {
+            const data = JSON.parse(res.value);
+            if (Array.isArray(data.members)) setMembers(migrateNicks(data.members));
+            if (data.wishes && typeof data.wishes === "object") setWishes(data.wishes);
+            if (Array.isArray(data.messages)) setMessages(data.messages);
+          }
+        })();
       }
-      box.innerHTML = "";
-      entries.forEach(function (d) {
-        const note = document.createElement("div");
-        note.className = "note";
-        note.style.setProperty("--c", d.color);
-        note.innerHTML =
-          '<div class="note-name"></div>' +
-          '<div class="note-msg"></div>' +
-          '<div class="note-time"></div>';
-        note.querySelector(".note-name").textContent = d.name;
-        note.querySelector(".note-msg").textContent = d.message;
-        note.querySelector(".note-time").textContent = d.time;
-        if (d.photo) {
-          const img = document.createElement("img");
-          img.className = "note-photo";
-          img.src = d.photo;
-          img.alt = "첨부 사진";
-          note.insertBefore(img, note.querySelector(".note-time"));
-        }
-        box.appendChild(note);
-      });
+    } catch (e) {
+      console.error("데이터 로드 실패:", e);
+    } finally {
+      setLoaded(true);
     }
-  </script>
-</body>
-</html>
+  }, []);
+
+  // ── load photos ──
+  useEffect(() => {
+    (async () => {
+      try {
+        const loadedPhotos = [];
+        // 1순위: localStorage에서 사진 리스트 스캔
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(PHOTO_PREFIX)) {
+            const val = localStorage.getItem(key);
+            if (val) {
+              loadedPhotos.push({ id: key.slice(PHOTO_PREFIX.length), ...JSON.parse(val) });
+            }
+          }
+        }
+
+        // 2순위: 기존 window.storage 스캔 백업
+        if (loadedPhotos.length === 0 && typeof window !== "undefined" && window.storage) {
+          const listed = await window.storage.list(PHOTO_PREFIX, true);
+          const keys = (listed && listed.keys) || [];
+          for (const key of keys) {
+            const r = await window.storage.get(key, true);
+            if (r && r.value) {
+              loadedPhotos.push({ id: key.slice(PHOTO_PREFIX.length), ...JSON.parse(r.value) });
+            }
+          }
+        }
+        
+        loadedPhotos.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+        setPhotos(loadedPhotos);
+      } catch (e) {
+        console.error("사진 로드 실패:", e);
+      }
+    })();
+  }, []);
+
+  // ── save main data (디바운스 처리 후 로컬 저장소 동시 백업) ──
+  useEffect(() => {
+    if (!loaded) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const jsonStr = JSON.stringify({ members, wishes, messages });
+        // 표준 로컬스토리지 즉시 동기화 (바로 떠 있게 만드는 핵심!)
+        localStorage.setItem(STORAGE_KEY, jsonStr);
+
+        // 기존 환경 백업
+        if (typeof window !== "undefined" && window.storage) {
+          await window.storage.set(STORAGE_KEY, jsonStr, true);
+        }
+      } catch (e) {
+        console.error("데이터 저장 실패:", e);
+      }
+    }, 300); // 딜레이를 300ms로 줄여 반응성 업그레이드
+    return () => saveTimer.current && clearTimeout(saveTimer.current);
+  }, [members, wishes, messages, loaded]);
+
+  // ── weather (Open-Meteo API) ──
+  useEffect(() => {
+    (async () => {
+      try {
+        const url =
+          "https://api.open-meteo.com/v1/forecast?latitude=37.7519&longitude=128.8761" +
+          "&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code" +
+          "&timezone=Asia%2FSeoul&forecast_days=16";
+        const r = await fetch(url);
+        if (!r.ok) throw new Error("fail");
+        const j = await r.json();
+        const tripDays = [];
+        if (j.daily && j.daily.time) {
+          DAYS.forEach((d) => {
+            const idx = j.daily.time.indexOf(d.date);
+            if (idx !== -1) tripDays.push({
+              key: d.key, date: d.date,
+              max: Math.round(j.daily.temperature_2m_max[idx]),
+              min: Math.round(j.daily.temperature_2m_min[idx]),
+              w: codeToWeather(j.daily.weather_code[idx]),
+            });
+          });
+        }
+        setWeather({ status: "ok", temp: Math.round(j.current.temperature_2m), now: codeToWeather(j.current.weather_code), tripDays });
+      } catch (e) { setWeather({ status: "error" }); }
+    })();
+  }, []);
+
+  // ── D-day ──
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const tripStart = new Date("2026-07-30T00:00:00+09:00");
+  const tripEnd = new Date("2026-08-01T00:00:00+09:00");
+  const dday = Math.round((tripStart - today) / 86400000);
+  let ddayLabel;
+  if (dday > 0) ddayLabel = `D-${dday}`;
+  else if (dday === 0) ddayLabel = "D-DAY 🎉";
+  else if (today >= tripStart && today <= tripEnd) ddayLabel = "여행 중 🎉";
+  else ddayLabel = "다음에 또 만나요 💛";
+
+  const goingCount = members.filter((m) => m.attending).length;
+
+  // ── member actions ──
+  const toggleAttend = (id) => setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, attending: !m.attending } : m)));
+  const setStars = (id, n) => setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, stars: m.stars === n ? 0 : n } : m)));
+  const removeMember = (id) => setMembers((ms) => ms.filter((m) => m.id !== id));
+  const editMember = (id, patch) => setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  const addMember = () => {
+    const name = newMember.trim(); if (!name) return;
+    const id = "m" + Date.now();
+    setMembers((ms) => [...ms, { id, name, nick: "", emoji: "🙂", attending: true, stars: 0 }]);
+    setNewMember(""); setEditingId(id);
+  };
+
+  // ── meal wishes ──
+  const addWish = (key) => {
+    const text = (inputs[key] || "").trim(); if (!text) return;
+    setWishes((w) => ({ ...w, [key]: [...(w[key] || []), { id: "w" + Date.now(), text }] }));
+    setInputs((i) => ({ ...i, [key]: "" }));
+  };
+  const removeWish = (key, id) => setWishes((w) => ({ ...w, [key]: (w[key] || []).filter((x) => x.id !== id) }));
+
+  // ── guestbook ──
+  const addMessage = () => {
+    const text = msgText.trim(); if (!text) return;
+    const name = msgName.trim() || "익명";
+    setMessages((ms) => [...ms, { id: "g" + Date.now(), name, text, ts: Date.now() }]);
+    setMsgText("");
+  };
+  const removeMessage = (id) => setMessages((ms) => ms.filter((m) => m.id !== id));
+
+  // ── photos ──
+  const handleFiles = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setUploading(true);
+    for (const file of files) {
+      try {
+        const src = await fileToDataURL(file);
+        const id = "p" + Date.now() + Math.floor(Math.random() * 999);
+        const photo = { id, src, caption: "", ts: Date.now() };
+        setPhotos((ps) => [...ps, photo]);
+        
+        // 로컬에 동시 저장
+        localStorage.setItem(PHOTO_PREFIX + id, JSON.stringify({ src, caption: "", ts: photo.ts }));
+        if (typeof window !== "undefined" && window.storage) {
+          await window.storage.set(PHOTO_PREFIX + id, JSON.stringify({ src, caption: "", ts: photo.ts }), true);
+        }
+      } catch (err) { /* skip */ }
+    }
+    setUploading(false);
+  };
+  const savePhoto = async (id, patch) => {
+    let next;
+    setPhotos((ps) => { next = ps.map((p) => (p.id === id ? { ...p, ...patch } : p)); return next; });
+    try {
+      const p = (next || photos).find((x) => x.id === id);
+      if (p) {
+        localStorage.setItem(PHOTO_PREFIX + id, JSON.stringify({ src: p.src, caption: p.caption, ts: p.ts }));
+        if (typeof window !== "undefined" && window.storage) {
+          await window.storage.set(PHOTO_PREFIX + id, JSON.stringify({ src: p.src, caption: p.caption, ts: p.ts }), true);
+        }
+      }
+    } catch (e) { /* ignore */ }
+  };
+  const removePhoto = async (id) => {
+    setPhotos((ps) => ps.filter((p) => p.id !== id));
+    try {
+      localStorage.removeItem(PHOTO_PREFIX + id);
+      if (window.storage) await window.storage.delete(PHOTO_PREFIX + id, true);
+    } catch (e) { /* ignore */ }
+  };
+
+  return (
+    <div className="gt-root">
+      <style>{styles}</style>
+
+      {/* 둥둥 떠다니는 하트 배경 */}
+      <div className="gt-ambient" aria-hidden="true">
+        {["💗", "🌊", "⭐", "🐚", "🩷", "✨", "🐣", "💛"].map((e, i) => (
+          <span key={i} className={"gt-drift d" + i}>{e}</span>
+        ))}
+      </div>
+
+      {/* ══════════ 여행 탭 ══════════ */}
+      {tab === "trip" && (
+        <>
+          <header className="gt-hero">
+            <div className="gt-float gt-f1">🌊</div>
+            <div className="gt-float gt-f2">🍉</div>
+            <div className="gt-float gt-f3">⛱️</div>
+            <div className="gt-float gt-f4">🐚</div>
+            <div className="gt-float gt-f5">☀️</div>
+            <div className="gt-hero-inner">
+              <div className="gt-eyebrow">2026 여름 · 강릉</div>
+              <h1 className="gt-title">영수네 핵가족<br />강릉여행</h1>
+              <div className="gt-dates">7월 30일 ~ 8월 1일 · 2박 3일</div>
+              <div className="gt-dday">{ddayLabel}</div>
+            </div>
+            <div className="gt-wave" />
+          </header>
+
+          <main className="gt-main">
+            {/* 날씨 */}
+            <section className="gt-card gt-weather pop" style={{ animationDelay: "0ms" }}>
+              <div className="gt-card-head"><span className="gt-card-emoji wiggle">🌡️</span><h2>강릉 날씨</h2></div>
+              {weather.status === "loading" && <p className="gt-muted">지금 강릉 날씨 불러오는 중… ⛅</p>}
+              {weather.status === "error" && <p className="gt-muted">실시간 날씨를 못 불러왔어요. 아래 버튼으로 확인해요!</p>}
+              {weather.status === "ok" && (
+                <div className="gt-now">
+                  <div className="gt-now-main">
+                    <span className="gt-now-emoji wiggle">{weather.now.e}</span>
+                    <div>
+                      <div className="gt-now-temp">{weather.temp}°</div>
+                      <div className="gt-muted gt-now-label">지금 강릉 · {weather.now.t}</div>
+                    </div>
+                  </div>
+                  {weather.tripDays.length > 0 ? (
+                    <div className="gt-forecast">
+                      {weather.tripDays.map((d) => (
+                        <div key={d.key} className="gt-fore-chip">
+                          <div className="gt-fore-date">{fmtDate(d.date)}</div>
+                          <div className="gt-fore-emoji">{d.w.e}</div>
+                          <div className="gt-fore-temp"><b>{d.max}°</b> / {d.min}°</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="gt-note">여행 날짜 예보는 아직 멀었어요. 가까워지면 여기 뜰 거예요! 강릉 8월 평균 최고기온은 약 28.6℃래요 🥵</p>
+                  )}
+                </div>
+              )}
+              {/* 기상청 강릉 단기예보 지역코드(gcode=4215000000)를 주입해 즉시 강릉 상세 날씨가 뜨도록 수정 */}
+              <a className="gt-weather-btn" href="https://www.weather.go.kr/w/weather/forecast/short-term.do?gcode=4215000000" target="_blank" rel="noopener noreferrer">
+                🔎 날씨누리에서 강릉 예보 바로보기
+              </a>
+            </section>
+
+            {/* 참석자 */}
+            <section className="gt-card pop" style={{ animationDelay: "80ms" }}>
+              <div className="gt-card-head">
+                <span className="gt-card-emoji wiggle">🙋</span><h2>참석자 명단</h2>
+                <span className="gt-count">{goingCount}명 참석</span>
+              </div>
+              <p className="gt-note">✏️로 불리고 싶은 닉네임을 남겨요! 이름 누르면 참석 여부, 별로는 설렘 지수 ⭐</p>
+              <div className="gt-members">
+                {members.map((m) => (
+                  <div key={m.id} className={"gt-member" + (m.attending ? "" : " gt-out")}>
+                    <div className="gt-member-row">
+                      <button className="gt-member-main" onClick={() => toggleAttend(m.id)} aria-pressed={m.attending}>
+                        <span className="gt-avatar">{m.emoji}</span>
+                        <span className="gt-member-names">
+                          <span className="gt-member-nick">{m.nick ? m.nick : m.name}</span>
+                          {m.nick && <span className="gt-member-real">{m.name}</span>}
+                        </span>
+                        <span className={"gt-badge " + (m.attending ? "gt-in" : "gt-no")}>{m.attending ? "참석" : "불참"}</span>
+                      </button>
+                      <button className={"gt-edit" + (editingId === m.id ? " active" : "")} onClick={() => setEditingId(editingId === m.id ? null : m.id)} aria-label="닉네임 수정">✏️</button>
+                      <button className="gt-del" onClick={() => removeMember(m.id)} aria-label="삭제">✕</button>
+                    </div>
+                    <div className="gt-stars">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} className={"gt-star" + (n <= m.stars ? " on" : "")} onClick={() => setStars(m.id, n)} aria-label={`설렘 ${n}점`}>★</button>
+                      ))}
+                    </div>
+                    {editingId === m.id && (
+                      <div className="gt-editbox">
+                        <div className="gt-emoji-palette">
+                          {EMOJI_PALETTE.map((e) => (
+                            <button key={e} className={"gt-emoji-opt" + (m.emoji === e ? " sel" : "")} onClick={() => editMember(m.id, { emoji: e })}>{e}</button>
+                          ))}
+                        </div>
+                        <label className="gt-field"><span>이름</span>
+                          <input className="gt-input" value={m.name} placeholder="이름" onChange={(e) => editMember(m.id, { name: e.target.value })} /></label>
+                        <label className="gt-field"><span>닉네임</span>
+                          <input className="gt-input" value={m.nick} placeholder="불리고 싶은 닉네임" onChange={(e) => editMember(m.id, { nick: e.target.value })} /></label>
+                        <button className="gt-done" onClick={() => setEditingId(null)}>완료 ✓</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="gt-addrow">
+                <input className="gt-input" placeholder="참석자 추가 (예: 삼촌)" value={newMember} onChange={(e) => setNewMember(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addMember()} />
+                <button className="gt-add" onClick={addMember}>추가</button>
+              </div>
+            </section>
+
+            {/* 일정 */}
+            <section className="gt-schedule">
+              <div className="gt-sched-head"><span className="gt-card-emoji wiggle">🗺️</span><h2>여행 일정 & 먹고싶은거</h2></div>
+              {DAYS.map((d, i) => (
+                <div key={d.key} className="gt-card gt-day pop" style={{ "--accent": d.color, animationDelay: `${160 + i * 80}ms` }}>
+                  <div className="gt-day-top">
+                    <div className="gt-day-badge">{d.label}</div>
+                    <div className="gt-day-date">{fmtDate(d.date)}</div>
+                  </div>
+                  <div className="gt-day-title"><span className="gt-day-emoji">{d.emoji}</span><h3>{d.title}</h3></div>
+                  <p className="gt-day-desc">{d.desc}</p>
+                  <div className="gt-meals">
+                    {d.meals.map((meal) => {
+                      const key = `${d.key}-${meal}`;
+                      const list = wishes[key] || [];
+                      return (
+                        <div key={key} className="gt-meal">
+                          <div className="gt-meal-label"><span>🍽️ {meal}</span><span className="gt-meal-count">{list.length}개</span></div>
+                          <div className="gt-chips">
+                            {list.length === 0 && <span className="gt-empty">먹고싶은 거 적어줘요!</span>}
+                            {list.map((w) => (
+                              <span key={w.id} className="gt-chip">{w.text}<button onClick={() => removeWish(key, w.id)} aria-label="삭제">✕</button></span>
+                            ))}
+                          </div>
+                          <div className="gt-addrow">
+                            <input className="gt-input" placeholder={`${meal}에 먹고싶은 거`} value={inputs[key] || ""} onChange={(e) => setInputs((i2) => ({ ...i2, [key]: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && addWish(key)} />
+                            <button className="gt-add" onClick={() => addWish(key)}>담기</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </section>
+            <div className="gt-tabspace" />
+          </main>
+        </>
+      )}
+
+      {/* ══════════ 앨범 탭 ══════════ */}
+      {tab === "album" && (
+        <main className="gt-main gt-page">
+          <div className="gt-page-banner album pop">
+            <div className="gt-banner-emoji wiggle">📸</div>
+            <h1>우리들의 명장면</h1>
+            <p>강릉에서 남긴 최고의 순간들 🌊</p>
+          </div>
+          <p className="gt-note gt-center">사진은 가족 모두에게 공유돼요 💕 여러 장 한 번에 올려도 돼요!</p>
+
+          <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleFiles} style={{ display: "none" }} />
+          <button className="gt-upload pop" style={{ animationDelay: "60ms" }} onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading}>
+            {uploading ? "올리는 중… ⏳" : "＋ 명장면 사진 올리기"}
+          </button>
+
+          {photos.length === 0 && !uploading && (
+            <div className="gt-empty-album pop" style={{ animationDelay: "120ms" }}>
+              <div className="gt-empty-emoji">🖼️</div>
+              <p>아직 사진이 없어요!<br />첫 명장면을 올려봐요 ✨</p>
+            </div>
+          )}
+
+          <div className="gt-gallery">
+            {photos.map((p, i) => (
+              <div key={p.id} className="gt-photo pop" style={{ animationDelay: `${i * 60}ms` }}>
+                <div className="gt-photo-imgwrap">
+                  <img src={p.src} alt={p.caption || "여행 사진"} />
+                  <button className="gt-photo-del" onClick={() => removePhoto(p.id)} aria-label="삭제">✕</button>
+                </div>
+                <input
+                  className="gt-caption"
+                  placeholder="한 줄 설명 달기 ✏️"
+                  value={p.caption}
+                  onChange={(e) => setPhotos((ps) => ps.map((x) => (x.id === p.id ? { ...x, caption: e.target.value } : x)))}
+                  onBlur={(e) => savePhoto(p.id, { caption: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Enter") { savePhoto(p.id, { caption: e.target.value }); e.target.blur(); } }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="gt-tabspace" />
+        </main>
+      )}
+
+      {/* ══════════ 한마디 탭 ══════════ */}
+      {tab === "guestbook" && (
+        <main className="gt-main gt-page">
+          <div className="gt-page-banner guest pop">
+            <div className="gt-banner-emoji wiggle">💌</div>
+            <h1>우리 가족 한마디</h1>
+            <p>여행에 남기고 싶은 말 한마디 ✍️</p>
+          </div>
+
+          <div className="gt-card gt-writebox pop" style={{ animationDelay: "60ms" }}>
+            <div className="gt-name-chips">
+              {members.map((m) => (
+                <button key={m.id} className={"gt-name-chip" + (msgName === (m.nick || m.name) ? " sel" : "")} onClick={() => setMsgName(m.nick || m.name)}>
+                  {m.emoji} {m.nick || m.name}
+                </button>
+              ))}
+            </div>
+            <input className="gt-input" placeholder="이름 / 닉네임" value={msgName} onChange={(e) => setMsgName(e.target.value)} />
+            <textarea className="gt-textarea" placeholder="여기에 한마디 남겨요! 💬" value={msgText} onChange={(e) => setMsgText(e.target.value)} rows={3} />
+            <button className="gt-send" onClick={addMessage}>💌 한마디 남기기</button>
+          </div>
+
+          {messages.length === 0 ? (
+            <div className="gt-empty-album pop" style={{ animationDelay: "120ms" }}>
+              <div className="gt-empty-emoji">💭</div>
+              <p>아직 한마디가 없어요!<br />첫 마디를 남겨봐요 💕</p>
+            </div>
+          ) : (
+            <div className="gt-msgs">
+              {messages.slice().reverse().map((m, i) => (
+                <div key={m.id} className="gt-bubble pop" style={{ animationDelay: `${i * 50}ms` }}>
+                  <div className="gt-bubble-top">
+                    <span className="gt-bubble-name">{m.name}</span>
+                    <button className="gt-del" onClick={() => removeMessage(m.id)} aria-label="삭제">✕</button>
+                  </div>
+                  <p className="gt-bubble-text">{m.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="gt-tabspace" />
+        </main>
+      )}
+
+      {/* ══════════ 통통 튀는 탭바 ══════════ */}
+      <nav className="gt-tabbar">
+        {[
+          { id: "trip", e: "🏖️", label: "여행" },
+          { id: "album", e: "📸", label: "앨범" },
+          { id: "guestbook", e: "💌", label: "한마디" },
+        ].map((t) => (
+          <button key={t.id} className={"gt-tab" + (tab === t.id ? " active" : "")} onClick={() => setTab(t.id)}>
+            <span className="gt-tab-emoji">{t.e}</span>
+            <span className="gt-tab-label">{t.label}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+const styles = `
+@import url('https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@400;700&display=swap');
+
+.gt-root{
+  --sea:#3FA9D6; --sea-deep:#2E90B4; --sand:#FFF7E8; --card:#FFFFFF;
+  --coral:#FF8A7A; --peach:#FFC9A3; --mint:#8FDDC7; --sun:#FFD166;
+  --navy:#2B4C63; --soft:#8AA1B1; --pink:#FF9CC5;
+  font-family:'Jua','Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif;
+  color:var(--navy);
+  background:linear-gradient(180deg,#EAF7FC 0%,#FFF7E8 45%);
+  min-height:100vh;position:relative;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.gt-root *{box-sizing:border-box;}
+.gt-root h1,.gt-root h2,.gt-root h3{margin:0;font-weight:400;}
+
+/* 팝 애니메이션 */
+@keyframes gt-pop{0%{opacity:0;transform:translateY(16px) scale(.94);}60%{transform:translateY(-3px) scale(1.02);}100%{opacity:1;transform:translateY(0) scale(1);}}
+.pop{animation:gt-pop .5s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes gt-wiggle{0%,100%{transform:rotate(-8deg);}50%{transform:rotate(8deg);}}
+.wiggle{display:inline-block;animation:gt-wiggle 1.8s ease-in-out infinite;}
+
+/* 둥둥 떠다니는 배경 */
+.gt-ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.gt-drift{position:absolute;bottom:-40px;font-size:22px;opacity:.35;animation:gt-rise linear infinite;}
+@keyframes gt-rise{0%{transform:translateY(0) rotate(0);opacity:0;}10%{opacity:.4;}90%{opacity:.4;}100%{transform:translateY(-108vh) rotate(40deg);opacity:0;}}
+.gt-drift.d0{left:6%;animation-duration:15s;animation-delay:0s;}
+.gt-drift.d1{left:20%;animation-duration:19s;animation-delay:3s;font-size:26px;}
+.gt-drift.d2{left:34%;animation-duration:13s;animation-delay:6s;}
+.gt-drift.d3{left:48%;animation-duration:21s;animation-delay:1s;}
+.gt-drift.d4{left:62%;animation-duration:16s;animation-delay:4s;font-size:18px;}
+.gt-drift.d5{left:76%;animation-duration:18s;animation-delay:7s;}
+.gt-drift.d6{left:88%;animation-duration:14s;animation-delay:2s;}
+.gt-drift.d7{left:12%;animation-duration:20s;animation-delay:9s;font-size:16px;}
+
+/* HERO */
+.gt-hero{position:relative;overflow:hidden;z-index:1;
+  background:linear-gradient(160deg,#6FD0EC 0%,#3FA9D6 55%,#2E90B4 100%);
+  padding:38px 22px 46px;text-align:center;color:#fff;}
+.gt-hero-inner{position:relative;z-index:2;}
+.gt-eyebrow{display:inline-block;background:rgba(255,255,255,.25);padding:5px 14px;border-radius:999px;font-size:13px;letter-spacing:1px;margin-bottom:12px;backdrop-filter:blur(2px);}
+.gt-title{font-size:40px;line-height:1.15;text-shadow:0 3px 0 rgba(0,0,0,.08);}
+.gt-dates{margin-top:12px;font-size:16px;opacity:.95;}
+.gt-dday{display:inline-block;margin-top:16px;background:var(--sun);color:var(--navy);padding:8px 22px;border-radius:999px;font-size:20px;box-shadow:0 6px 0 #E9B84A,0 10px 18px rgba(0,0,0,.15);animation:gt-pulse 2s ease-in-out infinite;}
+@keyframes gt-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+.gt-wave{position:absolute;left:0;right:0;bottom:-1px;height:26px;z-index:1;background:radial-gradient(circle at 12px -6px,transparent 12px,var(--sand) 13px) 0 0/24px 26px repeat-x;}
+.gt-float{position:absolute;font-size:26px;opacity:.9;z-index:1;animation:bob 4s ease-in-out infinite;}
+.gt-f1{top:24px;left:18px;}.gt-f2{top:60px;right:24px;animation-delay:.6s;font-size:30px;}
+.gt-f3{top:120px;left:30px;animation-delay:1.2s;}.gt-f4{bottom:60px;right:34px;animation-delay:.9s;}
+.gt-f5{top:30px;right:80px;animation-delay:1.6s;font-size:22px;}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg);}50%{transform:translateY(-10px) rotate(4deg);}}
+
+/* MAIN */
+.gt-main{max-width:520px;margin:0 auto;padding:18px 16px 40px;position:relative;z-index:1;}
+.gt-page{padding-top:20px;}
+.gt-card{background:var(--card);border-radius:26px;padding:20px;margin-bottom:18px;box-shadow:0 8px 22px rgba(63,169,214,.10);border:2px solid #F0E6D2;}
+.gt-card-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.gt-card-head h2{font-size:22px;}
+.gt-card-emoji{font-size:24px;}
+.gt-count{margin-left:auto;background:var(--mint);color:#1c6b57;font-size:13px;padding:4px 12px;border-radius:999px;}
+.gt-note{font-family:'Gaegu',cursive;font-weight:700;color:var(--soft);font-size:15px;margin:4px 0 14px;}
+.gt-center{text-align:center;}
+.gt-muted{color:var(--soft);font-size:15px;}
+
+/* WEATHER */
+.gt-weather{background:linear-gradient(160deg,#FFFDF7,#F3FAFE);}
+.gt-now{margin:8px 0 4px;}
+.gt-now-main{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+.gt-now-emoji{font-size:52px;line-height:1;}
+.gt-now-temp{font-size:44px;color:var(--sea-deep);line-height:1;}
+.gt-now-label{margin-top:2px;}
+.gt-forecast{display:flex;gap:10px;}
+.gt-fore-chip{flex:1;background:#EAF7FC;border-radius:16px;padding:10px 6px;text-align:center;}
+.gt-fore-date{font-size:12px;color:var(--soft);}
+.gt-fore-emoji{font-size:26px;margin:2px 0;}
+.gt-fore-temp{font-size:13px;color:var(--navy);}
+.gt-fore-temp b{color:var(--coral);}
+.gt-weather-btn{display:block;text-align:center;text-decoration:none;margin-top:16px;background:var(--sea);color:#fff;padding:14px;border-radius:16px;font-size:17px;box-shadow:0 5px 0 var(--sea-deep);transition:transform .08s,box-shadow .08s;}
+.gt-weather-btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--sea-deep);}
+
+/* MEMBERS */
+.gt-members{display:flex;flex-direction:column;gap:10px;}
+.gt-member{display:flex;flex-direction:column;gap:6px;background:#FFF9EF;border:2px solid #F3E7CF;border-radius:18px;padding:10px 12px;transition:opacity .2s;}
+.gt-member.gt-out{opacity:.55;background:#F4F4F4;}
+.gt-member-row{display:flex;align-items:center;gap:6px;}
+.gt-member-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;background:none;border:none;cursor:pointer;font-family:inherit;text-align:left;padding:2px;}
+.gt-avatar{font-size:28px;flex-shrink:0;}
+.gt-member-names{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.2;}
+.gt-member-nick{font-size:17px;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gt-member-real{font-family:'Gaegu',cursive;font-weight:700;font-size:13px;color:var(--soft);}
+.gt-badge{font-size:12px;padding:3px 9px;border-radius:999px;flex-shrink:0;}
+.gt-badge.gt-in{background:var(--mint);color:#1c6b57;}
+.gt-badge.gt-no{background:#E4E4E4;color:#999;}
+.gt-edit,.gt-del{background:none;border:none;cursor:pointer;font-size:15px;padding:4px;flex-shrink:0;}
+.gt-edit{font-size:16px;opacity:.75;border-radius:8px;}
+.gt-edit.active{background:#FFE7D6;opacity:1;}
+.gt-del{color:#CFCFCF;}
+.gt-del:hover{color:var(--coral);}
+.gt-stars{display:flex;gap:1px;padding-left:2px;}
+.gt-star{background:none;border:none;cursor:pointer;font-size:22px;color:#E2E2E2;padding:0 1px;transition:transform .1s;}
+.gt-star.on{color:var(--sun);text-shadow:0 1px 2px rgba(233,184,74,.4);}
+.gt-star:active{transform:scale(1.35);}
+.gt-editbox{background:#FFFDF8;border:1.5px dashed #E7DCC5;border-radius:14px;padding:12px;margin-top:4px;}
+.gt-emoji-palette{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.gt-emoji-opt{background:#fff;border:2px solid #EFE3CB;border-radius:10px;width:38px;height:38px;font-size:20px;cursor:pointer;line-height:1;transition:transform .08s;}
+.gt-emoji-opt:active{transform:scale(1.2);}
+.gt-emoji-opt.sel{border-color:var(--sea);background:#EAF7FC;}
+.gt-field{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.gt-field>span{width:44px;font-size:14px;color:var(--soft);flex-shrink:0;}
+.gt-field .gt-input{padding:9px 12px;}
+.gt-done{width:100%;background:var(--mint);color:#1c6b57;border:none;border-radius:12px;padding:10px;font-family:inherit;font-size:15px;cursor:pointer;box-shadow:0 4px 0 #6cc4ab;transition:transform .08s,box-shadow .08s;}
+.gt-done:active{transform:translateY(3px);box-shadow:0 1px 0 #6cc4ab;}
+
+/* INPUTS */
+.gt-addrow{display:flex;gap:8px;margin-top:12px;}
+.gt-input{flex:1;min-width:0;border:2px solid #EFE3CB;border-radius:14px;padding:11px 14px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:15px;color:var(--navy);background:#FFFDF8;outline:none;transition:border-color .15s;}
+.gt-input:focus{border-color:var(--sea);}
+.gt-add{background:var(--coral);color:#fff;border:none;border-radius:14px;padding:0 18px;font-family:inherit;font-size:15px;cursor:pointer;box-shadow:0 4px 0 #E56B5B;transition:transform .08s,box-shadow .08s;white-space:nowrap;}
+.gt-add:active{transform:translateY(3px);box-shadow:0 1px 0 #E56B5B;}
+
+/* SCHEDULE */
+.gt-sched-head{display:flex;align-items:center;gap:8px;margin:6px 2px 14px;}
+.gt-sched-head h2{font-size:23px;}
+.gt-day{border:2px solid #F0E6D2;position:relative;overflow:hidden;}
+.gt-day::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--accent);}
+.gt-day-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.gt-day-badge{background:var(--accent);color:#fff;font-size:14px;padding:4px 14px;border-radius:999px;}
+.gt-day-date{color:var(--soft);font-size:15px;}
+.gt-day-title{display:flex;align-items:center;gap:8px;}
+.gt-day-emoji{font-size:26px;}
+.gt-day-title h3{font-size:21px;color:var(--navy);}
+.gt-day-desc{font-family:'Gaegu',cursive;font-weight:700;color:#6a7f8d;font-size:16px;margin:6px 0 14px;}
+.gt-meals{display:flex;flex-direction:column;gap:14px;}
+.gt-meal{background:#FBFBF7;border-radius:16px;padding:12px 14px;border:1.5px dashed #E7DCC5;}
+.gt-meal-label{display:flex;justify-content:space-between;align-items:center;font-size:16px;color:var(--navy);margin-bottom:8px;}
+.gt-meal-count{font-size:12px;color:var(--soft);}
+.gt-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px;}
+.gt-empty{font-family:'Gaegu',cursive;font-weight:700;color:#c3b8a5;font-size:15px;}
+.gt-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:2px solid var(--peach);color:var(--navy);border-radius:999px;padding:5px 6px 5px 13px;font-size:14px;}
+.gt-chip button{background:var(--peach);border:none;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
+.gt-chip button:hover{background:var(--coral);}
+
+/* PAGE BANNER (앨범/한마디) */
+.gt-page-banner{border-radius:26px;padding:26px 20px;text-align:center;color:#fff;margin-bottom:14px;box-shadow:0 10px 22px rgba(0,0,0,.10);}
+.gt-page-banner.album{background:linear-gradient(160deg,#7FD0F0,#3FA9D6);}
+.gt-page-banner.guest{background:linear-gradient(160deg,#FFB0D2,#FF8FBE);}
+.gt-banner-emoji{font-size:42px;}
+.gt-page-banner h1{font-size:28px;margin-top:6px;text-shadow:0 2px 0 rgba(0,0,0,.08);}
+.gt-page-banner p{font-size:15px;opacity:.95;margin-top:4px;}
+
+/* UPLOAD */
+.gt-upload{width:100%;background:var(--sea);color:#fff;border:none;border-radius:18px;padding:16px;font-family:inherit;font-size:18px;cursor:pointer;box-shadow:0 6px 0 var(--sea-deep);transition:transform .08s,box-shadow .08s;margin-bottom:16px;}
+.gt-upload:active{transform:translateY(4px);box-shadow:0 2px 0 var(--sea-deep);}
+.gt-upload:disabled{opacity:.7;}
+
+/* GALLERY */
+.gt-gallery{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.gt-photo{background:#fff;border-radius:18px;padding:8px;border:2px solid #F0E6D2;box-shadow:0 6px 16px rgba(63,169,214,.10);transform:rotate(-1deg);}
+.gt-photo:nth-child(even){transform:rotate(1.2deg);}
+.gt-photo-imgwrap{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:1/1;background:#EAF7FC;}
+.gt-photo-imgwrap img{width:100%;height:100%;object-fit:cover;display:block;}
+.gt-photo-del{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.45);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:12px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
+.gt-caption{width:100%;border:none;background:none;text-align:center;font-family:'Gaegu',cursive;font-weight:700;font-size:14px;color:var(--navy);padding:8px 4px 4px;outline:none;}
+.gt-caption::placeholder{color:#cfc4b0;}
+
+/* EMPTY */
+.gt-empty-album{text-align:center;padding:40px 20px;color:var(--soft);}
+.gt-empty-emoji{font-size:52px;margin-bottom:10px;}
+.gt-empty-album p{font-family:'Gaegu',cursive;font-weight:700;font-size:17px;line-height:1.5;}
+
+/* GUESTBOOK */
+.gt-writebox{display:flex;flex-direction:column;gap:10px;}
+.gt-name-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.gt-name-chip{background:#FFF9EF;border:2px solid #F3E7CF;border-radius:999px;padding:6px 12px;font-family:inherit;font-size:13px;color:var(--navy);cursor:pointer;transition:transform .08s;}
+.gt-name-chip:active{transform:scale(1.06);}
+.gt-name-chip.sel{background:#FFE7D6;border-color:var(--coral);}
+.gt-textarea{border:2px solid #EFE3CB;border-radius:14px;padding:12px 14px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:15px;color:var(--navy);background:#FFFDF8;outline:none;resize:vertical;transition:border-color .15s;}
+.gt-textarea:focus{border-color:var(--pink);}
+.gt-send{background:var(--pink);color:#fff;border:none;border-radius:14px;padding:14px;font-family:inherit;font-size:17px;cursor:pointer;box-shadow:0 5px 0 #e87aab;transition:transform .08s,box-shadow .08s;}
+.gt-send:active{transform:translateY(3px);box-shadow:0 2px 0 #e87aab;}
+.gt-msgs{display:flex;flex-direction:column;gap:12px;margin-top:16px;}
+.gt-bubble{background:#fff;border:2px solid #FFE0EE;border-radius:20px;border-top-left-radius:6px;padding:14px 16px;box-shadow:0 6px 16px rgba(255,156,197,.14);}
+.gt-bubble-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.gt-bubble-name{color:var(--pink);font-size:15px;}
+.gt-bubble-text{font-family:'Gaegu',cursive;font-weight:700;font-size:17px;color:var(--navy);line-height:1.45;white-space:pre-wrap;word-break:break-word;}
+
+/* TAB BAR */
+.gt-tabspace{height:78px;}
+.gt-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;justify-content:center;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-top:2px solid #F0E6D2;box-shadow:0 -4px 18px rgba(63,169,214,.10);}
+.gt-tab{flex:1;max-width:150px;background:none;border:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:16px;color:var(--soft);transition:transform .15s cubic-bezier(.34,1.56,.64,1),background .15s;}
+.gt-tab-emoji{font-size:24px;transition:transform .2s;}
+.gt-tab-label{font-size:12px;}
+.gt-tab.active{color:var(--navy);background:#FFF3E4;transform:translateY(-4px) scale(1.04);}
+.gt-tab.active .gt-tab-emoji{animation:gt-bounce .5s cubic-bezier(.34,1.56,.64,1);}
+@keyframes gt-bounce{0%{transform:scale(1);}40%{transform:scale(1.35) translateY(-4px);}100%{transform:scale(1);}}
+
+@media (max-width:400px){
+  .gt-title{font-size:34px;}.gt-now-temp{font-size:38px;}
+  .gt-page-banner h1{font-size:24px;}
+}
+`;
