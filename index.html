@@ -1,0 +1,1954 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>에코쌤즈 따로 또 같이</title>
+<meta name="description" content="에코쌤즈 기후행동 실천모임 · 우리 지역 광합성 지도: 실시간 일사량·PAR 지수, 식물 AI 동정, 탄소 고정 잠재량 지도">
+<meta name="theme-color" content="#2FA463">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232FA463'/%3E%3Ccircle cx='32' cy='34' r='17' fill='%234FB7E8'/%3E%3Cpath d='M22 28c5-4 9 1 6 5s3 7-2 9c-5-2-8-8-4-14zM38 24c5 0 8 4 6 8s-6 2-7-2 0-6 1-6z' fill='%2378C04A'/%3E%3Cpath d='M32 17c0-6 4-10 10-11-1 6-4 10-10 11z' fill='%23FFEB3B'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Share+Tech+Mono&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        snow: "#1D3B2A", mist: "#5F7A68", photon: "#1E9E57", chloro: "#2FA463",
+        amber: { DEFAULT: "#D98E04" }, line: "rgba(29,59,42,0.12)",
+      },
+      fontFamily: {
+        display: ['"Jua"', '"IBM Plex Sans KR"', "system-ui", "sans-serif"],
+        sans: ['"IBM Plex Sans KR"', "system-ui", "-apple-system", '"Apple SD Gothic Neo"', '"Malgun Gothic"', "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+      },
+    } },
+  };
+</script>
+<style>
+/* 레이아웃: 포스터식 초록 격자 머리 그림(제목·부제 상자·캐릭터·언덕) → 흰 카드 대시보드 한 열. 단일 밝은 테마 */
+:root{
+  --grass:#2FA463; --grass-deep:#1E7F4A; --grass-ink:#1D3B2A; --lime:#C6DE3A; --leaf:#7CC242;
+  --sun:#FFEB3B; --cream:#FFFBE6; --paper:#F6FAF2; --card:#FFFFFF; --mist:#5F7A68;
+  --line:rgba(29,59,42,.12); --line-2:rgba(29,59,42,.2); --sky:#4FB7E8; --amber:#D98E04; --rose:#D9365A;
+  --f-display:"Jua","IBM Plex Sans KR",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--paper);color:var(--grass-ink);font-family:var(--f-body);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.font-display{font-family:var(--f-display);font-weight:400;letter-spacing:.01em;text-wrap:balance}
+.wrap{max-width:1080px;margin:0 auto;padding-top:18px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--grass)}
+
+/* ===== 포스터식 머리 그림 ===== */
+.hero{position:relative;overflow:hidden;background-color:var(--grass);
+  background-image:linear-gradient(rgba(255,255,255,.16) 1.5px,transparent 1.5px),linear-gradient(90deg,rgba(255,255,255,.16) 1.5px,transparent 1.5px);
+  background-size:44px 44px;background-position:-1px -1px}
+.hero-in{position:relative;z-index:2;max-width:1080px;margin:0 auto;text-align:center;
+  padding-block:22px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.hero-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.45);
+  color:#fff;font-size:12.5px;font-weight:600;letter-spacing:.02em}
+.hero-title{font-family:var(--f-display);font-weight:400;margin:6px 0 0;line-height:1.08;font-size:clamp(38px,9.4vw,92px);letter-spacing:.01em;
+  text-wrap:balance;text-shadow:0 4px 0 rgba(20,90,50,.35)}
+.hero-title .y{color:var(--sun)} .hero-title .w{color:#fff} .hero-title span{white-space:nowrap}
+.hero-sub{display:inline-block;margin-top:16px;background:var(--cream);color:var(--grass-deep);font-family:var(--f-display);
+  font-size:clamp(17px,3.6vw,30px);padding:8px clamp(16px,4vw,34px);border:3px solid var(--grass-deep);box-shadow:7px 7px 0 rgba(255,255,255,.55);text-wrap:balance}
+.hero-app{margin-top:12px;color:#fff;font-size:13px;font-weight:600;opacity:.95}
+.hero-art{position:relative;z-index:1;display:block;width:100%;height:clamp(150px,27vw,330px);margin-top:-18px}
+.hero-small .hero-title{font-size:clamp(30px,6.4vw,58px)} .hero-small .hero-sub{font-size:clamp(15px,2.8vw,22px);margin-top:12px}
+.hero-small .hero-art{height:clamp(130px,20vw,240px)}
+
+/* 사용자 바 */
+.me-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:2px solid var(--grass);border-radius:16px;padding:9px 12px}
+.me-name{font-family:var(--f-display);font-size:18px;color:var(--grass-deep)}
+.icon-btn{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;border:1.5px solid var(--line-2);background:#fff;color:var(--mist)}
+.icon-btn:hover{color:var(--grass-deep);border-color:var(--grass)}
+
+/* 카드와 섹션 머리표 (포스터의 초록 알약 제목) */
+.glass{background:var(--card);border:1.5px solid var(--line);border-radius:20px;box-shadow:0 6px 18px rgba(30,127,74,.07);min-width:0}
+.glass-2{background:#FBFDF7;border:1.5px solid var(--line);border-radius:16px}
+.pill-h{display:inline-flex;align-items:center;gap:7px;background:var(--grass);color:#fff;font-family:var(--f-display);font-size:18px;
+  padding:5px 16px 4px;border-radius:999px;box-shadow:0 3px 0 var(--grass-deep)}
+.stat{background:#F3F8EC;border:1.5px solid rgba(124,194,66,.28);border-radius:14px;padding:9px 11px;min-width:0}
+.lbl{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--grass-deep);margin-bottom:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:13px;color:var(--mist);border:1.5px solid var(--line-2);background:#fff}
+.chip:hover{color:var(--grass-deep);border-color:var(--grass)}
+.chip-on{color:#fff;border-color:var(--grass);background:var(--grass)}
+.badge{display:inline-flex;align-items:center;padding:1px 9px;border-radius:999px;font-size:12px;font-family:var(--f-mono);border:1.5px solid var(--line-2);color:var(--mist);background:#fff}
+.bar{height:8px;border-radius:99px;background:#E6EFDC;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--leaf),var(--grass));transition:width .6s ease}
+.tax{display:inline-flex;gap:5px;padding:2px 9px;border-radius:8px;background:#F3F8EC;border:1px solid rgba(124,194,66,.35);color:var(--grass-ink)}
+.tax b{font-weight:700;color:var(--grass)}
+.carbon{border-radius:16px;padding:14px;border:2px solid var(--grass);background:linear-gradient(140deg,#EFF8E4,#FFFBE6)}
+.glow{text-shadow:none}
+.insight{border-radius:14px;padding:12px;background:#FFF8DB;border:1.5px solid #F2D45A}
+.link-btn{display:inline-flex;align-items:center;gap:5px;color:var(--grass-deep);font-size:13px;font-weight:600}
+.link-btn:hover{color:var(--grass)}
+
+/* 지도 */
+.mapbox{height:max(340px,54vh);border-radius:16px;overflow:hidden;border:2px solid var(--grass);background:#E8F1E0}
+.leaflet-container{background:#E8F1E0;font-family:var(--f-body)}
+.map-tools{position:absolute;top:10px;right:10px;z-index:500;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.tool{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:11px;font-size:13px;font-weight:600;background:#fff;border:1.5px solid var(--line-2);color:var(--grass-ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.tool-on{color:#fff;background:var(--grass);border-color:var(--grass)}
+.fab{position:absolute;bottom:34px;right:10px;z-index:500;display:flex;align-items:center;gap:7px;padding:11px 16px;border-radius:14px;font-family:var(--f-display);font-size:16px;
+  color:var(--grass-ink);background:var(--sun);border:2.5px solid var(--grass-deep);box-shadow:4px 4px 0 var(--grass-deep)}
+.legend{position:absolute;left:10px;bottom:34px;z-index:500;display:flex;gap:10px;flex-wrap:wrap;max-width:calc(100% - 210px);padding:6px 10px;border-radius:11px;font-size:12px;
+  background:rgba(255,255,255,.95);border:1.5px solid var(--line-2);color:var(--grass-ink)}
+.lg{width:10px;height:10px;border-radius:50%;display:inline-block}
+.lg-high{background:#16A34A} .lg-mid{background:#84CC16} .lg-low{background:#F59E0B}
+@media (max-width:560px){.legend{max-width:calc(100% - 20px);bottom:auto;top:10px;right:auto}.map-tools{top:auto;bottom:86px}}
+
+/* 엽록소 펄스 마커 */
+.pin{position:relative;display:block;width:28px;height:28px;--c:#84CC16}
+.pin-high{--c:#16A34A} .pin-mid{--c:#84CC16} .pin-low{--c:#F59E0B}
+.pin::before,.pin::after{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--rc,var(--c));opacity:.5;animation:pulse 2.4s ease-out infinite}
+.pin::after{animation-delay:1.2s}
+.pin-high::before,.pin-high::after{animation-duration:1.5s}
+.pin-low::before,.pin-low::after{animation-duration:3.4s;opacity:.35}
+.pin i{position:absolute;inset:7px;border-radius:50%;background:var(--rc,var(--c));box-shadow:0 0 6px rgba(0,0,0,.4)}
+.pin b{position:absolute;inset:4px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.pin-sample{opacity:.6}
+.pin-sel b{inset:1px;border-width:3px}
+@keyframes pulse{0%{transform:scale(1);opacity:.5}100%{transform:scale(2.8);opacity:0}}
+.me{position:relative;display:block;width:22px;height:22px}
+.me::before{content:"";position:absolute;inset:0;border-radius:50%;background:rgba(79,183,232,.3);animation:pulse 2s ease-out infinite}
+.me i{position:absolute;inset:5px;border-radius:50%;background:#2B9BD6;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+
+/* 표 */
+.row{background:#F8FBF4;cursor:pointer;transition:background .15s}
+.row:hover,.row:focus-visible{background:#EAF5DF}
+
+/* 모달 */
+.modal-bg{position:fixed;inset:0;z-index:1000;background:rgba(20,50,32,.5);backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;
+  padding-block:max(24px,env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+.modal{width:100%;max-width:680px;background:#fff;border:3px solid var(--grass);border-radius:22px;padding:18px;box-shadow:0 24px 60px rgba(20,60,35,.35)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 10px;border-radius:16px;border:2px dashed var(--leaf);background:#F3F9EA;color:var(--grass-deep);font-size:14px;font-weight:600}
+.drop:hover{background:#E8F4DA}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld>span{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--grass-deep)}
+.fld input,.fld textarea{width:100%;background:#fff;border:1.5px solid var(--line-2);border-radius:12px;padding:9px 12px;color:var(--grass-ink);font:inherit;font-size:15px}
+.fld input:focus,.fld textarea:focus{outline:none;border-color:var(--grass);box-shadow:0 0 0 3px rgba(47,164,99,.18)}
+.btn-primary,.btn-save{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;font-size:15px;font-weight:700}
+.btn-primary{color:var(--grass-deep);background:#EFF8E4;border:2px solid var(--grass)}
+.btn-primary:hover:not(:disabled){background:#E3F2D3}
+.btn-save{color:#fff;background:var(--grass);border:2px solid var(--grass-deep);box-shadow:0 4px 0 var(--grass-deep)}
+.btn-save:active:not(:disabled){transform:translateY(2px);box-shadow:0 2px 0 var(--grass-deep)}
+.btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:12px;border:1.5px solid var(--line-2);font-size:13px;font-weight:600;color:var(--grass-ink);background:#fff}
+.btn-danger{padding:8px 12px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;background:var(--rose)}
+.err{font-size:13px;color:#9F1239;background:#FFF1F3;border:1.5px solid #FBC8D2;border-radius:12px;padding:9px 12px}
+.exp{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line-2);background:#fff;color:var(--grass-ink)}
+.exp:hover:not(:disabled){border-color:var(--grass);background:#F3F9EA}
+.exp b{display:block;font-size:14.5px} .exp small{display:block;color:var(--mist);font-size:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:1200;padding:10px 18px;border-radius:14px;
+  background:var(--grass-ink);color:#fff;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
+.boot{min-height:60vh;display:grid;place-items:center;color:var(--mist);font-size:14px;text-align:center;padding:24px}
+
+/* 로그인 */
+.gate{min-height:100vh;display:flex;flex-direction:column;background:var(--paper)}
+.gate-card{width:100%;max-width:440px;margin:-8px auto 0;position:relative;z-index:3;background:#fff;border:3px solid var(--grass-deep);border-radius:24px;padding:20px;
+  box-shadow:8px 8px 0 rgba(30,127,74,.25)}
+.gate-card.shake{animation:shake .42s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.who-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.who-b{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:14px;border:2px solid var(--line-2);background:#fff;font-size:16px;font-weight:700;color:var(--grass-ink)}
+.who-b:hover{border-color:var(--grass)}
+.who-on{border-color:var(--grass);background:#EFF8E4;box-shadow:0 3px 0 var(--grass)}
+.pin-in{width:100%;text-align:center;font-family:var(--f-mono);font-size:24px;letter-spacing:.6em;padding:11px 12px 11px calc(12px + .6em);border-radius:14px;border:2px solid var(--line-2);color:var(--grass-ink)}
+.pin-in:focus{outline:none;border-color:var(--grass);box-shadow:0 0 0 3px rgba(47,164,99,.18)}
+.gate-go{width:100%;padding:14px;border-radius:16px;font-family:var(--f-display);font-size:20px;color:var(--grass-ink);background:var(--sun);border:2.5px solid var(--grass-deep);box-shadow:0 4px 0 var(--grass-deep)}
+.gate-go:active{transform:translateY(2px);box-shadow:0 2px 0 var(--grass-deep)}
+
+/* ===== 따로 또 같이 ===== */
+.hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.hero-me{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.5);color:#fff;font-weight:700;font-size:13px}
+.hero-motto{display:inline-flex;align-items:baseline;gap:8px;margin-top:14px;color:#fff;font-family:var(--f-display);font-size:clamp(18px,3.4vw,26px);flex-wrap:wrap;justify-content:center}
+.hero-motto .m-solo{background:#2B9BD6;padding:2px 12px;border-radius:10px 2px 10px 2px;transform:rotate(-3deg);display:inline-block;box-shadow:3px 3px 0 #1C6E9C}
+.hero-motto .m-team{background:var(--sun);color:var(--grass-deep);padding:2px 12px;border-radius:2px 10px 2px 10px;transform:rotate(3deg);display:inline-block;box-shadow:3px 3px 0 var(--grass-deep)}
+.hero-motto .m-amp{opacity:.9}
+.hero-motto .m-rest{font-family:var(--f-body);font-size:13px;font-weight:600;opacity:.95;flex-basis:100%;text-align:center}
+.strip-btn{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.45);color:#fff}
+.strip-btn.on{background:var(--sun);color:var(--grass-deep);border-color:var(--sun)}
+.strip{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background-color:var(--grass);
+  background-image:linear-gradient(rgba(255,255,255,.14) 1.5px,transparent 1.5px),linear-gradient(90deg,rgba(255,255,255,.14) 1.5px,transparent 1.5px);background-size:32px 32px;
+  border-bottom:4px solid var(--lime);box-shadow:0 4px 0 var(--leaf)}
+.strip-in{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.strip-team{color:#E9F7D8;font-size:12px;font-weight:600} .strip-team b{color:var(--sun);font-family:var(--f-display);font-weight:400;font-size:14px}
+.strip-title{display:flex;align-items:center;gap:7px;color:#fff;font-family:var(--f-display);font-size:24px;line-height:1.1;white-space:nowrap}
+.strip-title small{font-family:var(--f-body);font-size:12px;font-weight:600;color:#E9F7D8;overflow:hidden;text-overflow:ellipsis}
+.strip-me{display:inline-flex;align-items:center;gap:6px;color:#fff;font-weight:700;font-size:13px;padding:0 4px}
+@media (max-width:420px){.strip-me{display:none}.strip-title small{display:none}}
+.tab-is-today .wrap{padding-top:14px}
+
+/* 아래 탭 */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:900;display:grid;grid-template-columns:repeat(6,1fr);background:#fff;border-top:3px solid var(--grass);
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);box-shadow:0 -6px 20px rgba(30,127,74,.12)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;font-size:12px;font-weight:700;color:var(--mist);position:relative}
+.tab-ic{position:relative;display:grid;place-items:center;width:44px;height:30px;border-radius:999px;transition:background .2s}
+.tab-ic i{position:absolute;top:-4px;right:-2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--sun);color:var(--grass-ink);font-style:normal;font-size:10.5px;line-height:18px;font-family:var(--f-mono);border:1.5px solid var(--grass-deep)}
+.tab-on{color:var(--grass-deep)} .tab-on .tab-ic{background:#E3F3D6}
+.tab-solo.tab-on{color:#1C6E9C} .tab-solo.tab-on .tab-ic{background:#DDF0FA}
+.tab-archive.tab-on .tab-ic{background:#FFF3B0}
+.tab-activity.tab-on{color:#B4600E} .tab-activity.tab-on .tab-ic{background:#FDE8D4}
+@media (max-width:380px){.tab{font-size:11px}.tab-ic{width:38px}}
+/* 활동 사진 */
+.act-hero{display:flex;align-items:center;gap:14px;text-align:left;padding:16px;border-radius:20px;background:#E8862A;color:#fff;border:2.5px solid #B4600E;box-shadow:5px 5px 0 #B4600E}
+.act-hero:active{transform:translate(2px,2px)}
+.act-hero-ic{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.2);flex:none}
+.act-hero b{display:block;font-family:var(--f-display);font-weight:400;font-size:22px} .act-hero small{display:block;font-size:12.5px;opacity:.95;line-height:1.45}
+.pill-act{background:#E8862A;box-shadow:0 3px 0 #B4600E}
+.drop-act{border-color:#F0A35E;background:#FFF4EA;color:#B4600E}
+.act-timeline{display:grid;gap:16px;border-left:3px dashed #F0A35E;padding-left:14px;margin-left:6px}
+.act-day{position:relative;display:grid;gap:8px}
+.act-day::before{content:"";position:absolute;left:-23px;top:4px;width:14px;height:14px;border-radius:50%;background:#E8862A;border:3px solid #fff;box-shadow:0 0 0 2px #E8862A}
+.act-date{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap} .act-date span{font-size:15px;font-weight:700;color:#FF7A12} .act-date small{font-size:12.5px;color:var(--grass-ink);font-weight:600}
+.act-thumbs{display:flex;gap:6px;overflow-x:auto;padding:2px} .act-thumbs img{width:54px;height:54px;object-fit:cover;border-radius:6px;flex:none;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.seg3-b.on.s-activity{background:#E8862A;box-shadow:0 2px 0 #B4600E}
+.fld input[type=datetime-local]{font-family:var(--f-mono);font-size:16px}
+/* 위치 콕 찍기 */
+.pickwrap{position:relative}
+.pickmap{height:min(46vh,340px);border-radius:14px;overflow:hidden;border:2px solid var(--grass);background:#2b3a2f}
+.pick-read{position:absolute;right:8px;bottom:8px;z-index:500;background:rgba(0,0,0,.62);color:#fff;font-size:11px;padding:3px 8px;border-radius:8px;pointer-events:none}
+.pick-pin{position:relative;display:block;width:34px;height:44px}
+.pick-pin::before{content:"";position:absolute;left:3px;top:0;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--c,#DC4B31);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.pick-pin i{position:absolute;left:12px;top:9px;width:10px;height:10px;border-radius:50%;background:#fff}
+.pick-pin::after{content:"";position:absolute;left:15px;bottom:0;width:4px;height:4px;border-radius:50%;background:var(--c,#DC4B31);box-shadow:0 0 0 2px #fff}
+.leaflet-control-layers{border-radius:12px!important;border:2px solid var(--grass)!important;font-family:var(--f-body);font-size:13px}
+.leaflet-control-layers-expanded{padding:8px 10px!important}
+.leaflet-control-scale-line{border-color:#fff!important;color:#fff;background:rgba(0,0,0,.45)!important;text-shadow:none}
+.mapbox,.pickmap{background:#2b3a2f}
+
+/* 오늘: 따로/같이 두 갈래 */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.duo-b{position:relative;text-align:left;border-radius:20px;padding:14px 14px 16px;color:#fff;display:grid;gap:2px;overflow:hidden;min-height:132px;border:2.5px solid rgba(0,0,0,.18)}
+.duo-solo{background:#2B9BD6;box-shadow:5px 5px 0 #1C6E9C;transform:rotate(-1deg)}
+.duo-team{background:var(--grass);box-shadow:5px 5px 0 var(--grass-deep);transform:rotate(1deg)}
+.duo-b:active{transform:translate(2px,2px)}
+.duo-k{font-family:var(--f-display);font-size:34px;line-height:1;color:var(--sun)}
+.duo-solo .duo-k{color:#fff;text-shadow:2px 2px 0 #1C6E9C}
+.duo-b b{font-family:var(--f-display);font-weight:400;font-size:clamp(15px,4vw,19px);word-break:keep-all} .duo-b small{font-size:12px;opacity:.92}
+.duo-go{position:absolute;right:10px;top:10px;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.22)}
+.duo-b::after{content:"";position:absolute;right:-26px;bottom:-26px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12)}
+.tally{display:flex;align-items:stretch;gap:6px}
+.tally button{flex:1;display:grid;justify-items:center;gap:0;padding:10px 4px;border-radius:16px;background:#F3F8EC;border:1.5px solid rgba(124,194,66,.3)}
+.tally button span{font-family:var(--f-display);font-size:16px;color:var(--grass-ink)} .tally b{font-size:26px;color:var(--grass-ink)} .tally small{font-size:11.5px;color:var(--mist)}
+.tally-amp{align-self:center;font-family:var(--f-display);font-size:22px;color:var(--leaf)}
+.strip-prints{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px}
+.strip-prints .print{flex:0 0 120px}
+
+/* 프레임 사진 */
+.print{position:relative;display:block;width:100%;aspect-ratio:4/5;background:#FFFBEF;border-radius:4px;transform:rotate(var(--tilt,0deg));
+  box-shadow:0 2px 0 rgba(0,0,0,.05),0 8px 16px rgba(40,70,40,.16);transition:transform .2s;overflow:hidden}
+.print:hover{transform:rotate(0) scale(1.02)}
+.print img{width:100%;height:100%;object-fit:cover;display:block}
+.print-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8%;text-align:center}
+.print-ph{width:62%;aspect-ratio:1;display:grid;place-items:center;background:#E8F2DE;color:var(--leaf);margin-bottom:6px}
+.print-empty b{font-family:var(--f-display);font-weight:400;font-size:15px;color:var(--grass-deep);line-height:1.15}
+.print-empty small{font-size:10.5px;color:var(--mist)} .print-empty em{font-style:normal;color:#FF8A1E;font-size:12px}
+.print-sample{position:absolute;top:6px;left:6px;font-size:10px;font-weight:700;color:#fff;background:var(--amber);border-radius:6px;padding:1px 6px}
+.prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px 12px;padding:4px}
+.prints-s{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+
+/* 따로: 네 갈래 */
+.lanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:640px){.lanes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lane{display:grid;gap:4px;text-align:left;padding:10px;border-radius:16px;background:#fff;border:2px solid var(--line-2);border-top:6px solid var(--c)}
+.lane-on{border-color:var(--c);box-shadow:0 4px 0 var(--c)}
+.lane-top{display:flex;align-items:center;gap:6px;font-size:14px} .lane-top em{font-style:normal;font-size:10px;font-weight:700;color:#fff;background:var(--c);border-radius:6px;padding:0 5px}
+.lane-home{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--mist);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lane-n{font-size:22px;color:var(--grass-ink);line-height:1} .lane-n small{font-size:11px;color:var(--mist);margin-left:3px;font-family:var(--f-body)}
+.lane-thumbs{display:flex;gap:4px;min-height:30px}
+.lane-thumbs img,.lane-thumbs i{width:30px;height:36px;border-radius:3px;object-fit:cover;background:#EEF5E6;display:grid;place-items:center;color:var(--leaf)}
+.home-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:13px;color:var(--grass-ink);background:#EEF7FC;border:1.5px dashed #7CC0E6;border-radius:12px;padding:8px 10px}
+.pill-solo{background:#2B9BD6;box-shadow:0 3px 0 #1C6E9C}
+.btn-add{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:12px;font-family:var(--f-display);font-size:16px;color:#fff;background:var(--c);box-shadow:0 3px 0 rgba(0,0,0,.25)}
+.empty-note{padding:22px 14px;border-radius:16px;border:2px dashed var(--line-2);color:var(--mist);text-align:center;font-size:13.5px;line-height:1.6;background:#FBFDF7}
+
+/* 같이: 학교 표본함 */
+.contrib{display:flex;gap:4px;height:34px}
+.contrib span{flex-basis:0;min-width:64px;display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 9px;border-radius:9px;background:var(--c);color:#fff;font-family:var(--f-mono);font-size:13px}
+.contrib b{font-family:var(--f-body);font-size:12px}
+.herb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.herb{position:relative;background:#F4ECD8;border-radius:6px;padding:14px 14px 12px;transform:rotate(var(--tilt,0deg));box-shadow:0 10px 22px rgba(80,60,20,.16);
+  background-image:radial-gradient(rgba(120,90,40,.07) 1px,transparent 1px);background-size:6px 6px}
+.tape{position:absolute;top:-9px;left:50%;width:90px;height:22px;transform:translateX(-50%) rotate(-3deg);background:rgba(255,235,59,.75);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.herb-photo{display:block;width:100%;aspect-ratio:4/5;background:#FFFBEF;overflow:hidden;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.herb-photo img{width:100%;height:100%;object-fit:cover}
+.herb-photo span{display:grid;place-items:center;height:100%;color:var(--leaf)}
+.herb-label{margin-top:12px;background:#FFFEF8;border:1.5px solid #2B2B2B;padding:10px 12px;font-size:12.5px;color:#2B2B2B}
+.herb-no{font-size:11px;letter-spacing:.06em;border-bottom:1px solid #2B2B2B;padding-bottom:4px;margin-bottom:6px}
+.herb-name{font-family:var(--f-display);font-size:21px;line-height:1.1}
+.herb-sci{font-style:italic;font-family:Georgia,"Times New Roman",serif;font-size:14px;margin-bottom:6px}
+.herb-label dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0}
+.herb-label dt{color:#6B6B5A;font-size:11.5px} .herb-label dd{margin:0}
+
+/* 지도 */
+.seg3{display:flex;gap:4px;padding:4px;background:#EEF5E6;border-radius:14px}
+.seg3-b{flex:1;padding:8px 6px;border-radius:10px;font-size:13.5px;font-weight:700;color:var(--mist);white-space:nowrap}
+.seg3-b.on{background:var(--grass);color:#fff;box-shadow:0 2px 0 var(--grass-deep)}
+.seg3-b.on.s-solo{background:#2B9BD6;box-shadow:0 2px 0 #1C6E9C}
+.lg-solo{background:#fff;border:2.5px solid #2B9BD6} .lg-team{background:#fff;border:2.5px solid var(--grass);border-radius:3px!important}
+.pin-team i{border-radius:4px} .pin-team b{border-radius:6px}
+.pin-team::before,.pin-team::after{border-radius:6px}
+.home-pin{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:#fff;border:2px solid var(--c);color:var(--grass-ink);
+  font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px 2px 3px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.home-pin i{font-style:normal;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:#fff;font-size:12px}
+.rank{display:grid;gap:6px;max-height:min(52vh,520px);overflow-y:auto}
+.rank-row{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:12px;background:#F8FBF4;border:1.5px solid transparent;text-align:left}
+.rank-row:hover{border-color:var(--leaf)}
+.rank-i{width:22px;text-align:right;color:var(--mist);font-size:12px}
+.rank-row img,.rank-ph{width:40px;height:50px;object-fit:cover;border-radius:3px;flex:none;background:#EEF5E6;display:grid;place-items:center;color:var(--leaf)}
+.rank-row b{display:block;font-size:14px;color:var(--grass-ink)} .rank-row small{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--mist);white-space:nowrap;overflow:hidden}
+.mode-tag{display:inline-flex;align-items:center;padding:0 8px;border-radius:6px;border:2px solid;font-family:var(--f-display);font-size:14px;line-height:1.35;background:#fff}
+.mode-tag-s{font-size:11px;padding:0 5px;border-width:1.5px}
+
+/* 아카이브 */
+.reel{display:grid;gap:0;border-radius:16px;overflow:hidden;background:#1F2A24;color:#fff;text-align:left;box-shadow:6px 6px 0 var(--grass)}
+.reel-holes{height:16px;background-image:radial-gradient(circle at 50% 50%,#F6FAF2 4px,transparent 4.5px);background-size:22px 16px;background-repeat:repeat-x;background-position:6px 0}
+.reel-body{display:flex;align-items:center;gap:12px;padding:12px 16px;color:var(--sun)}
+.reel-body b{display:block;font-family:var(--f-display);font-weight:400;font-size:22px;color:#fff} .reel-body small{display:block;font-size:12.5px;color:#CFE6D6}
+.day-h{display:flex;align-items:baseline;gap:8px;border-bottom:2px dashed var(--line-2);padding-bottom:4px}
+.day-h span{font-size:15px;color:#FF7A12;font-weight:700} .day-h small{font-size:12px;color:var(--mist)}
+
+/* 기록 창 */
+.frame-prev{position:relative;max-width:360px;margin:0 auto;border-radius:6px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.18);transform:rotate(-1deg);background:#FFFBEF;aspect-ratio:4/5}
+.frame-prev img{width:100%;height:100%;object-fit:cover;display:block}
+.frame-wait{display:grid;place-items:center;height:100%;color:var(--mist)}
+.detail-photo{display:block;width:100%;max-width:420px;margin:0 auto 12px;border-radius:6px;box-shadow:0 10px 24px rgba(0,0,0,.18)}
+.loc-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:12px;background:#F3F8EC;font-size:12.5px;color:var(--grass-ink)}
+.mini-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:9px;background:#fff;border:1.5px solid var(--line-2);font-size:12px;font-weight:700;color:var(--grass-deep)}
+.who-b small{font-size:11px;font-weight:600;color:var(--mist)}
+.pb-28{padding-bottom:112px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="root"><div class="boot">기후행동 실천모임을 여는 중…</div></div>
+<noscript><div class="boot">이 앱은 자바스크립트가 필요해요.</div></noscript>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<script>
+/* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
+ * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
+ * 2) 잎 단위 순광합성 A = [α·I·Amax / (α·I + Amax)] × f(T) × f(VPD) − Rd   (직각쌍곡선 광반응곡선)
+ * 3) 군락 단위: 유효 엽면적 = (1 − e^(−k·LAI)) / k  (Beer 법칙, k = 0.5)
+ * 4) g CO₂/h·m² = A(µmol/m²/s) × 3600 × 44.01×10⁻⁶
+ * 계수는 교과·문헌의 대표값이며, 현장 측정값이 아닌 '추정치'입니다.
+ */
+(function (root) {
+  const PS_TYPES = {
+    C3:  { label: "C₃",  amax: 22, alpha: 0.05,  topt: 25, rdFrac: 0.06, vpdSensitive: true,
+           note: "대부분의 식물. 강광·고온에서 광호흡으로 효율이 떨어져요." },
+    C4:  { label: "C₄",  amax: 38, alpha: 0.065, topt: 33, rdFrac: 0.05, vpdSensitive: true,
+           note: "옥수수·강아지풀 등. 강광·고온에서 효율이 높아요." },
+    CAM: { label: "CAM", amax: 3,  alpha: 0.03,  topt: 30, rdFrac: 0.10, vpdSensitive: false,
+           note: "다육식물 등. 낮에는 기공을 닫고 밤에 CO₂를 고정해요(낮 값은 매우 작음)." },
+  };
+  const FORMS = {
+    "목본":     { amaxScale: 1.0,  lai: 4.0 },
+    "초본":     { amaxScale: 1.0,  lai: 2.5 },
+    "양치식물": { amaxScale: 0.45, lai: 1.5 },
+    "이끼류":   { amaxScale: 0.2,  lai: 1.0 },
+  };
+  const K_EXT = 0.5;
+  const G_PER_UMOL_HOUR = 3600 * 44.01e-6; // = 0.158436
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const num = (v, d) => (typeof v === "number" && isFinite(v) ? v : d);
+
+  function ppfdFromSW(sw) { return Math.max(0, num(sw, 0)) * 0.45 * 4.57; }
+  function parIndex(ppfd) { return Math.round(clamp(num(ppfd, 0) / 2000 * 100, 0, 100)); }
+  function activity(ppfd) {
+    const p = num(ppfd, 0);
+    if (p >= 800) return { key: "high", label: "활발" };
+    if (p >= 200) return { key: "mid", label: "보통" };
+    return { key: "low", label: "음지" };
+  }
+  function vpdKPa(tempC, rh) {
+    const es = 0.6108 * Math.exp((17.27 * tempC) / (tempC + 237.3));
+    return Math.max(0, es * (1 - clamp(num(rh, 60), 0, 100) / 100));
+  }
+
+  /** 기상값 + 식물 정보 → 추정 광합성 속도·탄소 고정 잠재량 */
+  function estimate({ sw, temp, rh, psType = "C3", growthForm = "초본", lai }) {
+    const P = PS_TYPES[psType] || PS_TYPES.C3;
+    const F = FORMS[growthForm] || FORMS["초본"];
+    const T = num(temp, 20);
+    const I = ppfdFromSW(sw);
+    const amax = P.amax * F.amaxScale;
+    const fT = Math.exp(-Math.pow((T - P.topt) / 12, 2));
+    const vpd = vpdKPa(T, rh);
+    const fVPD = P.vpdSensitive ? (vpd <= 1 ? 1 : clamp(1 - (vpd - 1) * 0.35, 0.3, 1)) : 1;
+    const gross = I > 0 ? (P.alpha * I * amax) / (P.alpha * I + amax) : 0;
+    const rd = P.rdFrac * amax * fT;
+    const aLeaf = Math.max(0, gross * fT * fVPD - rd); // µmol CO₂/m²(잎)/s
+    const L = clamp(num(lai, F.lai), 0.1, 10);
+    const effLeaf = (1 - Math.exp(-K_EXT * L)) / K_EXT;
+    const aCanopy = aLeaf * effLeaf;                     // µmol CO₂/m²(지면)/s
+    const gco2 = aCanopy * G_PER_UMOL_HOUR;             // g CO₂/h·m²(지면)
+    return {
+      ppfd: Math.round(I), aLeaf: +aLeaf.toFixed(2), aCanopy: +aCanopy.toFixed(2),
+      gco2: +gco2.toFixed(2), lai: +L.toFixed(1), effLeaf: +effLeaf.toFixed(2),
+      fT: +fT.toFixed(2), fVPD: +fVPD.toFixed(2), vpd: +vpd.toFixed(2), amax: +amax.toFixed(1),
+    };
+  }
+
+  root.PSModel = { PS_TYPES, FORMS, ppfdFromSW, parIndex, activity, vpdKPa, estimate, clamp };
+  if (typeof module !== "undefined") module.exports = root.PSModel;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+/* ===== 사진 프레임 & 아카이브 영상 (캔버스) ===== */
+(function (root) {
+  const TEAM = "기후행동 실천모임 에코쌤즈";
+  const MODE_INFO = {
+    solo: { label: "따로", place: "우리 동네", color: "#2B9BD6", deep: "#1C6E9C" },
+    team: { label: "같이", place: "학교", color: "#1E9E57", deep: "#16713E" },
+    activity: { label: "활동", place: "", color: "#E8862A", deep: "#B4600E" },
+  };
+  const FONT_DISPLAY = '"Jua", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+  const FONT_BODY = '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+  const FONT_STAMP = '"Share Tech Mono", "JetBrains Mono", ui-monospace, monospace';
+
+  function loadImg(src) {
+    return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  }
+  async function fontsReady() {
+    try {
+      if (!document.fonts) return;
+      await Promise.race([
+        Promise.all([document.fonts.load('48px "Jua"'), document.fonts.load('40px "Share Tech Mono"'), document.fonts.load('24px "IBM Plex Sans KR"')]),
+        new Promise((r) => setTimeout(r, 1500)),
+      ]);
+    } catch (e) {}
+  }
+  function cover(ctx, img, x, y, w, h) {
+    const s = Math.max(w / img.width, h / img.height);
+    const sw = w / s, sh = h / s, sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  }
+  function fitText(ctx, text, maxW, font, startPx, minPx) {
+    let px = startPx;
+    for (; px > minPx; px -= 2) { ctx.font = font.replace("{px}", px); if (ctx.measureText(text).width <= maxW) return px; }
+    ctx.font = font.replace("{px}", minPx);
+    let t = text; while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+    return t === text ? minPx : { px: minPx, text: t + "…" };
+  }
+  function stampDate(ts) {
+    const d = new Date(ts), p = (n) => String(n).padStart(2, "0");
+    return `'${String(d.getFullYear()).slice(2)} ${p(d.getMonth() + 1)} ${p(d.getDate())}`;
+  }
+  function dotDate(ts) {
+    const d = new Date(ts), p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  /** 촬영 사진 → 팀 이름·날짜 도장이 찍힌 폴라로이드 프레임 (900×1125 JPEG) */
+  async function composeFrame(rawDataUrl, meta) {
+    await fontsReady();
+    const img = await loadImg(rawDataUrl);
+    const W = 900, H = 1125, P = 36, PH = 828;
+    const M = MODE_INFO[meta.mode] || MODE_INFO.team;
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d");
+    g.fillStyle = "#FFFBEF"; g.fillRect(0, 0, W, H);
+    // 종이 결
+    g.globalAlpha = 0.05; g.fillStyle = "#7A6A3A";
+    for (let i = 0; i < 260; i++) g.fillRect((i * 97) % W, (i * 53) % H, 2, 2);
+    g.globalAlpha = 1;
+    cover(g, img, P, P, PH, PH);
+    g.strokeStyle = "rgba(0,0,0,.12)"; g.lineWidth = 2; g.strokeRect(P, P, PH, PH);
+    // 필름 카메라 날짜 도장
+    g.save(); g.font = `52px ${FONT_STAMP}`; g.textAlign = "right"; g.textBaseline = "alphabetic";
+    g.shadowColor = "rgba(255,110,0,.85)"; g.shadowBlur = 12; g.fillStyle = "#FF8A1E";
+    g.fillText(stampDate(meta.ts), P + PH - 26, P + PH - 26);
+    g.shadowBlur = 0; g.fillStyle = "rgba(255,190,90,.55)"; g.fillText(stampDate(meta.ts), P + PH - 26, P + PH - 26);
+    g.restore();
+    // 아래 띠: 이름·학명·팀
+    const bx = P + 6, textW = W - P * 2 - 190;
+    const name = meta.name || (meta.mode === "activity" ? "우리의 활동" : "이름을 찾는 중인 식물");
+    g.fillStyle = "#1E5E38"; g.textBaseline = "alphabetic";
+    const fn = fitText(g, name, textW, `{px}px ${FONT_DISPLAY}`, 58, 34);
+    if (typeof fn === "object") { g.font = `${fn.px}px ${FONT_DISPLAY}`; g.fillText(fn.text, bx, 935); } else g.fillText(name, bx, 935);
+    g.fillStyle = "#5F7A68";
+    if (meta.sci) { g.font = `italic 27px ${FONT_BODY}`; const s2 = fitText(g, meta.sci, textW, `italic {px}px ${FONT_BODY}`, 27, 20);
+      g.fillText(typeof s2 === "object" ? s2.text : meta.sci, bx, 978); }
+    g.font = `22px ${FONT_BODY}`; g.fillStyle = "#3D5A48";
+    const line3 = meta.mode === "activity"
+      ? [meta.people && meta.people.length ? "함께 " + meta.people.join("·") : meta.researcher, meta.place, dotDate(meta.ts)].filter(Boolean).join(" · ")
+      : `${M.label} · ${meta.researcher} · ${meta.place || M.place} · ${dotDate(meta.ts)}`;
+    const l3 = fitText(g, line3, textW, `{px}px ${FONT_BODY}`, 22, 16);
+    g.fillText(typeof l3 === "object" ? l3.text : line3, bx, 1020);
+    g.font = `26px ${FONT_DISPLAY}`; g.fillStyle = M.deep; g.fillText(TEAM, bx, 1068);
+    // 고무 도장 (따로 / 같이)
+    g.save(); g.translate(W - 118, 985); g.rotate(-0.21);
+    g.strokeStyle = M.color; g.fillStyle = M.color; g.globalAlpha = 0.9; g.lineWidth = 5;
+    g.beginPath(); g.arc(0, 0, 70, 0, Math.PI * 2); g.stroke();
+    g.lineWidth = 2; g.beginPath(); g.arc(0, 0, 60, 0, Math.PI * 2); g.stroke();
+    g.textAlign = "center"; g.font = `46px ${FONT_DISPLAY}`; g.fillText(M.label, 0, 10);
+    g.font = `17px ${FONT_BODY}`; g.fillText("에코쌤즈", 0, -30); g.fillText(meta.mode === "activity" ? "기후행동" : (meta.researcher || ""), 0, 42);
+    g.restore();
+    // 맨 아래 색띠
+    g.fillStyle = M.color; g.fillRect(0, H - 14, W, 14);
+    return c.toDataURL("image/jpeg", 0.84);
+  }
+
+  /** 사진 목록 → 세로 아카이브 영상 (720×1280) */
+  function pickMime() {
+    if (typeof MediaRecorder === "undefined") return null;
+    const list = ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+    for (const m of list) { try { if (MediaRecorder.isTypeSupported(m)) return m; } catch (e) {} }
+    return "";
+  }
+  function grid(g, W, H, color, alpha) {
+    g.fillStyle = color; g.fillRect(0, 0, W, H);
+    g.strokeStyle = `rgba(255,255,255,${alpha})`; g.lineWidth = 2;
+    for (let x = 0; x <= W; x += 48) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+    for (let y = 0; y <= H; y += 48) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  }
+  const ease = (u) => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3);
+
+  function drawVideoFrame(g, W, H, t, plan) {
+    const { intro, per, outro, items, title, stats } = plan;
+    if (t < intro) {
+      grid(g, W, H, "#2FA463", 0.16);
+      const u = ease(t / 0.9);
+      g.globalAlpha = u; g.textAlign = "center";
+      g.fillStyle = "#FFEB3B"; g.font = `92px ${FONT_DISPLAY}`; g.fillText("기후행동", W / 2, 470 - (1 - u) * 40);
+      g.fillText("실천모임", W / 2, 575 - (1 - u) * 40);
+      g.fillStyle = "#fff"; g.font = `78px ${FONT_DISPLAY}`; g.fillText("에코쌤즈", W / 2, 675 - (1 - u) * 40);
+      g.fillStyle = "#FFFBE6"; g.fillRect(W / 2 - 250, 730, 500, 72);
+      g.strokeStyle = "#1E7F4A"; g.lineWidth = 4; g.strokeRect(W / 2 - 250, 730, 500, 72);
+      g.fillStyle = "#1E7F4A"; g.font = `40px ${FONT_DISPLAY}`; g.fillText(title, W / 2, 780);
+      g.fillStyle = "#fff"; g.font = `28px ${FONT_BODY}`; g.fillText(plan.range, W / 2, 870);
+      g.globalAlpha = 1;
+      return;
+    }
+    const tp = t - intro, idx = Math.floor(tp / per);
+    if (idx < items.length) {
+      const it = items[idx], u = (tp - idx * per) / per, M = MODE_INFO[it.mode] || MODE_INFO.team;
+      grid(g, W, H, it.mode === "solo" ? "#2386BC" : it.mode === "activity" ? "#D9781E" : "#2FA463", 0.13);
+      // 위: 따로/같이 꼬리표 + 순번
+      g.textAlign = "left"; g.fillStyle = "#fff"; g.font = `44px ${FONT_DISPLAY}`;
+      g.fillText(`${M.label} · ${it.researcher}`, 56, 120);
+      g.textAlign = "right"; g.font = `30px ${FONT_STAMP}`; g.fillText(`${String(idx + 1).padStart(2, "0")} / ${String(items.length).padStart(2, "0")}`, W - 56, 118);
+      // 사진 프레임 카드 (살짝 들어오며 확대)
+      const a = Math.min(1, u / 0.14, (1 - u) / 0.1);
+      const fw = 600, fh = 750, s = 0.97 + 0.05 * u, rot = (idx % 2 ? 1 : -1) * (0.035 - 0.02 * u);
+      g.save(); g.globalAlpha = Math.max(0, a); g.translate(W / 2, 640); g.rotate(rot); g.scale(s, s);
+      g.shadowColor = "rgba(0,0,0,.35)"; g.shadowBlur = 30; g.shadowOffsetY = 14;
+      if (it.img) g.drawImage(it.img, -fw / 2, -fh / 2, fw, fh); else { g.fillStyle = "#FFFBEF"; g.fillRect(-fw / 2, -fh / 2, fw, fh); }
+      g.restore();
+      // 아래: 탄소 고정·장소
+      g.globalAlpha = Math.max(0, a); g.textAlign = "center"; g.fillStyle = "#fff";
+      g.font = `30px ${FONT_BODY}`; g.fillText(it.caption, W / 2, 1100);
+      g.globalAlpha = 1;
+      // 진행 막대 (필름 칸)
+      const n = items.length, gap = 6, bw = Math.min(40, (W - 112 - gap * (n - 1)) / n);
+      const total = n * bw + (n - 1) * gap; let x = (W - total) / 2;
+      for (let i = 0; i < n; i++) { g.fillStyle = i < idx ? "#FFEB3B" : i === idx ? "#fff" : "rgba(255,255,255,.3)"; g.fillRect(x, 1190, bw, 10); x += bw + gap; }
+      return;
+    }
+    // 마무리
+    const to = t - intro - items.length * per, u = ease(to / 0.8);
+    grid(g, W, H, "#1E7F4A", 0.12);
+    g.globalAlpha = u; g.textAlign = "center";
+    g.fillStyle = "#FFEB3B"; g.font = `70px ${FONT_DISPLAY}`; g.fillText("따로 또 같이", W / 2, 360);
+    g.fillStyle = "#fff"; g.font = `34px ${FONT_BODY}`; g.fillText("우리가 함께 기록한 초록", W / 2, 420);
+    const rows = [["따로 · 우리 동네", stats.solo + "건"], ["같이 · 학교", stats.team + "건"], ["함께한 활동", stats.acts + "장"], ["만난 식물", stats.species + "종"], ["탄소 고정 합계 (g/h·m²)", stats.carbon]];
+    rows.forEach(([k, v], i) => {
+      const y = 520 + i * 98;
+      g.fillStyle = "rgba(255,255,255,.12)"; g.fillRect(90, y - 62, W - 180, 88);
+      g.textAlign = "left"; g.fillStyle = "#DFF5E6"; g.font = `30px ${FONT_BODY}`; g.fillText(k, 120, y);
+      g.textAlign = "right"; g.fillStyle = "#FFEB3B"; g.font = `44px ${FONT_DISPLAY}`; g.fillText(v, W - 120, y + 2);
+    });
+    g.textAlign = "center"; g.fillStyle = "#fff"; g.font = `30px ${FONT_DISPLAY}`; g.fillText("이정연 · 신민화 · 이귀리 · 정종화", W / 2, 1060);
+    g.font = `24px ${FONT_BODY}`; g.fillStyle = "#CDEBD7"; g.fillText(TEAM + " · 우리 지역 광합성 지도", W / 2, 1106);
+    g.globalAlpha = 1;
+  }
+
+  function buildPlan(recs, opts) {
+    const per = opts.per || 2.2;
+    const items = recs.map((r) => r.kind === "activity"
+      ? { mode: "activity", researcher: (r.people && r.people.length ? r.people.join("·") : r.researcher), img: r._img || null, caption: r.title || "우리의 활동" }
+      : { mode: r.mode, researcher: r.researcher, img: r._img || null,
+          caption: `${r.koreanName || "이름 모를 식물"} · 탄소 ${r.model && isFinite(r.model.gco2) ? r.model.gco2.toFixed(2) : "–"} g/h·m²` });
+    const plants = recs.filter((r) => r.kind !== "activity");
+    const ts = recs.map((r) => r.ts).sort((a, b) => a - b);
+    const d = (x) => { const v = new Date(x); return `${v.getFullYear()}.${v.getMonth() + 1}.${v.getDate()}`; };
+    const species = new Set(plants.map((r) => r.scientificName || r.koreanName).filter(Boolean)).size;
+    const carbon = plants.reduce((s, r) => s + (r.model && r.model.gco2 || 0), 0).toFixed(1);
+    return { intro: 2.6, per, outro: 3.6, items, title: opts.title || "따로 또 같이",
+      range: ts.length ? (d(ts[0]) === d(ts[ts.length - 1]) ? d(ts[0]) : `${d(ts[0])} – ${d(ts[ts.length - 1])}`) : "",
+      stats: { solo: plants.filter((r) => r.mode === "solo").length, team: plants.filter((r) => r.mode === "team").length,
+        acts: recs.length - plants.length, species, carbon } };
+  }
+
+  async function makeVideo(recs, opts = {}) {
+    const mime = pickMime();
+    const canvas = document.createElement("canvas"); canvas.width = 720; canvas.height = 1280;
+    if (mime === null || !canvas.captureStream) throw new Error("이 브라우저는 영상 만들기를 지원하지 않아요. 크롬이나 사파리 최신 버전에서 열어 주세요.");
+    await fontsReady();
+    for (const r of recs) { try { r._img = r.photo ? await loadImg(r.photo) : null; } catch (e) { r._img = null; } }
+    const plan = buildPlan(recs, opts);
+    const total = plan.intro + plan.items.length * plan.per + plan.outro;
+    const g = canvas.getContext("2d");
+    drawVideoFrame(g, 720, 1280, 0, plan);
+    const stream = canvas.captureStream(30);
+    const rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 5000000 } : { videoBitsPerSecond: 5000000 });
+    const chunks = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    const done = new Promise((res) => { rec.onstop = res; });
+    rec.start(250);
+    const t0 = performance.now();
+    await new Promise((resolve) => {
+      const tick = () => {
+        const t = (performance.now() - t0) / 1000;
+        drawVideoFrame(g, 720, 1280, Math.min(t, total - 0.001), plan);
+        if (opts.onProgress) opts.onProgress(Math.min(1, t / total));
+        if (t >= total) { resolve(); return; }
+        setTimeout(tick, 1000 / 30);
+      };
+      tick();
+    });
+    rec.stop(); await done;
+    stream.getTracks().forEach((tr) => tr.stop());
+    recs.forEach((r) => { delete r._img; });
+    const type = (rec.mimeType || mime || "video/webm").split(";")[0];
+    return { blob: new Blob(chunks, { type }), ext: type.includes("mp4") ? "mp4" : "webm", seconds: Math.round(total) };
+  }
+
+  /** JPEG EXIF 촬영 시각(DateTimeOriginal) 읽기. 없으면 null */
+  async function exifDate(file) {
+    try {
+      const buf = await file.slice(0, 256 * 1024).arrayBuffer(); const v = new DataView(buf);
+      if (v.getUint16(0) !== 0xFFD8) return null;
+      let o = 2;
+      while (o + 4 < v.byteLength) {
+        const marker = v.getUint16(o), size = v.getUint16(o + 2);
+        if (marker === 0xFFE1 && v.getUint32(o + 4) === 0x45786966) {
+          const t = o + 10, le = v.getUint16(t) === 0x4949;
+          const u16 = (x) => v.getUint16(x, le), u32 = (x) => v.getUint32(x, le);
+          const readStr = (x, n) => { let s = ""; for (let i = 0; i < n - 1; i++) s += String.fromCharCode(v.getUint8(x + i)); return s; };
+          const scan = (ifd, want) => { const n = u16(t + ifd); for (let i = 0; i < n; i++) { const e = t + ifd + 2 + i * 12; if (u16(e) === want) return e; } return -1; };
+          let found = null;
+          const ex = scan(u32(t + 4), 0x8769);
+          if (ex > 0) { const e = scan(u32(ex + 8), 0x9003); if (e > 0) found = readStr(t + u32(e + 8), u32(e + 4)); }
+          if (!found) { const e = scan(u32(t + 4), 0x0132); if (e > 0) found = readStr(t + u32(e + 8), u32(e + 4)); }
+          const m = found && found.match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+          if (m) { const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]); if (!isNaN(d) && d.getFullYear() > 2000) return d.getTime(); }
+          return null;
+        }
+        if ((marker & 0xFF00) !== 0xFF00) break;
+        o += 2 + size;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  root.EcoMedia = { exifDate, MODE_INFO, TEAM, composeFrame, makeVideo, drawVideoFrame, buildPlan, loadImg, fontsReady, stampDate, pickMime };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+if (!window.React || !window.ReactDOM || !window.htm || !window.EcoMedia) {
+  document.getElementById("root").innerHTML = '<div class="boot">필요한 라이브러리를 불러오지 못했어요.<br>인터넷 연결을 확인하고 새로 고침하세요.</div>';
+} else {
+/* ===== 기후행동 실천모임 에코쌤즈 · 따로 또 같이 광합성 지도 ===== */
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+/* htm → React: HTML식 속성(class, stroke-width, onInput)을 React 속성으로 바꿔 줌 */
+const camel = (s) => s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+function h(type, props, ...children) {
+  if (props) {
+    const p = {};
+    for (const k in props) {
+      const v = props[k];
+      if (k === "class") p.className = v;
+      else if (k === "for") p.htmlFor = v;
+      else if (k === "onInput" && (type === "input" || type === "textarea")) p.onChange = v;
+      else if (k.includes("-") && !k.startsWith("aria-") && !k.startsWith("data-") && !k.startsWith("--")) p[camel(k)] = v;
+      else p[k] = v;
+    }
+    props = p;
+  }
+  return React.createElement(type, props, ...children);
+}
+const html = htm.bind(h);
+const M = window.PSModel;
+const EM = window.EcoMedia;
+
+/* ---------- 상수 ---------- */
+/* 연구원 색: 붉은 잎 → 노란 잎 → 연두 잎 → 진초록 잎 */
+const RESEARCHERS = [
+  { name: "이정연", color: "#DC4B31" },
+  { name: "신민화", color: "#EDB000" },
+  { name: "이귀리", color: "#86BF2F" },
+  { name: "정종화", color: "#1F7A3E" },
+];
+/* 따로(개인) 탐구의 기본 위치 = 각자의 우리 동네.
+   개인정보 보호를 위해 코드에는 '동' 수준의 이름·좌표만 둬요.
+   정확한 위치는 각자 '따로' 탭에서 '지금 위치로 바꾸기'를 누르면 그 휴대폰에만 저장돼요. */
+const HOME_DEFAULT = {
+  "이정연": { label: "위례동", lat: 37.4855, lng: 127.1470 },
+  "신민화": { label: "대치동", lat: 37.5000, lng: 127.0560 },
+  "이귀리": { label: "둔촌동", lat: 37.5270, lng: 127.1390 },
+  "정종화": { label: "일원동", lat: 37.4835, lng: 127.0830 },
+};
+const TEAM_PIN = "2144"; // 팀 공용 입장 비밀번호 (화면 잠금용이며 보안 장치는 아님)
+const MODES = EM.MODE_INFO; // solo = 따로(우리 동네), team = 같이(학교)
+const FORM_LIST = ["목본", "초본", "양치식물", "이끼류"];
+const PS_LIST = ["C3", "C4", "CAM"];
+const DEFAULT_CENTER = [37.4775, 127.1420];
+const DEFAULT_MODEL = "claude-sonnet-5-5";
+const LS_SET = "ecossam.v1.settings";
+const LS_AUTH = "ecossam.v2.auth"; // 한 번 입장하면 그 기기에서는 로그아웃 전까지 자동 입장
+const LS_OLD = "ecossam.v1.records";
+const LS_HOME = "ecossam.v2.home";
+const ACT_COLOR = { high: "#16A34A", mid: "#65A30D", low: "#D98E04" };
+const TABS = [
+  { id: "today", label: "오늘", icon: "Sun" },
+  { id: "solo", label: "따로", icon: "House" },
+  { id: "team", label: "같이", icon: "School" },
+  { id: "map", label: "지도", icon: "Map" },
+  { id: "activity", label: "활동", icon: "Users" },
+  { id: "archive", label: "아카이브", icon: "Film" },
+];
+
+const rColor = (n) => (RESEARCHERS.find((r) => r.name === n) || {}).color || "#94A3B8";
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const fmtDate = (ts) => new Date(ts).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const fmtDay = (ts) => new Date(ts).toLocaleDateString("ko-KR", { year: "numeric", month: "numeric", day: "numeric" });
+const fix = (v, d = 1) => (typeof v === "number" && isFinite(v) ? v.toFixed(d) : "–");
+const speciesKey = (r) => (r.scientificName || r.koreanName || "").trim().toLowerCase();
+
+/* ---------- 저장소: 설정은 LocalStorage, 기록·사진은 IndexedDB ---------- */
+const store = {
+  get(k, d) { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+};
+const session = {
+  get(k) { try { const s = sessionStorage.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } },
+  set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { sessionStorage.removeItem(k); } catch (e) {} },
+};
+const getHome = (name) => { const base = HOME_DEFAULT[name] || { label: "우리 동네", lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] };
+  const mine = (store.get(LS_HOME, {}) || {})[name]; return mine ? { ...base, lat: mine.lat, lng: mine.lng, custom: true } : base; };
+const setHome = (name, v) => { const all = store.get(LS_HOME, {}) || {}; all[name] = v; store.set(LS_HOME, all); };
+const db = {
+  _p: null, mem: new Map(),
+  open() {
+    if (this._p) return this._p;
+    this._p = new Promise((res) => {
+      try {
+        const rq = indexedDB.open("ecossam", 1);
+        rq.onupgradeneeded = () => rq.result.createObjectStore("records", { keyPath: "id" });
+        rq.onsuccess = () => res(rq.result);
+        rq.onerror = () => res(null);
+      } catch (e) { res(null); }
+    });
+    return this._p;
+  },
+  async all() {
+    const d = await this.open(); if (!d) return [...this.mem.values()];
+    return new Promise((res) => { const rq = d.transaction("records").objectStore("records").getAll(); rq.onsuccess = () => res(rq.result || []); rq.onerror = () => res([]); });
+  },
+  async put(r) {
+    const d = await this.open(); if (!d) { this.mem.set(r.id, r); return true; }
+    return new Promise((res) => { const t = d.transaction("records", "readwrite"); t.objectStore("records").put(r); t.oncomplete = () => res(true); t.onerror = () => res(false); t.onabort = () => res(false); });
+  },
+  async del(id) {
+    const d = await this.open(); if (!d) { this.mem.delete(id); return; }
+    return new Promise((res) => { const t = d.transaction("records", "readwrite"); t.objectStore("records").delete(id); t.oncomplete = () => res(); t.onerror = () => res(); });
+  },
+};
+
+/* ---------- 예시 데이터 ---------- */
+function sampleRecords() {
+  const base = Date.now() - 86400000;
+  const mk = (i, o) => {
+    const est = M.estimate({ sw: o.w.sw, temp: o.w.temp, rh: o.w.rh, psType: o.psType, growthForm: o.growthForm });
+    const ppfd = M.ppfdFromSW(o.w.sw);
+    return { id: "sample" + i, sample: true, ts: base + i * 3600000, photo: null, notes: "예시 기록입니다. 아카이브 탭에서 ‘예시 지우기’로 정리하세요.",
+      accuracy: null, source: "map", ai: null, lai: est.lai, ...o, weather: { ...o.w, ppfd: Math.round(ppfd), par: M.parIndex(ppfd) }, model: est };
+  };
+  const hm = HOME_DEFAULT["정종화"];
+  return [
+    mk(1, { mode: "team", place: "학교 화단", researcher: "이정연", lat: 37.4783, lng: 127.1490, koreanName: "갈대", scientificName: "Phragmites australis", confidence: 90,
+      growthForm: "초본", psType: "C3", w: { temp: 24, rh: 55, cloud: 10, sw: 720 } }),
+    mk(2, { mode: "team", place: "운동장 가장자리", researcher: "신민화", lat: 37.4771, lng: 127.1452, koreanName: "강아지풀", scientificName: "Setaria viridis", confidence: 85,
+      growthForm: "초본", psType: "C4", w: { temp: 27, rh: 48, cloud: 5, sw: 810 } }),
+    mk(3, { mode: "solo", place: hm.label, researcher: "정종화", lat: hm.lat + 0.0008, lng: hm.lng - 0.0006, koreanName: "신갈나무", scientificName: "Quercus mongolica", confidence: 80,
+      growthForm: "목본", psType: "C3", w: { temp: 19, rh: 70, cloud: 80, sw: 140 } }),
+  ];
+}
+
+/* ---------- 사진 ---------- */
+function resizeImage(file, maxDim, q) {
+  return new Promise((res, rej) => {
+    const rd = new FileReader();
+    rd.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width: w, height: hh } = img; const s = Math.min(1, maxDim / Math.max(w, hh));
+        w = Math.round(w * s); hh = Math.round(hh * s);
+        const c = document.createElement("canvas"); c.width = w; c.height = hh; c.getContext("2d").drawImage(img, 0, 0, w, hh);
+        res(c.toDataURL("image/jpeg", q));
+      };
+      img.onerror = rej; img.src = e.target.result;
+    };
+    rd.onerror = rej; rd.readAsDataURL(file);
+  });
+}
+
+/* ---------- 기상 (Open-Meteo) ---------- */
+async function fetchWeather(lat, lng) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}` +
+    `&current=temperature_2m,relative_humidity_2m,cloud_cover,shortwave_radiation,is_day&timezone=Asia%2FSeoul`;
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 9000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) throw new Error("기상 서버 응답 " + r.status);
+    const d = await r.json(); const c = d.current;
+    if (!c) throw new Error("기상 데이터 형식이 달라요");
+    const ppfd = M.ppfdFromSW(c.shortwave_radiation);
+    return { temp: c.temperature_2m, rh: c.relative_humidity_2m, cloud: c.cloud_cover, sw: c.shortwave_radiation,
+      isDay: c.is_day, ppfd: Math.round(ppfd), par: M.parIndex(ppfd), lat, lng, fetchedAt: Date.now() };
+  } finally { clearTimeout(t); }
+}
+
+/* ---------- Claude 비전 분석 ---------- */
+function buildPrompt(w, lat, lng, mode) {
+  return `당신은 식물생리학·식물분류학 전문가입니다. 교사 생태 연구팀 '에코쌤즈'가 한국 현장(${mode === "solo" ? "연구원의 집 주변 동네" : "학교 교정"}, 위도 ${lat.toFixed(4)}, 경도 ${lng.toFixed(4)})에서 촬영한 식물 사진을 분석합니다.
+관찰 시점 현장 기상: 기온 ${fix(w && w.temp)}℃, 상대습도 ${fix(w && w.rh, 0)}%, 운량 ${fix(w && w.cloud, 0)}%, 순간 전천일사량 ${fix(w && w.sw, 0)} W/m² (추정 PPFD ${fix(w && w.ppfd, 0)} µmol/m²/s).
+사진 속 식물을 한국에서 실제 관찰 가능한 종 기준으로 식별하고, 아래 JSON 하나만 출력하세요. 마크다운·코드펜스·설명 문장 금지.
+{
+ "koreanName": "국명", "confidence": 0-100 정수,
+ "scientificName": "속명 종소명 (이명법, 명명자 생략 가능)",
+ "taxonomy": {"kingdom":"","phylum":"","class":"","order":"","family":"","genus":""},
+ "photosynthesisType": "C3|C4|CAM",
+ "growthForm": "목본|초본|양치식물|이끼류",
+ "morphology": {"phyllotaxy":"엽서","venation":"엽맥","cuticle":"큐티클 발달 정도","stomata":"기공 분포·현재 기상에서의 개폐 추정"},
+ "carbonFixationEst": {"laiEstimate": 사진 속 군락의 엽면적지수 추정(0.5-8 숫자), "comment": "관찰 당시 일사량·기온·습도가 이 종의 광합성에 미치는 영향 1-2문장"},
+ "ecologicalInsight": {"climateIndicator": true/false, "note": "기후변화 지표종 여부와 근거 1-2문장", "classroom": "교사용 탐사·수업 연계 아이디어 1-2문장"}
+}
+식별이 불확실하면 confidence를 낮추고 note에 필요한 추가 촬영 부위(꽃, 잎 뒷면, 줄기 등)를 적으세요.`;
+}
+function parseAI(text) {
+  const t = (text || "").replace(/```json/gi, "").replace(/```/g, "").trim();
+  const s = t.indexOf("{"), e = t.lastIndexOf("}");
+  const o = JSON.parse(s >= 0 && e > s ? t.slice(s, e + 1) : t);
+  if (!PS_LIST.includes(o.photosynthesisType)) o.photosynthesisType = "C3";
+  if (!FORM_LIST.includes(o.growthForm)) o.growthForm = "초본";
+  o.confidence = M.clamp(Math.round(Number(o.confidence) || 0), 0, 100);
+  return o;
+}
+async function analyzePlant({ apiKey, model, dataUrl, weather, lat, lng, mode }) {
+  const b64 = dataUrl.split(",")[1];
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify({ model: model || DEFAULT_MODEL, max_tokens: 1400, system: "응답은 반드시 유효한 JSON 객체 하나여야 합니다.",
+      messages: [{ role: "user", content: [
+        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
+        { type: "text", text: buildPrompt(weather, lat, lng, mode) } ] }] }),
+  });
+  if (!r.ok) {
+    let msg = ""; try { const j = await r.json(); msg = (j.error && j.error.message) || ""; } catch (e) {}
+    if (r.status === 401) throw new Error("API 키가 올바르지 않아요. 설정에서 키를 다시 확인하세요.");
+    if (r.status === 404) throw new Error(`모델 '${model}'을 찾을 수 없어요. 설정에서 모델 이름을 바꿔 보세요.`);
+    if (r.status === 429) throw new Error("요청이 많아 잠시 막혔어요. 1분 뒤 다시 시도하세요.");
+    throw new Error(`분석 요청 실패 (${r.status}) ${msg}`.trim());
+  }
+  const d = await r.json();
+  const text = (d.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
+  try { return parseAI(text); } catch (e) { throw new Error("AI 응답을 해석하지 못했어요. 다시 분석해 보세요."); }
+}
+
+/* ---------- 내보내기 ---------- */
+function saveFile(name, blobOrText, type) {
+  const blob = blobOrText instanceof Blob ? blobOrText : new Blob([blobOrText], { type });
+  const u = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
+}
+async function shareFile(name, blob) {
+  try {
+    const f = new File([blob], name, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: name }); return true; }
+  } catch (e) { if (e && e.name === "AbortError") return true; }
+  return false;
+}
+const today = () => new Date().toISOString().slice(0, 10);
+function toGeoJSON(recs) {
+  return JSON.stringify({ type: "FeatureCollection", name: "에코쌤즈_따로또같이_광합성지도", features: recs.map((r) => ({
+    type: "Feature", geometry: { type: "Point", coordinates: [r.lng, r.lat] },
+    properties: { id: r.id, mode: MODES[r.mode] ? MODES[r.mode].label : "", place: r.place || "", datetime: new Date(r.ts).toISOString(),
+      researcher: r.researcher, koreanName: r.koreanName, scientificName: r.scientificName, confidence: r.confidence, growthForm: r.growthForm,
+      photosynthesisType: r.psType, family: r.ai && r.ai.taxonomy ? r.ai.taxonomy.family : "", temp_c: r.weather.temp, rh_pct: r.weather.rh,
+      cloud_pct: r.weather.cloud, sw_wm2: r.weather.sw, ppfd: r.weather.ppfd, par_index: r.weather.par, activity: M.activity(r.weather.ppfd).label,
+      a_leaf_umol: r.model.aLeaf, lai: r.model.lai, gco2_h_m2: r.model.gco2, gps_accuracy_m: r.accuracy, location_source: r.source || "", sample: !!r.sample, notes: r.notes || "" } })) }, null, 2);
+}
+function toCSV(recs) {
+  const head = ["일시", "따로/같이", "장소", "연구원", "위도", "경도", "위치 기준", "GPS정확도(m)", "국명", "학명", "신뢰도(%)", "과", "생활형", "광합성유형",
+    "기온(℃)", "습도(%)", "운량(%)", "일사량(W/m²)", "PPFD(µmol/m²/s)", "PAR지수", "광합성활성", "잎 순광합성(µmol/m²/s)",
+    "LAI", "탄소고정(gCO₂/h·m²)", "기후지표종", "메모", "예시"];
+  const src = { gps: "GPS", map: "지도 지정", home: "우리 동네 기본 위치", default: "임시 위치" };
+  const rows = recs.map((r) => [new Date(r.ts).toLocaleString("ko-KR"), MODES[r.mode] ? MODES[r.mode].label : "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
+    r.koreanName, r.scientificName, r.confidence ?? "", r.ai && r.ai.taxonomy ? r.ai.taxonomy.family : "", r.growthForm, r.psType,
+    r.weather.temp, r.weather.rh, r.weather.cloud, r.weather.sw, r.weather.ppfd, r.weather.par, M.activity(r.weather.ppfd).label,
+    r.model.aLeaf, r.model.lai, r.model.gco2, r.ai && r.ai.ecologicalInsight && r.ai.ecologicalInsight.climateIndicator ? "O" : "",
+    (r.notes || "").replace(/\n/g, " "), r.sample ? "O" : ""]
+    .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
+  return "﻿" + head.join(",") + "\n" + rows.join("\n");
+}
+
+/* ---------- 아이콘 (Lucide) ---------- */
+function Icon({ name, size = 18, className = "", stroke = 2 }) {
+  const lib = window.lucide && window.lucide.icons;
+  const ALIAS = { Loader2: "LoaderCircle", LoaderCircle: "Loader2", Table2: "Table", Settings2: "Settings", House: "Home", Home: "House" };
+  let node = lib && (lib[name] || lib[ALIAS[name]]);
+  if (!node) return html`<span style=${{ width: size, height: size, display: "inline-block" }}></span>`;
+  if (node[0] === "svg") node = node[2] || [];
+  return html`<svg xmlns="http://www.w3.org/2000/svg" width=${size} height=${size} viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width=${stroke} stroke-linecap="round" stroke-linejoin="round" class=${"shrink-0 " + className}
+    aria-hidden="true">${node.map(([tag, attrs], i) => React.createElement(tag, { key: i, ...attrs }))}</svg>`;
+}
+
+/* ---------- 작은 컴포넌트 ---------- */
+const Dot = ({ color, size = 8 }) => html`<span class="inline-block rounded-full shrink-0" style=${{ width: size, height: size, background: color }}></span>`;
+const Chip = ({ on, onClick, children, color }) => html`<button type="button" onClick=${onClick}
+  class=${"chip " + (on ? "chip-on" : "")} style=${on && color ? { borderColor: color, background: color } : null}>${children}</button>`;
+const Label = ({ children }) => html`<div class="lbl">${children}</div>`;
+const ModeTag = ({ mode, small }) => { const m = MODES[mode] || MODES.team;
+  return html`<span class=${"mode-tag" + (small ? " mode-tag-s" : "")} style=${{ color: m.color, borderColor: m.color }}>${m.label}</span>`; };
+
+function ParGauge({ par, ppfd, size = 132 }) {
+  const r = 52, c = Math.PI * r, v = M.clamp(par || 0, 0, 100);
+  const act = M.activity(ppfd);
+  return html`<svg viewBox="0 0 128 76" width=${size} height=${size * 76 / 128} role="img" aria-label=${`PAR 지수 ${v}`}>
+    <defs><linearGradient id="pg" x1="0" x2="1"><stop offset="0" stop-color="#F5B70B"/><stop offset=".45" stop-color="#84CC16"/><stop offset="1" stop-color="#16A34A"/></linearGradient></defs>
+    <path d="M12 68 A52 52 0 0 1 116 68" fill="none" stroke="#E6EFDC" stroke-width="10" stroke-linecap="round"/>
+    <path d="M12 68 A52 52 0 0 1 116 68" fill="none" stroke="url(#pg)" stroke-width="10" stroke-linecap="round"
+      stroke-dasharray=${`${(c * v) / 100} ${c}`} style=${{ transition: "stroke-dasharray .8s ease" }}/>
+    <text x="64" y="58" text-anchor="middle" class="mono" font-size="24" font-weight="700" fill="#1D3B2A">${v}</text>
+    <text x="64" y="72" text-anchor="middle" font-size="9" fill=${ACT_COLOR[act.key]}>${act.label}</text>
+  </svg>`;
+}
+
+/* ---------- 포스터식 머리 그림 ---------- */
+const ART = (() => {
+  const sprig = (x, y, k, c, flip) => {
+    const d = flip ? -1 : 1; let o = `<path d="M${x} ${y} Q${x + d * 22 * k} ${y - 85 * k} ${x + d * 10 * k} ${y - 170 * k}" fill="none" stroke="${c}" stroke-width="${5 * k}" stroke-linecap="round"/>`;
+    for (let i = 0; i < 7; i++) {
+      const t = (i + 1) / 8, px = x + d * 18 * k * Math.sin(t * 3), py = y - t * 165 * k, side = i % 2 ? 1 : -1;
+      const lx = px + side * 15 * k, rot = side * d * 38;
+      o += `<ellipse cx="${lx.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(17 - i) * k}" ry="${7 * k}" transform="rotate(${rot} ${lx.toFixed(1)} ${py.toFixed(1)})" fill="${c}"/>`;
+    }
+    return o;
+  };
+  const eye = (x, y, r) => `<ellipse cx="${x}" cy="${y}" rx="${r * 0.78}" ry="${r}" fill="#fff" stroke="#1D3B2A" stroke-width="2"/><ellipse cx="${x + r * 0.12}" cy="${y + r * 0.15}" rx="${r * 0.42}" ry="${r * 0.55}" fill="#1D3B2A"/><circle cx="${x - r * 0.05}" cy="${y - r * 0.2}" r="${r * 0.16}" fill="#fff"/>`;
+  return `
+  <path d="M0 300 L0 205 Q130 150 270 192 Q390 228 480 186 Q610 136 735 186 Q860 232 1000 172 L1000 300 Z" fill="#C6DE3A"/>
+  <g fill="#2E8B4E"><circle cx="330" cy="200" r="62"/><circle cx="420" cy="150" r="58"/><circle cx="585" cy="140" r="58"/><circle cx="690" cy="196" r="66"/></g>
+  ${sprig(150, 290, 1.05, "#3E9E3A", false)}${sprig(205, 295, 0.7, "#5DB548", true)}${sprig(850, 292, 1.05, "#A6D93C", true)}${sprig(800, 296, 0.68, "#7CC242", false)}
+  <g>
+    <rect x="300" y="128" width="84" height="175" rx="12" fill="#F6EBDD" stroke="#1D3B2A" stroke-width="2"/>
+    <rect x="292" y="104" width="100" height="32" rx="8" fill="#3B8FD1" stroke="#1D3B2A" stroke-width="2"/>
+    <circle cx="308" cy="118" r="5" fill="#9FD3F5"/>
+    <rect x="296" y="158" width="92" height="56" rx="8" fill="#3B8FD1" stroke="#1D3B2A" stroke-width="2"/>
+    ${eye(329, 184, 12)}${eye(355, 184, 12)}
+    <path d="M332 203 Q342 210 352 203" fill="none" stroke="#1D3B2A" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="292" cy="250" r="15" fill="#3B8FD1" stroke="#1D3B2A" stroke-width="2"/>
+  </g>
+  <g>
+    <circle cx="500" cy="196" r="92" fill="#4FB7E8" stroke="#1D3B2A" stroke-width="2.5"/>
+    <path d="M430 150 Q455 128 482 142 Q500 160 480 178 Q462 196 474 214 Q470 240 444 236 Q420 214 424 186 Q418 166 430 150 Z" fill="#5CB85C"/>
+    <path d="M540 128 Q570 136 576 160 Q588 190 566 206 Q544 214 538 194 Q534 174 520 166 Q514 144 540 128 Z" fill="#5CB85C"/>
+    <path d="M512 248 Q540 240 556 256 Q540 280 512 276 Q500 262 512 248 Z" fill="#5CB85C"/>
+    ${eye(482, 192, 15)}${eye(516, 192, 15)}
+    <path d="M490 222 L499 230 L508 222" fill="none" stroke="#1D3B2A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g>
+    <path d="M668 170 L760 162 L770 300 L676 300 Z" fill="#3B8FD1" stroke="#1D3B2A" stroke-width="2"/>
+    <path d="M612 182 Q612 112 650 112 Q688 112 688 182" fill="none" stroke="#F2D94E" stroke-width="12" stroke-linecap="round"/>
+    <path d="M592 176 L712 176 L726 304 L578 304 Z" fill="#F2D94E" stroke="#1D3B2A" stroke-width="2.2" stroke-linejoin="round"/>
+    ${eye(636, 222, 13)}${eye(664, 222, 13)}
+    <path d="M638 246 Q650 256 662 246" fill="none" stroke="#1D3B2A" stroke-width="2.5" stroke-linecap="round"/>
+    <g stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M690 196 L704 184"/><path d="M694 212 L712 206"/><path d="M684 186 L692 170"/></g>
+    <circle cx="722" cy="256" r="15" fill="#3B8FD1" stroke="#1D3B2A" stroke-width="2"/>
+  </g>
+  <path d="M0 300 L0 246 Q170 214 340 252 Q510 288 660 250 Q830 210 1000 242 L1000 300 Z" fill="#8CC63F"/>
+  <path d="M0 300 L0 284 Q500 258 1000 284 L1000 300 Z" fill="#F6FAF2"/>`;
+})();
+
+function Hero({ children }) {
+  return html`<header class="hero">
+    <div class="hero-in">
+      ${children}
+      <h1 class="hero-title"><span class="y">기후행동 실천모임</span> <span class="w">에코쌤즈</span></h1>
+      <div class="hero-sub">함께 배우고, 함께 실천하는 기후행동!</div>
+      <div class="hero-motto"><span class="m-solo">따로</span><span class="m-amp">또</span><span class="m-team">같이</span><span class="m-rest">우리 지역 광합성 지도</span></div>
+    </div>
+    <svg class="hero-art" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMax slice" role="img"
+      aria-label="텀블러, 지구, 장바구니 캐릭터가 언덕과 풀잎 사이에서 웃고 있는 그림" dangerouslySetInnerHTML=${{ __html: ART }}></svg>
+  </header>`;
+}
+
+/** 탭 화면 위의 얇은 머리띠 */
+function TopStrip({ tab, name, onSettings, onLogout, hasKey }) {
+  const t = TABS.find((x) => x.id === tab) || TABS[0];
+  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "" }[tab];
+  return html`<div class="strip">
+    <div class="strip-in">
+      <div class="min-w-0">
+        <div class="strip-team">기후행동 실천모임 <b>에코쌤즈</b></div>
+        <div class="strip-title"><${Icon} name=${t.icon} size=${20} />${t.label}<small>${sub}</small></div>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <span class="strip-me"><${Dot} color=${rColor(name)} size=${9} />${name}</span>
+        <button type="button" class=${"strip-btn" + (hasKey ? " on" : "")} onClick=${onSettings} aria-label="AI 분석 설정"><${Icon} name="Settings2" size=${17} /></button>
+        <button type="button" class="strip-btn" onClick=${onLogout} aria-label="로그아웃"><${Icon} name="LogOut" size=${17} /></button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function TabBar({ tab, setTab, counts }) {
+  return html`<nav class="tabbar" aria-label="화면 이동">
+    ${TABS.map((t) => html`<button key=${t.id} type="button" class=${"tab" + (tab === t.id ? " tab-on" : "") + " tab-" + t.id}
+      onClick=${() => setTab(t.id)} aria-current=${tab === t.id ? "page" : null}>
+      <span class="tab-ic"><${Icon} name=${t.icon} size=${21} />${counts[t.id] ? html`<i>${counts[t.id]}</i>` : null}</span>${t.label}</button>`)}
+  </nav>`;
+}
+
+/* ---------- 입장 (연구원별 로그인) ---------- */
+function Gate({ onLogin }) {
+  const [name, setName] = useState(null);
+  const [pin, setPin] = useState("");
+  const [err, setErr] = useState("");
+  const [shake, setShake] = useState(false);
+  const submit = (e) => {
+    e.preventDefault();
+    if (!name) { setErr("이름을 먼저 골라 주세요."); return; }
+    if (pin !== TEAM_PIN) { setErr("비밀번호가 맞지 않아요. 다시 입력해 주세요."); setPin(""); setShake(false); requestAnimationFrame(() => setShake(true)); return; }
+    onLogin(name);
+  };
+  return html`<div class="gate">
+    <${Hero} />
+    <div class="wrap pb-12">
+      <form class=${"gate-card grid gap-4" + (shake ? " shake" : "")} onSubmit=${submit} onAnimationEnd=${() => setShake(false)}>
+        <div class="text-center"><span class="pill-h">연구원 입장</span>
+          <p class="text-[13px] text-mist mt-2">내 이름을 고르고 팀 비밀번호를 입력하세요.</p></div>
+        <div class="who-grid" role="radiogroup" aria-label="연구원 이름">
+          ${RESEARCHERS.map((r) => html`<button key=${r.name} type="button" role="radio" aria-checked=${name === r.name}
+            class=${"who-b" + (name === r.name ? " who-on" : "")} onClick=${() => { setName(r.name); setErr(""); }}>
+            <${Dot} color=${r.color} size=${10} /><span class="grid text-left leading-tight">${r.name}<small>${HOME_DEFAULT[r.name].label}</small></span></button>`)}
+        </div>
+        <label class="fld"><span>비밀번호</span>
+          <input id="pinIn" class="pin-in" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••"
+            value=${pin} onInput=${(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setErr(""); }} /></label>
+        ${err && html`<div class="err" role="alert">${err}</div>`}
+        <button type="submit" class="gate-go">${name ? `${name} 님, 탐사 시작` : "탐사 시작"}</button>
+      </form>
+    </div>
+  </div>`;
+}
+
+/* ---------- 프레임 사진 (기록 카드 공용) ---------- */
+function Print({ rec, onOpen, tilt }) {
+  const m = MODES[rec.mode] || MODES.team;
+  return html`<button type="button" class="print" style=${{ "--tilt": `${tilt || 0}deg` }} onClick=${() => onOpen(rec.id)}
+    aria-label=${`${rec.koreanName || "식물"} 기록 열기`}>
+    ${rec.photo ? html`<img src=${rec.photo} alt="" loading="lazy" />`
+      : html`<span class="print-empty"><span class="print-ph"><${Icon} name="Leaf" size=${30} /></span>
+          <b>${rec.koreanName || "이름 모를 식물"}</b><small>${m.label} · ${rec.researcher}</small>
+          <em class="mono">${EM.stampDate(rec.ts)}</em></span>`}
+    ${rec.sample && html`<span class="print-sample">예시</span>`}
+  </button>`;
+}
+
+/* ---------- 오늘 ---------- */
+function WeatherCard({ w, state, err, onRefresh, gps }) {
+  const act = w ? M.activity(w.ppfd) : null;
+  return html`<section class="glass p-4 grid gap-3">
+    <div class="flex items-center gap-2 flex-wrap"><h2 class="pill-h"><${Icon} name="Sun" size=${17} />오늘의 빛</h2>
+      <span class="text-[12px] text-mist">${gps ? "내 위치 기준" : "기본 위치 기준"}${w ? ` · ${new Date(w.fetchedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 갱신` : ""}</span>
+      <button type="button" class="link-btn ml-auto" onClick=${onRefresh}><${Icon} name="RefreshCw" size=${13} />새로 고침</button></div>
+    <div class="flex items-center gap-4 flex-wrap">
+      <${ParGauge} par=${w ? w.par : 0} ppfd=${w ? w.ppfd : 0} />
+      <div class="grid grid-cols-2 gap-2 flex-1 min-w-[200px]">
+        ${[["Sun", "일사량", w && fix(w.sw, 0), "W/m²"], ["Thermometer", "기온", w && fix(w.temp), "℃"],
+           ["Droplets", "습도", w && fix(w.rh, 0), "%"], ["Cloud", "운량", w && fix(w.cloud, 0), "%"]].map(([ic, k, v, u]) => html`
+          <div key=${k} class="stat"><div class="flex items-center gap-1.5 text-mist text-[12px]"><${Icon} name=${ic} size=${13} />${k}</div>
+            <div class="mono text-[19px] text-snow leading-tight mt-0.5">${v || "–"}<span class="text-[11px] text-mist ml-1">${u}</span></div></div>`)}
+      </div>
+    </div>
+    <div class="text-[13px]" style=${{ color: act ? ACT_COLOR[act.key] : "#5F7A68" }}>
+      ${state === "loading" ? "빛 정보를 불러오는 중…" : state === "error" ? err
+        : w ? `지금 광합성 활성은 ‘${act.label}’ (PPFD ${w.ppfd} µmol/m²/s). ${act.key === "high" ? "잎이 가장 바쁘게 일하는 시간이에요." : act.key === "mid" ? "기록하기 좋은 빛이에요." : "그늘·저녁 빛이에요. 음지 식물을 찾아보세요."}` : ""}</div>
+  </section>`;
+}
+
+function TodayView({ me, records, weather, wState, wErr, gps, onRefresh, onAdd, onOpen, goTab }) {
+  const solo = records.filter((r) => r.mode === "solo"), team = records.filter((r) => r.mode === "team");
+  const mineToday = solo.filter((r) => r.researcher === me && fmtDay(r.ts) === fmtDay(Date.now())).length;
+  const teamToday = team.filter((r) => fmtDay(r.ts) === fmtDay(Date.now())).length;
+  const recent = records.slice(0, 6);
+  const sp = (a) => new Set(a.map(speciesKey).filter(Boolean)).size;
+  return html`<div class="grid gap-4">
+    <div class="duo">
+      <button type="button" class="duo-b duo-solo" onClick=${() => onAdd("solo")}>
+        <span class="duo-k">따로</span><b>우리 동네 식물 기록</b><small>${getHome(me).label} 주변 · 오늘 ${mineToday}건</small>
+        <span class="duo-go"><${Icon} name="Camera" size=${20} /></span></button>
+      <button type="button" class="duo-b duo-team" onClick=${() => onAdd("team")}>
+        <span class="duo-k">같이</span><b>학교 식물 수집</b><small>교정에서 다 함께 · 오늘 ${teamToday}건</small>
+        <span class="duo-go"><${Icon} name="Camera" size=${20} /></span></button>
+    </div>
+    <${WeatherCard} w=${weather} state=${wState} err=${wErr} onRefresh=${onRefresh} gps=${gps} />
+    <section class="glass p-4 grid gap-3">
+      <h2 class="pill-h justify-self-start"><${Icon} name="Sprout" size=${17} />우리가 모은 초록</h2>
+      <div class="tally">
+        <button type="button" onClick=${() => goTab("solo")}><span style=${{ color: MODES.solo.color }}>따로</span><b class="mono">${solo.length}</b><small>${sp(solo)}종</small></button>
+        <span class="tally-amp" aria-hidden="true">+</span>
+        <button type="button" onClick=${() => goTab("team")}><span style=${{ color: MODES.team.color }}>같이</span><b class="mono">${team.length}</b><small>${sp(team)}종</small></button>
+        <span class="tally-amp" aria-hidden="true">=</span>
+        <button type="button" onClick=${() => goTab("map")}><span>모두</span><b class="mono">${records.length}</b><small>${sp(records)}종</small></button>
+      </div>
+      ${recent.length ? html`<div class="strip-prints">${recent.map((r, i) => html`<${Print} key=${r.id} rec=${r} onOpen=${onOpen} tilt=${i % 2 ? 2 : -2} />`)}</div>`
+        : html`<p class="text-[13px] text-mist">아직 기록이 없어요. 위의 ‘따로’ 또는 ‘같이’를 눌러 첫 식물을 찍어 보세요.</p>`}
+    </section>
+  </div>`;
+}
+
+/* ---------- 따로: 각자 우리 동네 ---------- */
+function SoloView({ me, records, gps, onAdd, onOpen, say }) {
+  const [who, setWho] = useState(me);
+  const [, bump] = useState(0);
+  const solo = records.filter((r) => r.mode === "solo");
+  const mine = solo.filter((r) => r.researcher === who);
+  const home = getHome(who);
+  const useGpsAsHome = () => {
+    if (!gps) { say("GPS 위치를 아직 못 잡았어요. 위치 권한을 허용해 주세요."); return; }
+    setHome(me, { lat: +gps.lat.toFixed(6), lng: +gps.lng.toFixed(6) }); bump((x) => x + 1); say("지금 위치를 우리 동네 기본 위치로 저장했어요 (이 휴대폰에만)");
+  };
+  return html`<div class="grid gap-4">
+    <div class="lanes">
+      ${RESEARCHERS.map((r) => { const list = solo.filter((x) => x.researcher === r.name);
+        return html`<button key=${r.name} type="button" class=${"lane" + (who === r.name ? " lane-on" : "")} style=${{ "--c": r.color }} onClick=${() => setWho(r.name)}>
+          <span class="lane-top"><${Dot} color=${r.color} size=${9} /><b>${r.name}</b>${r.name === me ? html`<em>나</em>` : null}</span>
+          <span class="lane-home"><${Icon} name="MapPin" size=${11} />${getHome(r.name).label}</span>
+          <span class="lane-n mono">${list.length}<small>건 · ${new Set(list.map(speciesKey).filter(Boolean)).size}종</small></span>
+          <span class="lane-thumbs">${list.slice(0, 3).map((x) => x.photo ? html`<img key=${x.id} src=${x.photo} alt="" />` : html`<i key=${x.id}><${Icon} name="Leaf" size=${12} /></i>`)}</span>
+        </button>`; })}
+    </div>
+    <section class="glass p-4 grid gap-3">
+      <div class="flex items-center gap-2 flex-wrap">
+        <h2 class="pill-h pill-solo"><${Icon} name="House" size=${17} />${who === me ? "나의 동네 도감" : `${who} 님의 동네 도감`}</h2>
+        <span class="text-[12px] text-mist">${mine.length}건</span>
+        ${who === me && html`<button type="button" class="btn-add ml-auto" style=${{ "--c": MODES.solo.color }} onClick=${() => onAdd("solo")}><${Icon} name="Plus" size=${17} />따로 기록</button>`}
+      </div>
+      <div class="home-line"><${Icon} name="MapPin" size=${14} /><span>탐구 기본 위치 <b>${home.label}</b>${who === me ? html` <span class="text-mist">${home.custom ? "· 내가 정한 정확한 위치 (이 휴대폰에만 저장)" : "· 동 중심"}</span>` : null}</span>
+        ${who === me && html`<button type="button" class="link-btn ml-auto" onClick=${useGpsAsHome}><${Icon} name="LocateFixed" size=${13} />지금 위치로 바꾸기</button>`}</div>
+      ${mine.length ? html`<div class="prints">${mine.map((r, i) => html`<${Print} key=${r.id} rec=${r} onOpen=${onOpen} tilt=${[-2, 1.5, -1, 2][i % 4]} />`)}</div>`
+        : html`<div class="empty-note">${who === me ? `${home.label} 주변의 화단, 산책로, 가로수… 우리 동네 식물을 하나 찍어 첫 칸을 채워 보세요.` : `${who} 님은 아직 동네 기록이 없어요.`}</div>`}
+    </section>
+  </div>`;
+}
+
+/* ---------- 같이: 학교 식물 표본함 ---------- */
+function TeamView({ records, onAdd, onOpen }) {
+  const total = records.filter((r) => r.mode === "team");
+  const groups = useMemo(() => {
+    const m = new Map();
+    total.slice().sort((a, b) => a.ts - b.ts).forEach((r) => { const k = speciesKey(r) || "미동정-" + r.id; if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
+    return [...m.values()];
+  }, [records]);
+  return html`<div class="grid gap-4">
+    <section class="glass p-4 grid gap-3">
+      <div class="flex items-center gap-2 flex-wrap">
+        <h2 class="pill-h"><${Icon} name="School" size=${17} />학교 식물 표본함</h2>
+        <span class="text-[12px] text-mist">${groups.length}종 · ${total.length}건 · 넷이 함께 모은 교정 식물</span>
+        <button type="button" class="btn-add ml-auto" style=${{ "--c": MODES.team.color }} onClick=${() => onAdd("team")}><${Icon} name="Plus" size=${17} />같이 수집</button>
+      </div>
+      <div class="contrib">${RESEARCHERS.map((r) => { const n = total.filter((x) => x.researcher === r.name).length;
+        return html`<span key=${r.name} style=${{ "--c": r.color, flexGrow: Math.max(n, 0.5) }} title=${`${r.name} ${n}건`}><b>${r.name}</b>${n}</span>`; })}</div>
+    </section>
+    ${groups.length ? html`<div class="herb-grid">${groups.map((g, i) => { const r = g[0], last = g[g.length - 1];
+      const who = [...new Set(g.map((x) => x.researcher))];
+      return html`<article key=${r.id} class="herb" style=${{ "--tilt": `${[-0.6, 0.5, -0.3, 0.7][i % 4]}deg` }}>
+        <span class="tape" aria-hidden="true"></span>
+        <button type="button" class="herb-photo" onClick=${() => onOpen(last.id)} aria-label=${`${r.koreanName || "식물"} 열기`}>
+          ${last.photo ? html`<img src=${last.photo} alt="" loading="lazy" />` : html`<span><${Icon} name="Leaf" size=${34} /></span>`}</button>
+        <div class="herb-label">
+          <div class="herb-no mono">에코쌤즈 학교표본 No.${String(i + 1).padStart(3, "0")}</div>
+          <div class="herb-name">${r.koreanName || "미동정"}${r.sample ? html` <span class="badge text-amber">예시</span>` : null}</div>
+          <div class="herb-sci">${r.scientificName || "학명 미상"}</div>
+          <dl>
+            <dt>과</dt><dd>${(r.ai && r.ai.taxonomy && r.ai.taxonomy.family) || "–"}</dd>
+            <dt>유형</dt><dd>${M.PS_TYPES[r.psType].label} · ${r.growthForm}</dd>
+            <dt>채집</dt><dd>${fmtDay(r.ts)}${g.length > 1 ? ` 외 ${g.length - 1}회` : ""}</dd>
+            <dt>채집자</dt><dd>${who.map((n) => html`<span key=${n} class="inline-flex items-center gap-1 mr-1.5"><${Dot} color=${rColor(n)} size=${7} />${n}</span>`)}</dd>
+            <dt>탄소</dt><dd class="mono">${fix(r.model.gco2, 2)} g/h·m²</dd>
+          </dl>
+        </div>
+      </article>`; })}</div>`
+      : html`<div class="empty-note">학교 화단, 운동장 가장자리, 담장 밑… 교정의 식물을 같이 모아 표본함을 채워요.</div>`}
+  </div>`;
+}
+
+/* ---------- 지도 바탕: 위성사진(기본) · 지명 · 일반 지도 ---------- */
+const ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const CARTO_LABELS = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png";
+const CARTO_ROAD = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>';
+const MAX_Z = 22;
+function addBaseLayers(map) {
+  const sat = L.tileLayer(ESRI_SAT, { maxNativeZoom: 19, maxZoom: MAX_Z, attribution: "위성사진 &copy; Esri, Maxar, Earthstar Geographics" });
+  const labels = L.tileLayer(CARTO_LABELS, { subdomains: "abcd", maxNativeZoom: 20, maxZoom: MAX_Z, attribution: OSM_ATTR, pane: "overlayPane" });
+  const road = L.tileLayer(CARTO_ROAD, { subdomains: "abcd", maxNativeZoom: 20, maxZoom: MAX_Z, attribution: OSM_ATTR });
+  sat.addTo(map); labels.addTo(map);
+  L.control.layers({ "위성사진": sat, "일반 지도": road }, { "지명·도로 이름": labels }, { position: "topleft", collapsed: true }).addTo(map);
+  L.control.scale({ metric: true, imperial: false, maxWidth: 110 }).addTo(map);
+}
+const mPerPx = (lat, z) => 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z);
+
+/** 지도 위에 콕 찍어 위치 정하기 (핀 끌기·지도 누르기) */
+function LocPicker({ pos, onPick, color }) {
+  const elRef = useRef(null), mapRef = useRef(null), pinRef = useRef(null), accRef = useRef(null), cbRef = useRef(onPick);
+  const [z, setZ] = useState(19);
+  cbRef.current = onPick;
+  const start = pos || { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] };
+  useEffect(() => {
+    if (!window.L || !elRef.current) return;
+    const map = L.map(elRef.current, { zoomControl: true, maxZoom: MAX_Z, tap: true }).setView([start.lat, start.lng], pos ? 19 : 16);
+    addBaseLayers(map);
+    const icon = L.divIcon({ className: "", iconSize: [34, 44], iconAnchor: [17, 42], html: `<span class="pick-pin" style="--c:${color || "#DC4B31"}"><i></i></span>` });
+    const pin = L.marker([start.lat, start.lng], { draggable: true, icon, autoPan: true }).addTo(map);
+    const send = (ll) => cbRef.current({ lat: +ll.lat.toFixed(7), lng: +ll.lng.toFixed(7), accuracy: null, source: "map" });
+    pin.on("dragend", () => send(pin.getLatLng()));
+    map.on("click", (e) => { pin.setLatLng(e.latlng); send(e.latlng); });
+    map.on("zoomend", () => setZ(map.getZoom()));
+    mapRef.current = map; pinRef.current = pin; setZ(map.getZoom());
+    setTimeout(() => map.invalidateSize(), 150);
+    return () => map.remove();
+  }, []);
+  useEffect(() => {
+    const map = mapRef.current, pin = pinRef.current; if (!map || !pin || !pos) return;
+    const cur = pin.getLatLng();
+    if (Math.abs(cur.lat - pos.lat) > 1e-8 || Math.abs(cur.lng - pos.lng) > 1e-8) { pin.setLatLng([pos.lat, pos.lng]); map.setView([pos.lat, pos.lng], Math.max(map.getZoom(), 19)); }
+    if (accRef.current) { accRef.current.remove(); accRef.current = null; }
+    if (pos.source === "gps" && pos.accuracy) accRef.current = L.circle([pos.lat, pos.lng], { radius: pos.accuracy, color: "#2B9BD6", weight: 1.5, fillOpacity: 0.12, interactive: false }).addTo(map);
+  }, [pos && pos.lat, pos && pos.lng, pos && pos.source]);
+  const res = mPerPx(start.lat, z);
+  return html`<div class="pickwrap">
+    <div ref=${elRef} class="pickmap" role="application" aria-label="위치 고르기 지도. 지도를 누르거나 핀을 끌어 위치를 정해요."></div>
+    <div class="pick-read mono">확대 ${z} · 1칸 ≈ ${res < 1 ? (res * 100).toFixed(0) + "cm" : res.toFixed(1) + "m"}</div>
+  </div>`;
+}
+
+/* ---------- 지도 ---------- */
+function MapPanel({ records, homes, selectedId, onSelect, onMapPick, gpsPos, follow, setFollow }) {
+  const elRef = useRef(null), mapRef = useRef(null), layerRef = useRef(null), meRef = useRef(null), pickRef = useRef(onMapPick);
+  const [ok, setOk] = useState(true);
+  pickRef.current = onMapPick;
+  const fit = () => {
+    const map = mapRef.current; if (!map) return;
+    const pts = records.map((r) => [r.lat, r.lng]).concat(homes.map((x) => [x.lat, x.lng]));
+    if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 17 });
+  };
+  useEffect(() => {
+    if (!window.L || !elRef.current) { setOk(false); return; }
+    const map = L.map(elRef.current, { zoomControl: true, maxZoom: MAX_Z }).setView(DEFAULT_CENTER, 13);
+    addBaseLayers(map);
+    layerRef.current = L.layerGroup().addTo(map);
+    map.on("click", (e) => pickRef.current(e.latlng.lat, e.latlng.lng));
+    mapRef.current = map; setTimeout(() => { map.invalidateSize(); fit(); }, 200);
+    return () => map.remove();
+  }, []);
+  useEffect(() => {
+    const map = mapRef.current, layer = layerRef.current; if (!map || !layer) return;
+    layer.clearLayers();
+    homes.forEach((x) => {
+      L.marker([x.lat, x.lng], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: [0, 0], iconAnchor: [0, 0],
+        html: `<span class="home-pin" style="--c:${rColor(x.name)}"><i>⌂</i>${x.name} · ${x.label}</span>` }) }).addTo(layer);
+    });
+    records.forEach((r) => {
+      const act = M.activity(r.weather.ppfd), sel = r.id === selectedId;
+      const icon = L.divIcon({ className: "", iconSize: [30, 30], iconAnchor: [15, 15],
+        html: `<span class="pin pin-${act.key} pin-${r.mode}${sel ? " pin-sel" : ""}${r.sample ? " pin-sample" : ""}" style="--rc:${rColor(r.researcher)}"><i></i><b></b></span>` });
+      const m = L.marker([r.lat, r.lng], { icon, title: `${MODES[r.mode].label} · ${r.koreanName || "미동정"} · ${act.label}` });
+      m.on("click", (e) => { L.DomEvent.stopPropagation(e); onSelect(r.id); });
+      m.addTo(layer);
+    });
+  }, [records, homes, selectedId, onSelect]);
+  useEffect(() => { fit(); }, [records.length, homes.length]);
+  useEffect(() => {
+    const map = mapRef.current; if (!map || !gpsPos) return;
+    const ll = [gpsPos.lat, gpsPos.lng];
+    if (!meRef.current) { meRef.current = L.marker(ll, { interactive: false, icon: L.divIcon({ className: "", iconSize: [22, 22], iconAnchor: [11, 11], html: '<span class="me"><i></i></span>' }) }).addTo(map); }
+    else meRef.current.setLatLng(ll);
+    if (follow) map.panTo(ll, { animate: true });
+  }, [gpsPos, follow]);
+  const goMe = () => { const map = mapRef.current; if (map && gpsPos) map.setView([gpsPos.lat, gpsPos.lng], 19); setFollow(!follow); };
+  return html`<div class="relative">
+    <div ref=${elRef} class="mapbox" role="application" aria-label="광합성 지도. 지도를 누르면 그 자리에 새 기록을 만들어요."></div>
+    ${!ok && html`<div class="absolute inset-0 grid place-items-center text-mist text-sm p-6 text-center">지도를 불러오지 못했어요. 인터넷 연결을 확인하세요.</div>`}
+    <div class="map-tools">
+      <button type="button" class=${"tool " + (follow ? "tool-on" : "")} onClick=${goMe} aria-pressed=${follow}><${Icon} name="LocateFixed" size=${16} /><span>${follow ? "따라가는 중" : "내 위치"}</span></button>
+      <button type="button" class="tool" onClick=${fit}><${Icon} name="Maximize2" size=${16} /><span>전체 보기</span></button>
+    </div>
+    <div class="legend">
+      ${RESEARCHERS.map((r) => html`<span key=${r.name} class="flex items-center gap-1"><${Dot} color=${r.color} size=${10} />${r.name}</span>`)}
+      <span class="text-mist">● 따로 ■ 같이 · 빨리 깜빡일수록 광합성 활발</span>
+    </div>
+  </div>`;
+}
+
+function MapView({ records, gps, follow, setFollow, onMapPick, onOpen, openId }) {
+  const [fMode, setFMode] = useState("all"), [fWho, setFWho] = useState("all"), [fForm, setFForm] = useState("all"), [sort, setSort] = useState("carbon");
+  const filtered = useMemo(() => {
+    const a = records.filter((r) => (fMode === "all" || r.mode === fMode) && (fWho === "all" || r.researcher === fWho) && (fForm === "all" || r.growthForm === fForm));
+    return [...a].sort(sort === "carbon" ? (x, y) => (y.model.gco2 || 0) - (x.model.gco2 || 0) : (x, y) => y.ts - x.ts);
+  }, [records, fMode, fWho, fForm, sort]);
+  const homes = useMemo(() => fMode === "team" ? [] : RESEARCHERS.filter((r) => fWho === "all" || r.name === fWho).map((r) => ({ name: r.name, ...getHome(r.name) })), [fMode, fWho]);
+  const sumG = filtered.reduce((s, r) => s + (r.model.gco2 || 0), 0);
+  return html`<div class="grid gap-3">
+    <div class="glass p-3 grid gap-2">
+      <div class="seg3" role="group" aria-label="따로 또 같이 보기">
+        ${[["all", "모두"], ["solo", "따로 · 우리 동네"], ["team", "같이 · 학교"]].map(([k, l]) => html`<button key=${k} type="button"
+          class=${"seg3-b" + (fMode === k ? " on" : "") + " s-" + k} onClick=${() => setFMode(k)}>${l}</button>`)}
+      </div>
+      <div class="flex flex-wrap gap-1.5 items-center"><span class="lbl mr-1 mb-0">연구원</span>
+        <${Chip} on=${fWho === "all"} onClick=${() => setFWho("all")}>전체</${Chip}>
+        ${RESEARCHERS.map((r) => html`<${Chip} key=${r.name} on=${fWho === r.name} color=${r.color} onClick=${() => setFWho(r.name)}><${Dot} color=${fWho === r.name ? "#fff" : r.color} size=${6} />${r.name}</${Chip}>`)}</div>
+      <div class="flex flex-wrap gap-1.5 items-center"><span class="lbl mr-1 mb-0">군락</span>
+        <${Chip} on=${fForm === "all"} onClick=${() => setFForm("all")}>전체</${Chip}>
+        ${FORM_LIST.map((g) => html`<${Chip} key=${g} on=${fForm === g} onClick=${() => setFForm(g)}>${g}</${Chip}>`)}</div>
+    </div>
+    <${MapPanel} records=${filtered} homes=${homes} selectedId=${openId} onSelect=${onOpen} onMapPick=${onMapPick} gpsPos=${gps} follow=${follow} setFollow=${setFollow} />
+    <p class="text-[12px] text-mist -mt-1">⌂는 각자의 우리 동네, 동그라미는 따로·네모는 같이 기록이에요. 왼쪽 위 겹 버튼으로 위성사진·일반 지도를 바꿀 수 있고, 지도를 누르면 그 자리에 새 기록을 만들어요.</p>
+    <section class="glass p-3 grid gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="font-display text-[17px] text-snow">${filtered.length}곳 · 탄소 고정 합계 <span class="mono text-photon">${fix(sumG, 1)}</span> <small class="text-mist text-[12px]">g/h·m²</small></span>
+        <button type="button" class="link-btn ml-auto" onClick=${() => setSort(sort === "carbon" ? "recent" : "carbon")}>
+          <${Icon} name="ArrowDownWideNarrow" size=${14} />${sort === "carbon" ? "탄소 고정 높은 순" : "최신 순"}</button>
+      </div>
+      <div class="rank">
+        ${filtered.slice(0, 40).map((r, i) => { const act = M.activity(r.weather.ppfd); return html`<button key=${r.id} type="button" class="rank-row" onClick=${() => onOpen(r.id)}>
+          <span class="mono rank-i">${i + 1}</span>
+          ${r.photo ? html`<img src=${r.photo} alt="" />` : html`<span class="rank-ph"><${Icon} name="Leaf" size=${16} /></span>`}
+          <span class="min-w-0 flex-1 text-left"><b>${r.koreanName || "미동정"}</b><small><${ModeTag} mode=${r.mode} small=${true} /> ${r.researcher} · ${r.place || MODES[r.mode].place}</small></span>
+          <span class="text-right"><b class="mono">${fix(r.model.gco2, 2)}</b><small style=${{ color: ACT_COLOR[act.key] }}>PAR ${r.weather.par}</small></span>
+        </button>`; })}
+        ${!filtered.length && html`<div class="empty-note">조건에 맞는 기록이 없어요.</div>`}
+      </div>
+    </section>
+  </div>`;
+}
+
+/* ---------- 아카이브 ---------- */
+function VideoMaker({ records, onClose }) {
+  const withPhoto = records.filter((r) => r.photo);
+  const [scope, setScope] = useState("all");
+  const [per, setPer] = useState(2.2);
+  const [state, setState] = useState("idle"), [prog, setProg] = useState(0), [err, setErr] = useState("");
+  const [out, setOut] = useState(null);
+  const inScope = (r, k) => k === "all" || (k === "activity" ? r.kind === "activity" : r.kind !== "activity" && r.mode === k);
+  const list = withPhoto.filter((r) => inScope(r, scope)).slice().sort((a, b) => a.ts - b.ts);
+  const secs = Math.round(2.6 + list.length * per + 3.6);
+  useEffect(() => () => { if (out) URL.revokeObjectURL(out.url); }, [out]);
+  const run = async () => {
+    setState("rec"); setErr(""); setProg(0); if (out) { URL.revokeObjectURL(out.url); setOut(null); }
+    try {
+      const title = scope === "solo" ? "따로 · 우리 동네" : scope === "team" ? "같이 · 학교 식물" : scope === "activity" ? "우리의 활동" : "따로 또 같이";
+      const r = await EM.makeVideo(list.map((x) => ({ ...x })), { per, title, onProgress: setProg });
+      setOut({ ...r, url: URL.createObjectURL(r.blob), name: `에코쌤즈_${title.replace(/[ ·]+/g, "_")}_${today()}.${r.ext}` }); setState("done");
+    } catch (e) { setErr(e.message || String(e)); setState("error"); }
+  };
+  return html`<div class="modal-bg" onClick=${state === "rec" ? null : onClose}>
+    <div class="modal max-w-lg" role="dialog" aria-modal="true" aria-label="아카이브 영상 만들기" onClick=${(e) => e.stopPropagation()}>
+      <div class="flex items-center gap-2 mb-3"><${Icon} name="Clapperboard" size=${20} className="text-photon" />
+        <h2 class="font-display text-[20px] text-snow">한 번에 영상 만들기</h2>
+        ${state !== "rec" && html`<button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>`}</div>
+      ${state !== "done" ? html`<div class="grid gap-3">
+        <div class="seg3">${[["all", "모두"], ["solo", "따로"], ["team", "같이"], ["activity", "활동"]].map(([k, l]) => html`<button key=${k} type="button" disabled=${state === "rec"}
+          class=${"seg3-b" + (scope === k ? " on" : "") + " s-" + k} onClick=${() => setScope(k)}>${l} ${withPhoto.filter((r) => inScope(r, k)).length}</button>`)}</div>
+        <label class="fld"><span>사진 한 장당 ${per.toFixed(1)}초</span>
+          <input id="perIn" type="range" min="1.2" max="4" step="0.2" value=${per} disabled=${state === "rec"} onInput=${(e) => setPer(Number(e.target.value))} /></label>
+        <p class="text-[13px] text-mist">세로 영상(720×1280)으로 만들어요. 여는 장면 → 사진 ${list.length}장 → 우리 기록 요약 순서이고, 약 ${secs}초 걸려요. 만드는 동안 이 화면을 켜 두세요.</p>
+        ${state === "rec" && html`<div class="grid gap-1.5"><div class="bar"><i style=${{ width: Math.round(prog * 100) + "%" }}></i></div>
+          <span class="text-[12px] text-mist mono">${Math.round(prog * 100)}% · 녹화 중</span></div>`}
+        ${state === "error" && html`<div class="err">${err}</div>`}
+        <button type="button" class="btn-save" disabled=${!list.length || state === "rec"} onClick=${run}>
+          <${Icon} name=${state === "rec" ? "Loader2" : "Film"} size=${18} className=${state === "rec" ? "animate-spin" : ""} />
+          ${state === "rec" ? "영상 만드는 중…" : list.length ? `사진 ${list.length}장으로 영상 만들기` : "사진이 있는 기록이 필요해요"}</button>
+      </div>` : html`<div class="grid gap-3">
+        <video src=${out.url} controls playsInline class="w-full rounded-xl border-2 border-[#2FA463] bg-black max-h-[60vh]"></video>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" class="btn-save" onClick=${() => saveFile(out.name, out.blob)}><${Icon} name="Download" size=${17} />영상 저장</button>
+          <button type="button" class="btn-primary" onClick=${async () => { if (!(await shareFile(out.name, out.blob))) saveFile(out.name, out.blob); }}><${Icon} name="Share2" size=${17} />공유</button>
+        </div>
+        <p class="text-[12px] text-mist">${out.ext === "webm" ? "WebM 형식이에요. 카카오톡·유튜브에는 그대로 올라가요. 한글·PPT에 넣으려면 MP4로 변환하세요." : "MP4 형식이라 휴대폰·PPT에서 바로 열려요."} · ${out.seconds}초</p>
+        <button type="button" class="btn-ghost justify-center" onClick=${() => setState("idle")}>다시 만들기</button>
+      </div>`}
+    </div>
+  </div>`;
+}
+
+function ArchiveView({ records, acts, onOpen, onOpenAct, onClearSamples, onImport }) {
+  const [video, setVideo] = useState(false);
+  const fileRef = useRef(null);
+  const real = records.filter((r) => !r.sample);
+  const all = useMemo(() => records.concat(acts).sort((a, b) => b.ts - a.ts), [records, acts]);
+  const photos = all.filter((r) => r.photo);
+  const byDay = useMemo(() => {
+    const m = new Map(); all.forEach((r) => { const d = fmtDay(r.ts); if (!m.has(d)) m.set(d, []); m.get(d).push(r); });
+    return [...m.entries()];
+  }, [all]);
+  const samples = records.length - real.length;
+  return html`<div class="grid gap-4">
+    <button type="button" class="reel" onClick=${() => setVideo(true)}>
+      <span class="reel-holes" aria-hidden="true"></span>
+      <span class="reel-body"><${Icon} name="Clapperboard" size=${30} /><span class="flex-1 min-w-0"><b>한 번에 영상 만들기</b><small>식물·활동 사진 ${photos.length}장을 팀 프레임 그대로 세로 영상으로</small></span>
+        <${Icon} name="ChevronRight" size=${22} /></span>
+      <span class="reel-holes" aria-hidden="true"></span>
+    </button>
+    <section class="glass p-4 grid gap-3">
+      <div class="flex items-center gap-2 flex-wrap"><h2 class="pill-h"><${Icon} name="Images" size=${17} />날짜별 사진첩</h2>
+        <span class="text-[12px] text-mist">모든 사진에 팀 이름·날짜 도장이 찍혀 있어요</span></div>
+      ${byDay.length ? byDay.map(([d, list]) => html`<div key=${d} class="grid gap-2">
+          <div class="day-h"><span class="mono">${d}</span><small>따로 ${list.filter((r) => r.mode === "solo").length} · 같이 ${list.filter((r) => r.mode === "team").length} · 활동 ${list.filter((r) => r.kind === "activity").length}</small></div>
+          <div class="prints prints-s">${list.map((r, i) => r.kind === "activity"
+            ? html`<button key=${r.id} type="button" class="print" style=${{ "--tilt": `${i % 2 ? 1.5 : -1.5}deg` }} onClick=${() => onOpenAct(r)} aria-label=${`${r.title || "활동"} 사진 열기`}><img src=${r.photo} alt="" loading="lazy" /></button>`
+            : html`<${Print} key=${r.id} rec=${r} onOpen=${onOpen} tilt=${i % 2 ? 1.5 : -1.5} />`)}</div>
+        </div>`) : html`<div class="empty-note">아직 사진이 없어요.</div>`}
+    </section>
+    <section class="glass p-4 grid gap-3">
+      <h2 class="pill-h justify-self-start"><${Icon} name="Download" size=${17} />보고서용 데이터</h2>
+      <div class="grid sm:grid-cols-2 gap-2">
+        <button type="button" class="exp" disabled=${!real.length} onClick=${() => saveFile(`에코쌤즈_광합성지도_${today()}.csv`, toCSV(real), "text/csv;charset=utf-8")}>
+          <${Icon} name="FileSpreadsheet" size=${20} className="text-photon" /><span><b>CSV</b><small>엑셀 분석 · 실천모임 결과 보고서</small></span></button>
+        <button type="button" class="exp" disabled=${!real.length} onClick=${() => saveFile(`에코쌤즈_광합성지도_${today()}.geojson`, toGeoJSON(real), "application/geo+json")}>
+          <${Icon} name="Globe" size=${20} className="text-photon" /><span><b>GeoJSON</b><small>QGIS · 구글 어스용 좌표</small></span></button>
+        <button type="button" class="exp" disabled=${!real.length && !acts.length} onClick=${() => saveFile(`에코쌤즈_백업_${today()}.json`, JSON.stringify(real.concat(acts.map(({ raw, ...a }) => a))), "application/json")}>
+          <${Icon} name="HardDriveDownload" size=${20} className="text-photon" /><span><b>내 기록 보내기 (JSON)</b><small>식물 기록 + 활동 사진 · 팀원에게 공유</small></span></button>
+        <button type="button" class="exp" onClick=${() => fileRef.current.click()}>
+          <${Icon} name="Merge" size=${20} className="text-photon" /><span><b>팀원 기록 합치기</b><small>받은 JSON을 넣으면 내 지도에 합쳐져요</small></span></button>
+        <input ref=${fileRef} id="impIn" type="file" accept=".json,application/json" class="hidden" onChange=${(e) => { const f = e.target.files && e.target.files[0]; if (f) onImport(f); e.target.value = ""; }} />
+      </div>
+      <p class="text-[12px] text-mist">기록은 이 휴대폰에 저장돼요. 모임 날 각자 ‘내 기록 보내기’를 단톡방에 올리고, 한 사람이 ‘합치기’하면 팀 전체 지도·영상이 완성돼요.</p>
+      ${samples > 0 && html`<button type="button" class="link-btn text-amber justify-self-start" onClick=${onClearSamples}><${Icon} name="Eraser" size=${14} />예시 ${samples}건 지우기</button>`}
+    </section>
+    ${video && html`<${VideoMaker} records=${all} onClose=${() => setVideo(false)} />`}
+  </div>`;
+}
+
+/* ---------- 분석 인포그래픽 카드 ---------- */
+function AnalysisCard({ rec }) {
+  const ai = rec.ai, est = rec.model, w = rec.weather, act = M.activity(w.ppfd), P = M.PS_TYPES[rec.psType] || M.PS_TYPES.C3;
+  const tax = ai && ai.taxonomy, morph = ai && ai.morphology, eco = ai && ai.ecologicalInsight;
+  const maxG = rec.psType === "C4" ? 4 : 3;
+  return html`<div class="grid gap-3">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <h3 class="text-[22px] font-display text-snow leading-tight">${rec.koreanName || "미동정 식물"}</h3>
+        <${ModeTag} mode=${rec.mode} />
+        <span class="badge" style=${{ color: "#fff", background: "#2FA463", borderColor: "#2FA463" }}>${P.label}</span>
+        <span class="badge">${rec.growthForm}</span>
+        ${rec.sample && html`<span class="badge text-amber" style=${{ borderColor: "#D98E04" }}>예시</span>`}
+      </div>
+      ${rec.scientificName && html`<div class="italic text-mist mt-0.5">${rec.scientificName}</div>`}
+      ${rec.confidence != null && html`<div class="mt-2 flex items-center gap-2 text-[12px] text-mist">
+        <span>동정 신뢰도</span><div class="bar flex-1 max-w-[180px]"><i style=${{ width: rec.confidence + "%" }}></i></div>
+        <span class="mono text-snow">${rec.confidence}%</span></div>`}
+    </div>
+    ${tax && html`<div class="flex flex-wrap items-center gap-1 text-[12px]">
+      ${[["계", tax.kingdom], ["문", tax.phylum], ["강", tax.class], ["목", tax.order], ["과", tax.family], ["속", tax.genus]]
+        .filter(([, v]) => v).map(([k, v], i, a) => html`<span key=${k} class="flex items-center gap-1">
+          <span class="tax"><b>${k}</b>${v}</span>${i < a.length - 1 && html`<${Icon} name="ChevronRight" size=${12} className="text-mist" />`}</span>`)}
+    </div>`}
+    <div class="carbon">
+      <div class="flex items-center gap-2 text-[12px] text-mist"><${Icon} name="Atom" size=${14} />탄소 고정 잠재량 (모델 추정)</div>
+      <div class="flex items-end gap-2 mt-1 flex-wrap">
+        <span class="mono text-[34px] leading-none text-photon">${fix(est.gco2, 2)}</span>
+        <span class="text-mist text-[13px] pb-1">g CO₂ / h·m² (지면)</span>
+      </div>
+      <div class="bar mt-3"><i style=${{ width: Math.min(100, (est.gco2 / maxG) * 100) + "%" }}></i></div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-[12px]">
+        <div><div class="text-mist">잎 순광합성</div><div class="mono text-snow">${fix(est.aLeaf, 1)} <small class="text-mist">µmol/m²/s</small></div></div>
+        <div><div class="text-mist">PPFD</div><div class="mono text-snow">${w.ppfd} <small class="text-mist">· ${act.label}</small></div></div>
+        <div><div class="text-mist">엽면적지수 LAI</div><div class="mono text-snow">${fix(est.lai, 1)}</div></div>
+        <div><div class="text-mist">온도·건조 보정</div><div class="mono text-snow">×${fix(est.fT, 2)} · ×${fix(est.fVPD, 2)}</div></div>
+      </div>
+      ${ai && ai.carbonFixationEst && ai.carbonFixationEst.comment && html`<p class="text-[13px] text-snow/90 mt-3 leading-relaxed">${ai.carbonFixationEst.comment}</p>`}
+      <details class="mt-2 text-[12px] text-mist"><summary class="cursor-pointer">계산식 보기</summary>
+        <div class="mono leading-relaxed mt-2">PPFD = 일사량 ${fix(w.sw, 0)} × 0.45 × 4.57 = ${w.ppfd}<br/>
+        A = αI·Amax/(αI+Amax) × f(T) × f(VPD) − Rd<br/>  (${P.label}: α ${P.alpha}, Amax ${est.amax}, 최적 ${P.topt}℃, VPD ${fix(est.vpd, 2)} kPa)<br/>
+        군락 = A × (1−e^(−0.5·LAI))/0.5 = ${fix(est.aCanopy, 2)} µmol/m²/s<br/>g CO₂/h·m² = 군락 A × 0.1584</div>
+        <p class="mt-2">대표 계수를 쓴 추정치예요. 수업에서는 ‘조건 비교’ 용도로 쓰세요.</p>
+      </details>
+    </div>
+    ${morph && html`<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      ${[["엽서", morph.phyllotaxy, "Network"], ["엽맥", morph.venation, "GitBranch"], ["큐티클", morph.cuticle, "Shield"], ["기공", morph.stomata, "ScanLine"]]
+        .filter(([, v]) => v).map(([k, v, ic]) => html`<div key=${k} class="stat">
+          <div class="flex items-center gap-1.5 text-[12px] text-mist"><${Icon} name=${ic} size=${13} />${k}</div>
+          <div class="text-[13px] text-snow mt-1 leading-snug">${v}</div></div>`)}
+    </div>`}
+    ${eco && html`<div class="insight">
+      <div class="flex items-center gap-2 text-[12px]"><${Icon} name="Thermometer" size=${14} className=${eco.climateIndicator ? "text-amber" : "text-mist"} />
+        <span class=${eco.climateIndicator ? "text-amber" : "text-mist"}>${eco.climateIndicator ? "기후변화 지표종" : "기후변화 지표종 아님"}</span></div>
+      ${eco.note && html`<p class="text-[13px] text-snow mt-1.5 leading-relaxed">${eco.note}</p>`}
+      ${eco.classroom && html`<p class="text-[13px] text-photon mt-1.5 leading-relaxed"><b class="font-semibold">수업 연계 · </b>${eco.classroom}</p>`}
+    </div>`}
+  </div>`;
+}
+
+/* ---------- 새 기록 ---------- */
+function startPos(mode, me, gps, picked) {
+  if (picked) return picked;
+  if (mode === "solo") { const hm = getHome(me); return { lat: hm.lat, lng: hm.lng, accuracy: null, source: "home" }; }
+  return gps ? { lat: gps.lat, lng: gps.lng, accuracy: gps.accuracy, source: "gps" } : null;
+}
+function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSave, onOpenSettings }) {
+  const [mode, setModeS] = useState(draft.mode || "team");
+  const [pos, setPos] = useState(() => startPos(draft.mode || "team", researcher, gps, draft.pos));
+  const [raw, setRaw] = useState(null);
+  const [framed, setFramed] = useState(null);
+  const [ai, setAi] = useState(null), [aiState, setAiState] = useState("idle"), [aiErr, setAiErr] = useState("");
+  const [saving, setSaving] = useState(false);
+  const home = getHome(researcher);
+  const [f, setF] = useState({ koreanName: "", scientificName: "", growthForm: "초본", psType: "C3", lai: "", notes: "", place: (draft.mode === "solo") ? home.label : "" });
+  const camRef = useRef(null), galRef = useRef(null), tsRef = useRef(Date.now());
+  const w = weather || { temp: null, rh: null, cloud: null, sw: 0, ppfd: 0, par: 0 };
+  const m = MODES[mode];
+  const est = useMemo(() => M.estimate({ sw: w.sw, temp: w.temp, rh: w.rh, psType: f.psType, growthForm: f.growthForm,
+    lai: f.lai === "" ? undefined : Number(f.lai) }), [w, f.psType, f.growthForm, f.lai]);
+  const meta = { mode, researcher, ts: tsRef.current, name: f.koreanName.trim(), sci: f.scientificName.trim(), place: f.place.trim() || m.place };
+  const setMode = (k) => {
+    setModeS(k);
+    if (!draft.pos) setPos(startPos(k, researcher, gps, null));
+    setF((q) => ({ ...q, place: k === "solo" ? (q.place && q.place !== "" && q.place !== MODES.team.place ? q.place : home.label) : (q.place === home.label ? "" : q.place) }));
+  };
+  useEffect(() => { if (!pos && gps && mode === "team") setPos({ lat: gps.lat, lng: gps.lng, accuracy: gps.accuracy, source: "gps" }); }, [gps]);
+  useEffect(() => {
+    if (!raw) { setFramed(null); return; }
+    let live = true; const t = setTimeout(() => { EM.composeFrame(raw, meta).then((d) => { if (live) setFramed(d); }, () => {}); }, 250);
+    return () => { live = false; clearTimeout(t); };
+  }, [raw, mode, meta.name, meta.sci, meta.place]);
+
+  const onFile = async (e) => {
+    const file = e.target.files && e.target.files[0]; e.target.value = ""; if (!file) return;
+    try { tsRef.current = Date.now(); setRaw(await resizeImage(file, 1280, 0.86)); setAi(null); setAiState("idle"); }
+    catch (er) { setAiErr("사진을 읽지 못했어요. 다른 사진으로 시도하세요."); setAiState("error"); }
+  };
+  const p = pos || { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1], source: "default", accuracy: null };
+  const runAI = async () => {
+    if (!settings.apiKey) { onOpenSettings(); return; }
+    setAiState("loading"); setAiErr("");
+    try {
+      const o = await analyzePlant({ apiKey: settings.apiKey, model: settings.model, dataUrl: raw, weather: w, lat: p.lat, lng: p.lng, mode });
+      setAi(o); setAiState("ok");
+      setF((q) => ({ ...q, koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType,
+        lai: o.carbonFixationEst && Number(o.carbonFixationEst.laiEstimate) > 0 ? String(M.clamp(Number(o.carbonFixationEst.laiEstimate), 0.1, 10)) : q.lai }));
+    } catch (er) { setAiState("error"); setAiErr(er.message || String(er)); }
+  };
+  const preview = { id: "draft", ts: tsRef.current, mode, researcher, lat: p.lat, lng: p.lng, ai, weather: w, model: est,
+    koreanName: f.koreanName, scientificName: f.scientificName, confidence: ai ? ai.confidence : null, growthForm: f.growthForm, psType: f.psType };
+  const canSave = !!(f.koreanName.trim() || raw) && !saving;
+  const save = async () => {
+    setSaving(true);
+    let photo = null;
+    if (raw) { try { photo = await EM.composeFrame(raw, meta); } catch (e) { photo = raw; } }
+    onSave({ ...preview, id: uid(), photo, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
+      weather: { temp: w.temp, rh: w.rh, cloud: w.cloud, sw: w.sw, ppfd: w.ppfd, par: w.par } });
+  };
+  const srcLabel = { gps: `내 위치(GPS) ±${Math.round(p.accuracy || 0)}m`, map: "지도에서 콕 찍은 자리", home: `우리 동네 기본 위치 · ${home.label}`, default: "지도를 눌러 위치를 찍어 주세요" }[p.source];
+
+  return html`<div class="modal-bg" onClick=${onClose}>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="새 식물 기록" onClick=${(e) => e.stopPropagation()} style=${{ borderColor: m.color }}>
+      <div class="flex items-center gap-2 mb-3">
+        <div class="seg3 flex-1">
+          ${["solo", "team"].map((k) => html`<button key=${k} type="button" class=${"seg3-b" + (mode === k ? " on" : "") + " s-" + k} onClick=${() => setMode(k)}>
+            ${MODES[k].label} · ${k === "solo" ? "우리 동네" : "학교"}</button>`)}
+        </div>
+        <button type="button" class="icon-btn" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>
+      </div>
+      <div class="grid gap-2">
+        <${Label}>발견 위치 · 지도를 누르거나 핀을 끌어 콕 찍어요</${Label}>
+        <${LocPicker} pos=${pos} onPick=${setPos} color=${rColor(researcher)} />
+        <div class="loc-row">
+          <span class="flex items-center gap-1.5 min-w-0 flex-wrap"><${Icon} name="MapPin" size=${15} /><span>${srcLabel}</span>
+            <span class="mono text-mist text-[11px]">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</span></span>
+          <span class="flex gap-1.5 shrink-0">
+            ${gps && html`<button type="button" class="mini-btn" onClick=${() => setPos({ lat: gps.lat, lng: gps.lng, accuracy: gps.accuracy, source: "gps" })}><${Icon} name="LocateFixed" size=${13} />내 위치</button>`}
+            ${mode === "solo" && html`<button type="button" class="mini-btn" onClick=${() => setPos({ lat: home.lat, lng: home.lng, accuracy: null, source: "home" })}><${Icon} name="House" size=${13} />우리 동네</button>`}
+          </span>
+        </div>
+        ${p.source === "gps" && p.accuracy > 8 && html`<p class="text-[12px] text-mist">GPS 오차가 약 ${Math.round(p.accuracy)}m예요. 위성사진을 크게 확대해서 실제 자리를 다시 콕 찍으면 더 정확해요.</p>`}
+      </div>
+      <div class="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-mist mb-4 mt-2">
+        <span class="flex items-center gap-1"><${Dot} color=${rColor(researcher)} size=${8} />${researcher}</span>
+        <span class="mono">${weather ? `${fix(w.temp)}℃ · ${fix(w.sw, 0)} W/m² · PAR ${w.par}` : "기상 정보 없음"}</span>
+      </div>
+      <div class="grid gap-4">
+        <div>
+          ${raw ? html`<div class="frame-prev">
+              ${framed ? html`<img src=${framed} alt="팀 프레임이 입혀진 사진 미리보기" />` : html`<div class="frame-wait">프레임 입히는 중…</div>`}
+              <button type="button" class="icon-btn absolute top-2 right-2" onClick=${() => { setRaw(null); setAi(null); setAiState("idle"); }} aria-label="사진 지우기"><${Icon} name="Trash2" size=${16} /></button>
+            </div>
+            <p class="text-[12px] text-mist mt-1.5 text-center">저장하면 이 프레임 그대로 사진첩·영상에 남아요.</p>`
+          : html`<div class="grid grid-cols-2 gap-2">
+              <button type="button" class="drop" onClick=${() => camRef.current.click()}><${Icon} name="Camera" size=${24} />촬영</button>
+              <button type="button" class="drop" onClick=${() => galRef.current.click()}><${Icon} name="ImagePlus" size=${24} />앨범에서 선택</button>
+            </div>`}
+          <input ref=${camRef} id="camIn" type="file" accept="image/*" capture="environment" class="hidden" onChange=${onFile} />
+          <input ref=${galRef} id="galIn" type="file" accept="image/*" class="hidden" onChange=${onFile} />
+          ${raw && html`<button type="button" class="btn-primary w-full mt-2" onClick=${runAI} disabled=${aiState === "loading"}>
+            <${Icon} name=${aiState === "loading" ? "Loader2" : "ScanSearch"} size=${18} className=${aiState === "loading" ? "animate-spin" : ""} />
+            ${aiState === "loading" ? "식물생리학 분석 중…" : settings.apiKey ? "AI로 종 찾기 (사진 + 지금 빛)" : "AI 분석하려면 API 키 설정"}</button>`}
+          ${aiState === "error" && html`<div class="err mt-2">${aiErr}</div>`}
+        </div>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <label class="fld"><span>국명</span><input id="fKor" value=${f.koreanName} onInput=${(e) => setF({ ...f, koreanName: e.target.value })} placeholder="예: 강아지풀" /></label>
+          <label class="fld"><span>학명</span><input id="fSci" class="italic" value=${f.scientificName} onInput=${(e) => setF({ ...f, scientificName: e.target.value })} placeholder="예: Setaria viridis" /></label>
+          <label class="fld sm:col-span-2"><span>장소 이름</span><input id="fPlace" value=${f.place} onInput=${(e) => setF({ ...f, place: e.target.value })}
+            placeholder=${mode === "solo" ? `예: ${home.label} 앞 화단` : "예: 학교 정문 화단, 운동장 가장자리"} /></label>
+        </div>
+        <div class="grid sm:grid-cols-[1fr_1fr_110px] gap-3">
+          <div><${Label}>생활형</${Label}><div class="flex flex-wrap gap-1.5">${FORM_LIST.map((g) => html`<${Chip} key=${g} on=${f.growthForm === g} onClick=${() => setF({ ...f, growthForm: g })}>${g}</${Chip}>`)}</div></div>
+          <div><${Label}>광합성 유형</${Label}><div class="flex flex-wrap gap-1.5">${PS_LIST.map((q) => html`<${Chip} key=${q} on=${f.psType === q} onClick=${() => setF({ ...f, psType: q })}>${M.PS_TYPES[q].label}</${Chip}>`)}</div></div>
+          <label class="fld"><span>LAI</span><input id="fLai" type="number" step="0.1" min="0.1" max="10" inputmode="decimal" value=${f.lai}
+            placeholder=${String(M.FORMS[f.growthForm].lai)} onInput=${(e) => setF({ ...f, lai: e.target.value })} /></label>
+        </div>
+        <div class="glass-2 p-4"><${AnalysisCard} rec=${preview} /></div>
+        <label class="fld"><span>현장 메모</span><textarea id="fNote" rows="2" value=${f.notes} onInput=${(e) => setF({ ...f, notes: e.target.value })} placeholder="군락 크기, 그늘 여부, 함께 본 생물 등"></textarea></label>
+        <button type="button" class="btn-save" onClick=${save} disabled=${!canSave} style=${{ background: m.color, borderColor: m.deep, boxShadow: `0 4px 0 ${m.deep}` }}>
+          <${Icon} name="Save" size=${18} />${saving ? "프레임 입혀 저장하는 중…" : `${m.label} 기록 저장`}</button>
+        ${!canSave && !saving && html`<p class="text-[12px] text-mist -mt-2 text-center">사진을 넣거나 국명을 적으면 저장할 수 있어요.</p>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- 상세 ---------- */
+function DetailModal({ rec, me, onClose, onDelete }) {
+  const [ask, setAsk] = useState(false);
+  return html`<div class="modal-bg" onClick=${onClose}>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="기록 상세" onClick=${(e) => e.stopPropagation()}>
+      <div class="flex items-center gap-2 mb-3 text-[12px] text-mist flex-wrap">
+        <${ModeTag} mode=${rec.mode} /><${Dot} color=${rColor(rec.researcher)} size=${8} /><span>${rec.researcher}</span><span>· ${fmtDate(rec.ts)}</span><span>· ${rec.place || MODES[rec.mode].place}</span>
+        <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>
+      </div>
+      ${rec.photo && html`<img src=${rec.photo} alt=${rec.koreanName || "식물 사진"} class="detail-photo" />`}
+      ${rec.photo && html`<div class="flex justify-end -mt-1 mb-3"><button type="button" class="link-btn" onClick=${async () => {
+        const b = await (await fetch(rec.photo)).blob(); const n = `에코쌤즈_${rec.koreanName || "식물"}_${today()}.jpg`; if (!(await shareFile(n, b))) saveFile(n, b); }}>
+        <${Icon} name="Download" size=${14} />프레임 사진 저장</button></div>`}
+      <${AnalysisCard} rec=${rec} />
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 text-[12px]">
+        ${[["기온", fix(rec.weather.temp) + "℃"], ["습도", fix(rec.weather.rh, 0) + "%"], ["운량", fix(rec.weather.cloud, 0) + "%"], ["일사량", fix(rec.weather.sw, 0) + " W/m²"]]
+          .map(([k, v]) => html`<div key=${k} class="stat"><div class="text-mist">${k}</div><div class="mono text-snow">${v}</div></div>`)}
+      </div>
+      ${rec.notes && html`<p class="text-[13px] text-snow mt-3 leading-relaxed">${rec.notes}</p>`}
+      <div class="flex gap-2 mt-4 flex-wrap">
+        <a class="btn-ghost" href=${`https://www.google.com/maps?q=${rec.lat},${rec.lng}`} target="_blank" rel="noopener"><${Icon} name="ExternalLink" size=${15} />구글 지도</a>
+        ${(rec.researcher === me || rec.sample) && (!ask ? html`<button type="button" class="btn-ghost ml-auto text-rose-600" onClick=${() => setAsk(true)}><${Icon} name="Trash2" size=${15} />삭제</button>`
+          : html`<div class="ml-auto flex items-center gap-2"><span class="text-[13px] text-rose-700">이 기록을 지울까요?</span>
+              <button type="button" class="btn-ghost" onClick=${() => setAsk(false)}>취소</button>
+              <button type="button" class="btn-danger" onClick=${() => onDelete(rec.id)}>삭제</button></div>`)}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- 설정 ---------- */
+function SettingsModal({ settings, onSave, onClose }) {
+  const [key, setKey] = useState(settings.apiKey || "");
+  const [model, setModel] = useState(settings.model || DEFAULT_MODEL);
+  const [show, setShow] = useState(false);
+  return html`<div class="modal-bg" onClick=${onClose}>
+    <div class="modal max-w-md" role="dialog" aria-modal="true" aria-label="AI 분석 설정" onClick=${(e) => e.stopPropagation()}>
+      <div class="flex items-center gap-2 mb-2"><${Icon} name="KeyRound" size=${19} className="text-photon" />
+        <h2 class="font-display text-[20px] text-snow">AI 분석 설정</h2>
+        <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button></div>
+      <p class="text-[13px] text-mist leading-relaxed mb-4">Anthropic API 키를 넣으면 사진과 지금의 빛·기상값을 함께 보내 종을 찾고 광합성 특성을 분석해요. 키는 <b class="text-snow">이 휴대폰에만</b> 저장돼요.</p>
+      <label class="fld"><span>API 키</span>
+        <div class="flex gap-2"><input id="apiKey" type=${show ? "text" : "password"} autocomplete="off" value=${key} onInput=${(e) => setKey(e.target.value)} placeholder="sk-ant-..." class="flex-1" />
+          <button type="button" class="icon-btn" onClick=${() => setShow(!show)} aria-label=${show ? "키 숨기기" : "키 보기"}><${Icon} name=${show ? "EyeOff" : "Eye"} size=${17} /></button></div></label>
+      <a class="text-[12px] text-photon underline underline-offset-2" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console에서 키 발급 ↗</a>
+      <label class="fld mt-3"><span>모델</span><input id="aiModel" class="mono" value=${model} onInput=${(e) => setModel(e.target.value)} /></label>
+      <div class="flex gap-2 mt-4">
+        <button type="button" class="btn-save flex-1" onClick=${() => onSave({ apiKey: key.trim(), model: model.trim() || DEFAULT_MODEL })}><${Icon} name="Check" size=${17} />저장</button>
+        ${settings.apiKey && html`<button type="button" class="btn-ghost text-rose-600" onClick=${() => { setKey(""); onSave({ apiKey: "", model }); }}>키 삭제</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- 활동 사진 ---------- */
+const toLocalInput = (ts) => { const d = new Date(ts), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+const fromLocalInput = (s) => { const t = new Date(s).getTime(); return isNaN(t) ? null : t; };
+
+function ActivityView({ me, acts, onAdd, onOpen }) {
+  const byDay = useMemo(() => {
+    const m = new Map(); acts.forEach((a) => { const d = fmtDay(a.ts); if (!m.has(d)) m.set(d, []); m.get(d).push(a); });
+    return [...m.entries()];
+  }, [acts]);
+  return html`<div class="grid gap-4">
+    <button type="button" class="act-hero" onClick=${onAdd}>
+      <span class="act-hero-ic"><${Icon} name="ImagePlus" size=${28} /></span>
+      <span class="flex-1 min-w-0"><b>활동 사진 올리기</b><small>모임·현장 탐사·캠페인 사진을 여러 장 한 번에. 찍은 날짜가 자동으로 찍히고, 나중에 고칠 수 있어요.</small></span>
+    </button>
+    <section class="glass p-4 grid gap-3">
+      <div class="flex items-center gap-2 flex-wrap"><h2 class="pill-h pill-act"><${Icon} name="Users" size=${17} />우리의 활동 기록</h2>
+        <span class="text-[12px] text-mist">${acts.length}장 · ${byDay.length}일</span></div>
+      ${byDay.length ? html`<div class="act-timeline">${byDay.map(([d, list]) => html`<div key=${d} class="act-day">
+          <div class="act-date"><span class="mono">${d}</span><small>${[...new Set(list.map((a) => a.title).filter(Boolean))].join(" · ")}</small></div>
+          <div class="prints prints-s">${list.map((a, i) => html`<button key=${a.id} type="button" class="print" style=${{ "--tilt": `${i % 2 ? 1.5 : -1.5}deg` }}
+            onClick=${() => onOpen(a)} aria-label=${`${a.title || "활동"} 사진 열기`}><img src=${a.photo} alt="" loading="lazy" /></button>`)}</div>
+        </div>`)}</div>`
+        : html`<div class="empty-note">첫 모임, 학교 탐사, 캠페인… 우리가 함께한 순간을 올려 두면 마지막에 영상으로 한 번에 묶을 수 있어요.</div>`}
+    </section>
+  </div>`;
+}
+
+function ActivityModal({ me, item, onClose, onSave, onDelete }) {
+  const isNew = !item;
+  const [files, setFiles] = useState([]); // [{raw, ts}]
+  const [title, setTitle] = useState(item ? item.title || "" : "");
+  const [place, setPlace] = useState(item ? item.place || "" : "");
+  const [people, setPeople] = useState(item ? item.people || [] : [me]);
+  const [notes, setNotes] = useState(item ? item.notes || "" : "");
+  const [when, setWhen] = useState(item ? toLocalInput(item.ts) : "");
+  const [busy, setBusy] = useState(false), [ask, setAsk] = useState(false), [err, setErr] = useState("");
+  const [prev, setPrev] = useState(item ? item.photo : null);
+  const inRef = useRef(null), camRef = useRef(null);
+  const first = isNew ? files[0] : (item.raw ? { raw: item.raw, ts: item.ts } : null);
+  const metaFor = (ts) => ({ mode: "activity", researcher: me, ts, name: title.trim() || "우리의 활동", place: place.trim(), people });
+  useEffect(() => {
+    if (!first) { if (isNew) setPrev(null); return; }
+    const ts = fromLocalInput(when) || first.ts;
+    let live = true; const t = setTimeout(() => { EM.composeFrame(first.raw, metaFor(ts)).then((d) => { if (live) setPrev(d); }, () => {}); }, 250);
+    return () => { live = false; clearTimeout(t); };
+  }, [first && first.raw, when, title, place, people.join(",")]);
+
+  const pick = async (e) => {
+    const list = [...(e.target.files || [])]; e.target.value = ""; if (!list.length) return;
+    setBusy(true); setErr("");
+    try {
+      const out = [];
+      for (const f of list.slice(0, 30)) {
+        const ts = (await EM.exifDate(f)) || f.lastModified || Date.now();
+        out.push({ raw: await resizeImage(f, 1280, 0.85), ts });
+      }
+      out.sort((a, b) => a.ts - b.ts);
+      setFiles(out); setWhen(toLocalInput(out[0].ts));
+    } catch (er) { setErr("사진을 읽지 못했어요. 다른 사진으로 시도하세요."); }
+    setBusy(false);
+  };
+  const togglePerson = (n) => setPeople((ps) => ps.includes(n) ? ps.filter((x) => x !== n) : RESEARCHERS.map((r) => r.name).filter((x) => ps.includes(x) || x === n));
+  const save = async () => {
+    setBusy(true);
+    try {
+      const edited = fromLocalInput(when);
+      if (isNew) {
+        // 첫 장 날짜를 고치면 나머지도 같은 만큼 옮겨서 순서를 지켜요
+        const shift = edited && files.length ? edited - files[0].ts : 0;
+        const list = [];
+        for (const f of files) {
+          const ts = f.ts + shift;
+          list.push({ id: uid(), kind: "activity", ts, title: title.trim(), place: place.trim(), people, notes: notes.trim(), researcher: me, raw: f.raw,
+            photo: await EM.composeFrame(f.raw, metaFor(ts)) });
+        }
+        onSave(list);
+      } else {
+        const ts = edited || item.ts;
+        const raw = item.raw || item.photo;
+        onSave([{ ...item, ts, title: title.trim(), place: place.trim(), people, notes: notes.trim(), raw,
+          photo: item.raw ? await EM.composeFrame(raw, metaFor(ts)) : item.photo }]);
+      }
+    } catch (e) { setErr("저장하지 못했어요. 다시 시도해 주세요."); setBusy(false); }
+  };
+  return html`<div class="modal-bg" onClick=${busy ? null : onClose}>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="활동 사진" onClick=${(e) => e.stopPropagation()} style=${{ borderColor: MODES.activity.color }}>
+      <div class="flex items-center gap-2 mb-3"><${Icon} name="Users" size=${20} className="text-amber" />
+        <h2 class="font-display text-[20px] text-snow">${isNew ? "활동 사진 올리기" : "활동 사진 고치기"}</h2>
+        <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기" disabled=${busy}><${Icon} name="X" size=${18} /></button></div>
+      <div class="grid gap-4">
+        ${isNew && !files.length ? html`<div class="grid grid-cols-2 gap-2">
+            <button type="button" class="drop drop-act" onClick=${() => camRef.current.click()} disabled=${busy}><${Icon} name="Camera" size=${24} />지금 찍기</button>
+            <button type="button" class="drop drop-act" onClick=${() => inRef.current.click()} disabled=${busy}><${Icon} name="Images" size=${24} />앨범에서 여러 장</button>
+          </div>` : null}
+        <input ref=${inRef} id="actIn" type="file" accept="image/*" multiple class="hidden" onChange=${pick} />
+        <input ref=${camRef} id="actCam" type="file" accept="image/*" capture="environment" class="hidden" onChange=${pick} />
+        ${busy && !prev ? html`<div class="frame-wait p-6 text-center">사진을 읽고 날짜를 찾는 중…</div>` : null}
+        ${prev && html`<div class="grid gap-1.5">
+          <div class="frame-prev">${html`<img src=${prev} alt="날짜 도장이 찍힌 활동 사진 미리보기" />`}</div>
+          ${isNew && files.length > 1 && html`<div class="act-thumbs">${files.map((f, i) => html`<img key=${i} src=${f.raw} alt="" />`)}</div>`}
+          <p class="text-[12px] text-mist text-center">${isNew && files.length > 1 ? `${files.length}장 모두 같은 제목으로, 각자 찍은 시각이 도장으로 찍혀요.` : "날짜를 고치면 도장도 바로 바뀌어요."}</p>
+        </div>`}
+        <label class="fld"><span>날짜와 시각 ${isNew && files.length ? "(사진에서 자동으로 읽었어요)" : ""}</span>
+          <input id="actWhen" type="datetime-local" value=${when} onInput=${(e) => setWhen(e.target.value)} /></label>
+        ${isNew && files.length > 1 && html`<p class="text-[12px] text-mist -mt-3">첫 장 날짜를 고치면 나머지 사진도 같은 만큼 함께 옮겨져요.</p>`}
+        <label class="fld"><span>활동 이름</span><input id="actTitle" value=${title} onInput=${(e) => setTitle(e.target.value)} placeholder="예: 1차 정기 모임, 학교 화단 탐사, 하천 생태 산책" /></label>
+        <label class="fld"><span>장소</span><input id="actPlace" value=${place} onInput=${(e) => setPlace(e.target.value)} placeholder="예: 송례중 과학실, 장지천" /></label>
+        <div><${Label}>함께한 사람</${Label}><div class="flex flex-wrap gap-1.5">${RESEARCHERS.map((r) => html`<${Chip} key=${r.name} on=${people.includes(r.name)} color=${r.color} onClick=${() => togglePerson(r.name)}>
+          <${Dot} color=${people.includes(r.name) ? "#fff" : r.color} size=${7} />${r.name}</${Chip}>`)}</div></div>
+        <label class="fld"><span>메모</span><textarea id="actNote" rows="2" value=${notes} onInput=${(e) => setNotes(e.target.value)} placeholder="무엇을 했고 무엇을 느꼈는지"></textarea></label>
+        ${err && html`<div class="err">${err}</div>`}
+        <button type="button" class="btn-save" onClick=${save} disabled=${busy || (isNew && !files.length)}
+          style=${{ background: MODES.activity.color, borderColor: MODES.activity.deep, boxShadow: `0 4px 0 ${MODES.activity.deep}` }}>
+          <${Icon} name="Save" size=${18} />${busy && (files.length || !isNew) ? "날짜 도장 찍는 중…" : isNew ? `활동 사진 ${files.length || ""}장 저장` : "고친 내용 저장"}</button>
+        ${!isNew && html`<div class="flex gap-2 flex-wrap">
+          <button type="button" class="btn-ghost" onClick=${async () => { const b = await (await fetch(item.photo)).blob(); const n = `에코쌤즈_활동_${fmtDay(item.ts).replace(/\s/g, "")}.jpg`; if (!(await shareFile(n, b))) saveFile(n, b); }}>
+            <${Icon} name="Download" size=${15} />사진 저장</button>
+          ${!ask ? html`<button type="button" class="btn-ghost ml-auto text-rose-600" onClick=${() => setAsk(true)}><${Icon} name="Trash2" size=${15} />삭제</button>`
+            : html`<div class="ml-auto flex items-center gap-2"><span class="text-[13px] text-rose-700">지울까요?</span>
+              <button type="button" class="btn-ghost" onClick=${() => setAsk(false)}>취소</button><button type="button" class="btn-danger" onClick=${() => onDelete(item.id)}>삭제</button></div>`}
+        </div>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- 앱 ---------- */
+function App() {
+  const saved = store.get(LS_SET, {});
+  const [settings, setSettings] = useState({ apiKey: saved.apiKey || "", model: saved.model || DEFAULT_MODEL });
+  const [auth, setAuth] = useState(() => { store.del("ecossam.v1.auth"); const a = store.get(LS_AUTH, null); return a && RESEARCHERS.some((r) => r.name === a.name) ? a : null; });
+  const me = auth ? auth.name : RESEARCHERS[0].name;
+  const [records, setRecords] = useState([]);
+  const [acts, setActs] = useState([]);
+  const [actEdit, setActEdit] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const [tab, setTabS] = useState(() => { const hsh = (location.hash || "").slice(1); return TABS.some((t) => t.id === hsh) ? hsh : "today"; });
+  const [weather, setWeather] = useState(null), [wState, setWState] = useState("idle"), [wErr, setWErr] = useState("");
+  const [gps, setGps] = useState(null);
+  const [follow, setFollow] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [toast, setToast] = useState("");
+  const lastWx = useRef(null), gpsRef = useRef(null); gpsRef.current = gps;
+
+  const say = (m) => { setToast(m); clearTimeout(say.t); say.t = setTimeout(() => setToast(""), 2600); };
+  const setTab = (t) => { setTabS(t); try { history.replaceState(null, "", "#" + t); } catch (e) {} window.scrollTo(0, 0); };
+  useEffect(() => { const fn = () => { const hsh = (location.hash || "").slice(1); if (TABS.some((t) => t.id === hsh)) setTabS(hsh); };
+    window.addEventListener("hashchange", fn); return () => window.removeEventListener("hashchange", fn); }, []);
+
+  // 기록 불러오기 (IndexedDB) + 이전 버전 기록 옮기기
+  useEffect(() => { (async () => {
+    let all = await db.all();
+    const old = store.get(LS_OLD, null);
+    if (old && Array.isArray(old)) { for (const r of old) { if (!r.sample) await db.put({ mode: "team", ...r }); } store.del(LS_OLD); all = await db.all(); }
+    if (!all.length && !store.get("ecossam.v2.seeded", false)) { for (const r of sampleRecords()) await db.put(r); store.set("ecossam.v2.seeded", true); all = await db.all(); }
+    all.sort((a, b) => b.ts - a.ts);
+    setRecords(all.filter((r) => r.kind !== "activity")); setActs(all.filter((r) => r.kind === "activity")); setLoaded(true);
+  })(); }, []);
+
+  const loadWx = useCallback(async (lat, lng, fromGps) => {
+    setWState("loading");
+    try { const w = await fetchWeather(lat, lng); setWeather(w); setWState("ok"); lastWx.current = { lat, lng, t: Date.now(), gps: !!fromGps }; }
+    catch (e) { setWState("error"); setWErr(e.name === "AbortError" ? "기상 서버가 응답하지 않아요. 잠시 뒤 새로 고침을 눌러 주세요." : "기상 정보를 불러오지 못했어요. 인터넷 연결을 확인하세요."); }
+  }, []);
+  // 처음엔 내 우리 동네 기준, GPS가 잡히면 현재 위치 기준
+  useEffect(() => { if (!auth) return; const hm = getHome(auth.name); loadWx(hm.lat, hm.lng, false); }, [auth && auth.name]);
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition((q) => setGps({ lat: q.coords.latitude, lng: q.coords.longitude, accuracy: q.coords.accuracy }),
+      () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+    return () => navigator.geolocation.clearWatch(id);
+  }, []);
+  useEffect(() => {
+    if (!gps) return; const L0 = lastWx.current;
+    const moved = !L0 || !L0.gps || Math.hypot((gps.lat - L0.lat) * 111000, (gps.lng - L0.lng) * 88000) > 500;
+    if (moved || Date.now() - L0.t > 600000) loadWx(gps.lat, gps.lng, true);
+  }, [gps]);
+  useEffect(() => { const t = setInterval(() => { const q = gpsRef.current; if (q) loadWx(q.lat, q.lng, true); else { const hm = getHome(me); loadWx(hm.lat, hm.lng, false); } }, 600000); return () => clearInterval(t); }, [me]);
+
+  const login = (name) => { const a = { name, at: Date.now() }; store.set(LS_AUTH, a); setAuth(a); setTab("today"); };
+  const logout = () => { store.del(LS_AUTH); setAuth(null); setDraft(null); setOpenId(null); setActEdit(null); window.scrollTo(0, 0); };
+  const addRecord = (mode) => setDraft({ mode, pos: null });
+  const onMapPick = useCallback((lat, lng) => { setOpenId(null); setDraft({ mode: "team", pos: { lat, lng, source: "map", accuracy: null } }); }, []);
+  const saveRecord = async (rec) => {
+    const ok = await db.put(rec);
+    setRecords((rs) => [rec, ...rs]); setDraft(null);
+    say(ok ? `${MODES[rec.mode].label} 기록 저장 · ${rec.koreanName || "식물"}` : "저장 공간이 부족해요. 아카이브에서 백업 후 정리하세요.");
+    setTab(rec.mode === "solo" ? "solo" : "team");
+  };
+  const saveActs = async (list) => {
+    for (const a of list) await db.put(a);
+    setActs((as) => { const mm = new Map(as.map((x) => [x.id, x])); list.forEach((a) => mm.set(a.id, a)); return [...mm.values()].sort((a, b) => b.ts - a.ts); });
+    setActEdit(null); say(list.length > 1 ? `활동 사진 ${list.length}장을 올렸어요` : "활동 사진을 저장했어요");
+  };
+  const deleteAct = async (id) => { await db.del(id); setActs((as) => as.filter((a) => a.id !== id)); setActEdit(null); say("활동 사진을 지웠어요"); };
+  const deleteRecord = async (id) => { await db.del(id); setRecords((rs) => rs.filter((r) => r.id !== id)); setOpenId(null); say("기록을 지웠어요"); };
+  const clearSamples = async () => { for (const r of records.filter((x) => x.sample)) await db.del(r.id); setRecords((rs) => rs.filter((r) => !r.sample)); say("예시를 지웠어요"); };
+  const importJSON = (file) => {
+    const rd = new FileReader();
+    rd.onload = async (e) => {
+      try {
+        const arr = JSON.parse(e.target.result); if (!Array.isArray(arr)) throw 0;
+        const ok = arr.filter((o) => o && o.id && o.kind !== "activity" && typeof o.lat === "number" && o.weather && o.model).map((o) => ({ mode: "team", ...o }));
+        const okA = arr.filter((o) => o && o.id && o.kind === "activity" && o.photo);
+        for (const o of ok.concat(okA)) await db.put(o);
+        const merge = (rs, add) => { const mm = new Map(rs.map((r) => [r.id, r])); add.forEach((o) => mm.set(o.id, o)); return [...mm.values()].sort((a, b) => b.ts - a.ts); };
+        setRecords((rs) => merge(rs, ok)); setActs((as) => merge(as, okA));
+        say(`식물 ${ok.length}건 · 활동 사진 ${okA.length}장을 합쳤어요`);
+      } catch (_) { say("합치기 실패: 이 앱에서 보낸 JSON 파일인지 확인하세요"); }
+    };
+    rd.readAsText(file);
+  };
+
+  if (!auth) return html`<${Gate} onLogin=${login} />`;
+  const openRec = records.find((r) => r.id === openId);
+  const counts = { solo: records.filter((r) => r.mode === "solo" && r.researcher === me).length, team: records.filter((r) => r.mode === "team").length, activity: acts.length };
+
+  return html`<div class=${"app tab-is-" + tab}>
+    ${tab === "today"
+      ? html`<${Hero}><div class="hero-top"><span class="hero-me"><${Dot} color=${rColor(me)} size=${10} />${me} 님 · ${getHome(me).label}</span>
+          <span class="flex gap-1.5"><button type="button" class=${"strip-btn" + (settings.apiKey ? " on" : "")} onClick=${() => setShowSettings(true)} aria-label="AI 분석 설정"><${Icon} name="Settings2" size=${17} /></button>
+          <button type="button" class="strip-btn" onClick=${logout} aria-label="로그아웃"><${Icon} name="LogOut" size=${17} /></button></span></div></${Hero}>`
+      : html`<${TopStrip} tab=${tab} name=${me} hasKey=${!!settings.apiKey} onSettings=${() => setShowSettings(true)} onLogout=${logout} />`}
+    <main class="wrap pb-28">
+      ${!loaded ? html`<div class="boot" style=${{ minHeight: "30vh" }}>기록을 불러오는 중…</div>`
+        : tab === "today" ? html`<${TodayView} me=${me} records=${records} weather=${weather} wState=${wState} wErr=${wErr} gps=${!!gps}
+            onRefresh=${() => { const q = gps; if (q) loadWx(q.lat, q.lng, true); else { const hm = getHome(me); loadWx(hm.lat, hm.lng, false); } }} onAdd=${addRecord} onOpen=${setOpenId} goTab=${setTab} />`
+        : tab === "solo" ? html`<${SoloView} me=${me} records=${records} gps=${gps} onAdd=${addRecord} onOpen=${setOpenId} say=${say} />`
+        : tab === "team" ? html`<${TeamView} records=${records} onAdd=${addRecord} onOpen=${setOpenId} />`
+        : tab === "activity" ? html`<${ActivityView} me=${me} acts=${acts} onAdd=${() => setActEdit({ isNew: true })} onOpen=${(a) => setActEdit(a)} />`
+        : tab === "map" ? html`<${MapView} records=${records} gps=${gps} follow=${follow} setFollow=${setFollow} onMapPick=${onMapPick} onOpen=${setOpenId} openId=${openId} />`
+        : html`<${ArchiveView} records=${records} acts=${acts} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onClearSamples=${clearSamples} onImport=${importJSON} />`}
+      <footer class="text-center text-[11px] text-mist leading-relaxed mt-6">기후행동 실천모임 에코쌤즈 · 이정연 · 신민화 · 이귀리 · 정종화<br/>기상 Open-Meteo · 지도 © OpenStreetMap, CARTO · 탄소 고정 값은 대표 계수 기반 추정치</footer>
+    </main>
+    <${TabBar} tab=${tab} setTab=${setTab} counts=${counts} />
+    ${draft && html`<${RecordModal} draft=${draft} researcher=${me} weather=${weather} settings=${settings} gps=${gps}
+      onClose=${() => setDraft(null)} onSave=${saveRecord} onOpenSettings=${() => setShowSettings(true)} />`}
+    ${actEdit && html`<${ActivityModal} me=${me} item=${actEdit.isNew ? null : actEdit} onClose=${() => setActEdit(null)} onSave=${saveActs} onDelete=${deleteAct} />`}
+    ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} />`}
+    ${showSettings && html`<${SettingsModal} settings=${settings} onClose=${() => setShowSettings(false)}
+      onSave=${(s) => { setSettings(s); store.set(LS_SET, { ...store.get(LS_SET, {}), ...s }); setShowSettings(false); say(s.apiKey ? "AI 설정을 저장했어요" : "API 키를 지웠어요"); }} />`}
+    ${toast && html`<div class="toast" role="status">${toast}</div>`}
+  </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+
+}
+</script>
+</body>
+</html>
