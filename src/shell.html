@@ -433,6 +433,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .leaflet-control-attribution{font-size:9px!important;line-height:1.5!important;max-width:62%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(255,255,255,.72)!important;border-radius:6px 0 0 0}
 
 .when-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:12px;margin-bottom:12px;border-radius:14px;background:#F3F9EA;border:1.5px solid var(--leaf)}
+
+.ai-pick{margin-top:8px;padding:10px 12px;border-radius:14px;background:#F3F9EA;border:1.5px solid var(--leaf);color:var(--grass-ink)}
+.cand{padding:4px 10px;border-radius:999px;background:#fff;border:1.5px solid var(--grass);color:var(--grass-deep);font-size:13px;font-weight:700}
+
+.new-ver{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:3000;display:inline-flex;align-items:center;gap:7px;padding:11px 16px;border-radius:999px;background:var(--grass-ink);color:#fff;font-weight:800;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -444,6 +449,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>window.__BUILD__ = "__BUILD_ID__";</script>
 <script>
 /*__MODEL__*/
 </script>

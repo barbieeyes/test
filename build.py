@@ -6,5 +6,7 @@ for k, f in [("MODEL", "model"), ("MEDIA", "media"), ("HWPXTPL", "hwpx-tpl"), ("
     tok = f"/*__{k}__*/"
     assert tok in s, tok
     s = s.replace(tok, open(os.path.join(here, f"src/{f}.js")).read().replace("</script", "<\\/script"))
+import time
+s = s.replace("__BUILD_ID__", time.strftime("%Y%m%d%H%M%S"), 1)
 open(os.path.join(here, "index.html"), "w").write(s)
 print("index.html", len(s))

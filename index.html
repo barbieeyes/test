@@ -433,6 +433,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .leaflet-control-attribution{font-size:9px!important;line-height:1.5!important;max-width:62%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(255,255,255,.72)!important;border-radius:6px 0 0 0}
 
 .when-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:12px;margin-bottom:12px;border-radius:14px;background:#F3F9EA;border:1.5px solid var(--leaf)}
+
+.ai-pick{margin-top:8px;padding:10px 12px;border-radius:14px;background:#F3F9EA;border:1.5px solid var(--leaf);color:var(--grass-ink)}
+.cand{padding:4px 10px;border-radius:999px;background:#fff;border:1.5px solid var(--grass);color:var(--grass-deep);font-size:13px;font-weight:700}
+
+.new-ver{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:3000;display:inline-flex;align-items:center;gap:7px;padding:11px 16px;border-radius:999px;background:var(--grass-ink);color:#fff;font-weight:800;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -444,6 +449,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>window.__BUILD__ = "20261027200639";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -1158,30 +1164,46 @@ async function fetchWeatherAt(lat, lng, ts) {
 
 /* ---------- Claude 비전 분석 ---------- */
 function buildPrompt(w, lat, lng, mode) {
-  return `당신은 식물생리학·식물분류학 전문가입니다. 교사 생태 연구팀 '에코쌤즈'가 한국 현장(${mode === "solo" ? "연구원의 집 주변 동네" : "학교 교정"}, 위도 ${lat.toFixed(4)}, 경도 ${lng.toFixed(4)})에서 촬영한 식물 사진을 분석합니다.
-관찰 시점 현장 기상: 기온 ${fix(w && w.temp)}℃, 상대습도 ${fix(w && w.rh, 0)}%, 운량 ${fix(w && w.cloud, 0)}%, 순간 전천일사량 ${fix(w && w.sw, 0)} W/m² (추정 PPFD ${fix(w && w.ppfd, 0)} µmol/m²/s).
-사진 속 식물을 한국에서 실제 관찰 가능한 종 기준으로 식별하고, 아래 JSON 하나만 출력하세요. 마크다운·코드펜스·설명 문장 금지.
-{
- "koreanName": "국명", "confidence": 0-100 정수,
- "scientificName": "속명 종소명 (이명법, 명명자 생략 가능)",
- "taxonomy": {"kingdom":"","phylum":"","class":"","order":"","family":"","genus":""},
- "photosynthesisType": "C3|C4|CAM",
- "growthForm": "목본|초본|양치식물|이끼류",
- "morphology": {"phyllotaxy":"엽서","venation":"엽맥","cuticle":"큐티클 발달 정도","stomata":"기공 분포·현재 기상에서의 개폐 추정"},
- "carbonFixationEst": {"laiEstimate": 사진 속 군락의 엽면적지수 추정(0.5-8 숫자), "comment": "관찰 당시 일사량·기온·습도가 이 종의 광합성에 미치는 영향 1-2문장"},
- "ecologicalInsight": {"climateIndicator": true/false, "note": "기후변화 지표종 여부와 근거 1-2문장", "classroom": "교사용 탐사·수업 연계 아이디어 1-2문장"}
+  return `한국 ${mode === "solo" ? "주택가·동네" : "학교 교정"}(위도 ${lat.toFixed(3)}, 경도 ${lng.toFixed(3)})에서 찍은 식물 사진입니다. 사진 속 식물의 종을 알려 주세요.
+- 한국에서 실제로 볼 수 있는 종 기준. 원예 품종이면 대표 종명을 쓰세요.
+- 사진에 이름표·안내판 글씨가 보이면 참고하되, 실제 모습과 맞는지 확인하세요.
+- 확실하지 않으면 신뢰도를 낮추고, 비슷한 후보를 함께 주세요.
+아래 형식의 JSON 하나만 출력하세요. 다른 말, 마크다운, 코드펜스 금지. 문자열 안에 큰따옴표(")를 쓰지 마세요.
+{"koreanName":"국명","scientificName":"학명(속명 종소명)","family":"과 이름(예: 국화과)","confidence":0~100 정수,
+ "candidates":[{"koreanName":"다른 후보 국명","scientificName":"학명","confidence":정수}],
+ "growthForm":"목본|초본|양치식물|이끼류","photosynthesisType":"C3|C4|CAM","laiEstimate":0.5~8 숫자,
+ "climateIndicator":true 또는 false,"note":"알아본 근거나 더 정확히 찍을 부위를 한 문장으로"}
+candidates는 최대 3개, 없으면 [].`;
 }
-식별이 불확실하면 confidence를 낮추고 note에 필요한 추가 촬영 부위(꽃, 잎 뒷면, 줄기 등)를 적으세요.`;
+/** AI 답에서 JSON 꺼내기 (코드펜스·앞뒤 말·끝 쉼표 정도는 고쳐서 읽는다) */
+function pickJSON(text) {
+  let t = (text || "").replace(/```json/gi, "").replace(/```/g, "").trim();
+  const s = t.indexOf("{"), e = t.lastIndexOf("}");
+  if (s < 0) throw new Error("no json");
+  t = e > s ? t.slice(s, e + 1) : t.slice(s);
+  try { return JSON.parse(t); } catch (e1) {}
+  const fixed = t.replace(/[“”]/g, "'").replace(/,\s*([}\]])/g, "$1").replace(/:\s*(\d+)\s*%/g, ": $1");
+  try { return JSON.parse(fixed); } catch (e2) {}
+  // 끝이 잘렸으면 열린 괄호를 닫아 본다
+  let open = [], inStr = false, esc = false;
+  for (const ch of fixed) { if (inStr) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') inStr = true; else if (ch === "{" || ch === "[") open.push(ch); else if (ch === "}" || ch === "]") open.pop(); }
+  const closed = (inStr ? fixed + '"' : fixed).replace(/,\s*$/, "") + open.reverse().map((c) => (c === "{" ? "}" : "]")).join("");
+  return JSON.parse(closed);
 }
 function parseAI(text) {
-  const t = (text || "").replace(/```json/gi, "").replace(/```/g, "").trim();
-  const s = t.indexOf("{"), e = t.lastIndexOf("}");
-  const o = JSON.parse(s >= 0 && e > s ? t.slice(s, e + 1) : t);
+  const o = pickJSON(text);
   if (!PS_LIST.includes(o.photosynthesisType)) o.photosynthesisType = "C3";
   if (!FORM_LIST.includes(o.growthForm)) o.growthForm = "초본";
-  o.confidence = M.clamp(Math.round(Number(o.confidence) || 0), 0, 100);
+  o.confidence = M.clamp(Math.round(Number(String(o.confidence).replace(/[^\d.]/g, "")) || 0), 0, 100);
+  o.candidates = Array.isArray(o.candidates) ? o.candidates.filter((c) => c && c.koreanName).slice(0, 3) : [];
+  // 예전 화면과 맞추기
+  if (!o.taxonomy) o.taxonomy = { family: o.family || "" };
+  if (!o.carbonFixationEst) o.carbonFixationEst = { laiEstimate: o.laiEstimate, comment: "" };
+  if (!o.ecologicalInsight) o.ecologicalInsight = { climateIndicator: !!o.climateIndicator, note: o.note || "", classroom: "" };
   return o;
 }
+
 /** Claude 부르기: 이 기기에 키가 있으면 직접, 없으면 팀 공용 서버(/api/ai)로 */
 const TEAM_AI = "/api/ai";
 const aiReady = (st) => !!(st && (st.apiKey || st.team));
@@ -1211,9 +1233,9 @@ async function callClaude(st, { max_tokens = 1400, system, content }) {
 }
 async function analyzePlant({ settings, dataUrl, weather, lat, lng, mode }) {
   const b64 = dataUrl.split(",")[1];
-  const text = await callClaude(settings, { max_tokens: 6000, system: "응답은 반드시 유효한 JSON 객체 하나여야 합니다.",
+  const text = await callClaude(settings, { max_tokens: 6000, system: "당신은 한국 식물 동정 도우미입니다. 응답은 반드시 유효한 JSON 객체 하나여야 합니다.",
     content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: buildPrompt(weather, lat, lng, mode) }] });
-  try { return parseAI(text); } catch (e) { throw new Error("AI 응답을 해석하지 못했어요. 다시 분석해 보세요."); }
+  try { return parseAI(text); } catch (e) { try { console.warn("AI 응답", text); } catch (x) {} throw new Error("AI 응답을 해석하지 못했어요. 한 번 더 눌러 주세요."); }
 }
 
 /* ---------- 협의회 녹음 정리 ---------- */
@@ -2153,8 +2175,16 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
           </label>`}
           ${raw && html`<button type="button" class="btn-primary w-full mt-2" onClick=${runAI} disabled=${aiState === "loading"}>
             <${Icon} name=${aiState === "loading" ? "Loader2" : "ScanSearch"} size=${18} className=${aiState === "loading" ? "animate-spin" : ""} />
-            ${aiState === "loading" ? "식물생리학 분석 중…" : aiReady(settings) ? `AI로 종 찾기 (사진 + ${pastWx ? "그때" : "지금"} 빛)` : "AI 분석하려면 API 키 설정"}</button>`}
+            ${aiState === "loading" ? "사진 속 식물 찾는 중…" : aiReady(settings) ? `AI로 종 찾기 (사진 + ${pastWx ? "그때" : "지금"} 빛)` : "AI 분석하려면 API 키 설정"}</button>`}
           ${aiState === "error" && html`<div class="err mt-2">${aiErr}</div>`}
+          ${ai && aiState === "ok" && html`<div class="ai-pick">
+            <div class="flex items-center gap-2 flex-wrap"><${Icon} name="Sparkles" size=${15} /><b>${ai.koreanName || "?"}</b>
+              <span class="mono text-[12px]">${ai.confidence}%</span>${ai.family && html`<span class="text-[12px]">· ${ai.family}</span>`}</div>
+            ${ai.note && html`<p class="text-[12.5px] leading-relaxed mt-1">${ai.note}</p>`}
+            ${ai.candidates && ai.candidates.length ? html`<div class="mt-2 flex flex-wrap gap-1.5 items-center"><span class="text-[12px]">다른 후보:</span>
+              ${ai.candidates.map((c) => html`<button key=${c.koreanName} type="button" class="cand" onClick=${() => setF((q) => ({ ...q, koreanName: c.koreanName, scientificName: c.scientificName || "" }))}>
+                ${c.koreanName}${c.confidence != null ? html` <small class="mono">${c.confidence}%</small>` : null}</button>`)}</div>` : null}
+          </div>`}
         </div>
         <div class="grid sm:grid-cols-2 gap-3">
           <label class="fld"><span>국명</span><input id="fKor" value=${f.koreanName} onInput=${(e) => setF({ ...f, koreanName: e.target.value })} placeholder="예: 강아지풀" /></label>
@@ -2666,6 +2696,17 @@ function App() {
   const [teamSub, setTeamSub] = useState("plants");
   const [showSwitch, setShowSwitch] = useState(false);
   const [saver, setSaver] = useState(null);
+  // 새 버전 알림: 앱을 다시 볼 때마다 서버의 빌드 번호와 비교
+  const [newVer, setNewVer] = useState(false);
+  useEffect(() => {
+    const check = async () => {
+      if (document.visibilityState !== "visible" || !window.__BUILD__ || window.__BUILD__.startsWith("__")) return;
+      try { const t = await (await fetch("/?v=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/__BUILD__ = "(\d+)"/);
+        if (m && m[1] !== window.__BUILD__) setNewVer(true); } catch (e) {}
+    };
+    const iv = setInterval(check, 5 * 60 * 1000); document.addEventListener("visibilitychange", check); setTimeout(check, 4000);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", check); };
+  }, []);
   useEffect(() => { const fn = (e) => setSaver(e.detail); window.addEventListener("eco-save", fn); return () => window.removeEventListener("eco-save", fn); }, []);
   const depth = useRef(0);
   const [loaded, setLoaded] = useState(false);
@@ -2803,6 +2844,7 @@ function App() {
       onClose=${() => setDraft(null)} onSave=${saveRecord} onOpenSettings=${() => setShowSettings(true)} />`}
     ${meetEdit && html`<${MeetingModal} me=${me} item=${meetEdit.isNew ? null : meetEdit} settings=${settings} onClose=${() => setMeetEdit(null)} onSave=${saveMeeting} onDelete=${deleteMeeting}
       onExport=${exportMinutes} onOpenSettings=${() => setShowSettings(true)} />`}
+    ${newVer && html`<button type="button" class="new-ver" onClick=${() => location.reload()}><${Icon} name="RefreshCw" size=${16} />새 버전이 나왔어요 · 눌러서 새로고침</button>`}
     ${saver && html`<${PhotoSaver} items=${saver.items} title=${saver.title} onClose=${() => setSaver(null)} />`}
     ${showSwitch && html`<${SwitchModal} me=${me} onPick=${switchTo} onClose=${() => setShowSwitch(false)} />`}
     ${actEdit && html`<${ActivityModal} me=${me} item=${actEdit.isNew ? null : actEdit} onClose=${() => setActEdit(null)} onSave=${saveActs} onDelete=${deleteAct} />`}
