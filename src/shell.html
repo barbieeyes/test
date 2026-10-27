@@ -114,7 +114,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   background:rgba(255,255,255,.95);border:1.5px solid var(--line-2);color:var(--grass-ink)}
 .lg{width:10px;height:10px;border-radius:50%;display:inline-block}
 .lg-high{background:#16A34A} .lg-mid{background:#84CC16} .lg-low{background:#F59E0B}
-@media (max-width:560px){.legend{max-width:calc(100% - 20px);bottom:auto;top:10px;right:auto}.map-tools{top:auto;bottom:86px}}
+@media (max-width:560px){.legend{max-width:calc(100% - 64px);left:54px;bottom:auto;top:10px;right:auto}.map-tools{top:auto;bottom:86px}}
 
 /* 엽록소 펄스 마커 */
 .pin{position:relative;display:block;width:28px;height:28px;--c:#84CC16}
@@ -225,7 +225,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .fld input[type=datetime-local]{font-family:var(--f-mono);font-size:16px}
 /* 위치 콕 찍기 */
 .pickwrap{position:relative}
-.pickmap{height:min(46vh,340px);border-radius:14px;overflow:hidden;border:2px solid var(--grass);background:#2b3a2f}
+.pickmap{height:min(46vh,340px);border-radius:14px;overflow:hidden;border:2px solid var(--grass);background:#EEF3E8}
 .pick-read{position:absolute;right:8px;bottom:8px;z-index:500;background:rgba(0,0,0,.62);color:#fff;font-size:11px;padding:3px 8px;border-radius:8px;pointer-events:none}
 .pick-pin{position:relative;display:block;width:34px;height:44px}
 .pick-pin::before{content:"";position:absolute;left:3px;top:0;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--c,#DC4B31);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45)}
@@ -234,7 +234,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .leaflet-control-layers{border-radius:12px!important;border:2px solid var(--grass)!important;font-family:var(--f-body);font-size:13px}
 .leaflet-control-layers-expanded{padding:8px 10px!important}
 .leaflet-control-scale-line{border-color:#fff!important;color:#fff;background:rgba(0,0,0,.45)!important;text-shadow:none}
-.mapbox,.pickmap{background:#2b3a2f}
+.mapbox,.pickmap{background:#EEF3E8}
 
 /* 오늘: 따로/같이 두 갈래 */
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -419,6 +419,13 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .meet-bar-list b{font-size:22px;line-height:1} .meet-bar-list small{font-size:11px;font-weight:700}
 
 .sat-tiles{filter:saturate(1.15) contrast(1.05) brightness(1.04)}
+
+/* ---- 지도/위성 바꾸기 버튼 ---- */
+.base-tog{display:inline-flex;align-items:center;gap:5px;height:38px;padding:0 12px 0 9px;border-radius:999px;background:#fff;color:var(--grass-deep);font:700 13px var(--f-body);border:2px solid var(--grass)!important;box-shadow:0 3px 0 var(--grass-deep);cursor:pointer}
+.base-tog span{font-size:16px;line-height:1}
+.base-tog:active{transform:translateY(2px);box-shadow:0 1px 0 var(--grass-deep)}
+.album-note{display:flex;gap:9px;align-items:flex-start;margin-top:8px;padding:10px 12px;border-radius:14px;background:#EEF6FC;border:1.5px solid #BFDDF2;color:#1C5E86}
+.album-note svg{flex:none;margin-top:2px} .album-note b{display:block;font-size:13px} .album-note small{display:block;font-size:12px;line-height:1.55}
 </style>
 </head>
 <body>

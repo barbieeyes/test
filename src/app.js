@@ -162,6 +162,31 @@ async function fetchWeather(lat, lng) {
   } finally { clearTimeout(t); }
 }
 
+/** 지난 시각의 기상값 (앨범 사진용): 최근 3개월은 예보 API, 그 전은 과거 기록 API */
+async function fetchWeatherAt(lat, lng, ts) {
+  const d = new Date(ts), p2 = (n) => String(n).padStart(2, "0");
+  const day = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+  const recent = Date.now() - ts < 85 * 864e5;
+  const base = recent ? "https://api.open-meteo.com/v1/forecast" : "https://archive-api.open-meteo.com/v1/archive";
+  const url = `${base}?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&start_date=${day}&end_date=${day}` +
+    `&hourly=temperature_2m,relative_humidity_2m,cloud_cover,shortwave_radiation,is_day&timezone=Asia%2FSeoul`;
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) throw new Error("기상 기록 서버 응답 " + r.status);
+    const j = await r.json(), h = j.hourly;
+    if (!h || !h.time || !h.time.length) throw new Error("그날 기상 기록이 없어요");
+    // 정시 값 중 촬영 시각과 가장 가까운 것 (일사량은 앞 1시간 평균이라 다음 정시를 우선)
+    const want = d.getHours() + d.getMinutes() / 60 + 0.5;
+    let k = Math.min(h.time.length - 1, Math.max(0, Math.round(want)));
+    const sw = h.shortwave_radiation[k];
+    if (sw == null && h.temperature_2m[k] == null) throw new Error("그 시각 기상 기록이 없어요");
+    const ppfd = M.ppfdFromSW(sw || 0);
+    return { temp: h.temperature_2m[k], rh: h.relative_humidity_2m[k], cloud: h.cloud_cover[k], sw: sw || 0, isDay: h.is_day ? h.is_day[k] : null,
+      ppfd: Math.round(ppfd), par: M.parIndex(ppfd), lat, lng, at: ts, fetchedAt: Date.now(), past: true };
+  } finally { clearTimeout(t); }
+}
+
 /* ---------- Claude 비전 분석 ---------- */
 function buildPrompt(w, lat, lng, mode) {
   return `당신은 식물생리학·식물분류학 전문가입니다. 교사 생태 연구팀 '에코쌤즈'가 한국 현장(${mode === "solo" ? "연구원의 집 주변 동네" : "학교 교정"}, 위도 ${lat.toFixed(4)}, 경도 ${lng.toFixed(4)})에서 촬영한 식물 사진을 분석합니다.
@@ -280,7 +305,7 @@ function toCSV(recs) {
   const head = ["일시", "따로/같이", "장소", "연구원", "위도", "경도", "위치 기준", "GPS정확도(m)", "국명", "학명", "신뢰도(%)", "과", "생활형", "광합성유형",
     "기온(℃)", "습도(%)", "운량(%)", "일사량(W/m²)", "PPFD(µmol/m²/s)", "PAR지수", "광합성활성", "잎 순광합성(µmol/m²/s)",
     "LAI", "탄소고정(gCO₂/h·m²)", "기후지표종", "메모", "AI 광합성 해설", "AI 기후지표 근거", "AI 수업 연계 조언", "예시"];
-  const src = { gps: "GPS", map: "지도 지정", home: "우리 동네 기본 위치", default: "임시 위치" };
+  const src = { gps: "GPS", map: "지도 지정", home: "우리 동네 기본 위치", photo: "사진 위치정보", default: "임시 위치" };
   const rows = recs.map((r) => [new Date(r.ts).toLocaleString("ko-KR"), MODES[r.mode] ? MODES[r.mode].label : "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
     r.koreanName, r.scientificName, r.confidence ?? "", r.ai && r.ai.taxonomy ? r.ai.taxonomy.family : "", r.growthForm, r.psType,
     r.weather.temp, r.weather.rh, r.weather.cloud, r.weather.sw, r.weather.ppfd, r.weather.par, M.activity(r.weather.ppfd).label,
@@ -625,14 +650,35 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
 /* ---------- 지도 바탕: 위성사진(기본) · 지명 · 일반 지도 ---------- */
 const ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const OSM_STD = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_SOFT = "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png";
 const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> 기여자';
-const MAX_Z = 21;      // 21단계: 1칸 ≈ 0.06m (위성 원본은 19단계까지, 그 위는 확대만)
+const MAX_Z = 21;      // 21단계: 1칸 ≈ 0.06m (원본 타일은 19단계까지, 그 위는 확대만)
 const PICK_Z = 17;     // 위치 고를 때 처음 보이는 단계: 동네 블록 몇 개가 한눈에
-function addBaseLayers(map) {
-  const sat = L.tileLayer(ESRI_SAT, { maxNativeZoom: 19, maxZoom: MAX_Z, className: "sat-tiles", attribution: "위성사진 &copy; Esri, Maxar, Earthstar Geographics" });
-  const road = L.tileLayer(OSM_STD, { maxNativeZoom: 19, maxZoom: MAX_Z, attribution: OSM_ATTR });
-  sat.addTo(map);
-  L.control.layers({ "위성사진": sat, "일반 지도 (한글 지명)": road }, {}, { position: "topleft", collapsed: true }).addTo(map);
+const LS_BASE = "ecossam.v2.base";
+/** 바탕 지도: 기본은 부드러운 일반 지도, 오른쪽 위 버튼 하나로 위성사진과 바꾸기 (마지막 선택을 기억) */
+function addBaseLayers(map, togglePos = "topright") {
+  const layers = {
+    map: L.tileLayer(OSM_SOFT, { subdomains: "abc", maxNativeZoom: 19, maxZoom: MAX_Z, attribution: OSM_ATTR }),
+    sat: L.tileLayer(ESRI_SAT, { maxNativeZoom: 19, maxZoom: MAX_Z, className: "sat-tiles", attribution: "위성사진 &copy; Esri, Maxar, Earthstar Geographics" }),
+  };
+  // 부드러운 지도 서버가 막히면 OSM 기본 지도로
+  let fellBack = false;
+  layers.map.on("tileerror", () => { if (fellBack) return; fellBack = true; const std = L.tileLayer(OSM_STD, { maxNativeZoom: 19, maxZoom: MAX_Z, attribution: OSM_ATTR });
+    const on = map.hasLayer(layers.map); if (on) map.removeLayer(layers.map); layers.map = std; if (on) std.addTo(map); });
+  let cur = store.get(LS_BASE, "map") === "sat" ? "sat" : "map";
+  layers[cur].addTo(map);
+  const Ctl = L.Control.extend({
+    onAdd() {
+      const b = L.DomUtil.create("button", "base-tog");
+      b.type = "button";
+      const paint = () => { b.innerHTML = cur === "map" ? "<span>🛰️</span>위성" : "<span>🗺️</span>지도"; b.setAttribute("aria-label", cur === "map" ? "위성사진으로 보기" : "일반 지도로 보기"); };
+      paint();
+      L.DomEvent.disableClickPropagation(b);
+      L.DomEvent.on(b, "click", (e) => { L.DomEvent.stop(e); map.removeLayer(layers[cur]); cur = cur === "map" ? "sat" : "map"; layers[cur].addTo(map); store.set(LS_BASE, cur); paint(); });
+      return b;
+    },
+  });
+  new Ctl({ position: togglePos }).addTo(map);
   L.control.scale({ metric: true, imperial: false, maxWidth: 110 }).addTo(map);
 }
 const mPerPx = (lat, z) => 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z);
@@ -684,7 +730,7 @@ function MapPanel({ records, homes, selectedId, onSelect, onMapPick, gpsPos, fol
   useEffect(() => {
     if (!window.L || !elRef.current) { setOk(false); return; }
     const map = L.map(elRef.current, { zoomControl: true, maxZoom: MAX_Z }).setView(DEFAULT_CENTER, 13);
-    addBaseLayers(map);
+    addBaseLayers(map, "bottomright");
     layerRef.current = L.layerGroup().addTo(map);
     map.on("click", (e) => pickRef.current(e.latlng.lat, e.latlng.lng));
     mapRef.current = map; setTimeout(() => { map.invalidateSize(); fit(); }, 200);
@@ -960,12 +1006,14 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   const [saving, setSaving] = useState(false);
   const home = getHome(researcher);
   const [f, setF] = useState({ koreanName: "", scientificName: "", growthForm: "초본", psType: "C3", lai: "", notes: "", place: (draft.mode === "solo") ? home.label : "" });
-  const camRef = useRef(null), galRef = useRef(null), tsRef = useRef(Date.now());
-  const w = weather || { temp: null, rh: null, cloud: null, sw: 0, ppfd: 0, par: 0 };
+  const camRef = useRef(null), galRef = useRef(null);
+  const [shotTs, setShotTs] = useState(Date.now());
+  const [pastWx, setPastWx] = useState(null), [album, setAlbum] = useState(null); // album: {ts, gps:bool, wx:"loading"|"ok"|"fail"|"now"}
+  const w = pastWx || weather || { temp: null, rh: null, cloud: null, sw: 0, ppfd: 0, par: 0 };
   const m = MODES[mode];
   const est = useMemo(() => M.estimate({ sw: w.sw, temp: w.temp, rh: w.rh, psType: f.psType, growthForm: f.growthForm,
     lai: f.lai === "" ? undefined : Number(f.lai) }), [w, f.psType, f.growthForm, f.lai]);
-  const meta = { mode, researcher, ts: tsRef.current, name: f.koreanName.trim(), sci: f.scientificName.trim(), place: f.place.trim() || m.place };
+  const meta = { mode, researcher, ts: shotTs, name: f.koreanName.trim(), sci: f.scientificName.trim(), place: f.place.trim() || m.place };
   const setMode = (k) => {
     setModeS(k);
     if (!draft.pos) setPos(startPos(k, researcher, gps, null));
@@ -978,11 +1026,36 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     return () => { live = false; clearTimeout(t); };
   }, [raw, mode, meta.name, meta.sci, meta.place]);
 
-  const onFile = async (e) => {
+  const onFile = async (e, fromAlbum) => {
     const file = e.target.files && e.target.files[0]; e.target.value = ""; if (!file) return;
-    try { tsRef.current = Date.now(); setRaw(await resizeImage(file, 1280, 0.86)); setAi(null); setAiState("idle"); }
-    catch (er) { setAiErr("사진을 읽지 못했어요. 다른 사진으로 시도하세요."); setAiState("error"); }
+    try {
+      setAi(null); setAiState("idle"); setPastWx(null); setAlbum(null);
+      if (!fromAlbum) { setShotTs(Date.now()); setRaw(await resizeImage(file, 1280, 0.86)); return; }
+      // 앨범 사진: 찍은 시각·위치를 사진에서 읽고, 그때 날씨로 계산
+      const info = await EM.exifInfo(file);
+      const ts = info.ts || file.lastModified || Date.now();
+      setShotTs(ts);
+      const hasGps = info.lat != null;
+      let at = pos;
+      if (hasGps) { at = { lat: info.lat, lng: info.lng, accuracy: null, source: "photo" }; setPos(at); }
+      setRaw(await resizeImage(file, 1280, 0.86));
+      const old = Date.now() - ts > 30 * 60 * 1000;
+      setAlbum({ ts, gps: hasGps, exif: !!info.ts, wx: old ? "loading" : "now" });
+      if (old) {
+        const q = at || (gps ? { lat: gps.lat, lng: gps.lng } : { lat: home.lat, lng: home.lng });
+        try { setPastWx(await fetchWeatherAt(q.lat, q.lng, ts)); setAlbum((a) => a && { ...a, wx: "ok" }); }
+        catch (er) { setAlbum((a) => a && { ...a, wx: "fail" }); }
+      }
+    } catch (er) { setAiErr("사진을 읽지 못했어요. 다른 사진으로 시도하세요."); setAiState("error"); }
   };
+  // 앨범 사진 위치를 지도에서 옮기면 그 자리 날씨로 다시 계산
+  useEffect(() => {
+    if (!album || album.wx === "now" || !pos) return;
+    if (pastWx && Math.abs(pastWx.lat - pos.lat) < 0.01 && Math.abs(pastWx.lng - pos.lng) < 0.01) return;
+    let live = true;
+    fetchWeatherAt(pos.lat, pos.lng, album.ts).then((x) => { if (live) { setPastWx(x); setAlbum((a) => a && { ...a, wx: "ok" }); } }, () => {});
+    return () => { live = false; };
+  }, [pos && pos.lat, pos && pos.lng]);
   const p = pos || { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1], source: "default", accuracy: null };
   const runAI = async () => {
     if (!aiReady(settings)) { onOpenSettings(); return; }
@@ -994,7 +1067,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
         lai: o.carbonFixationEst && Number(o.carbonFixationEst.laiEstimate) > 0 ? String(M.clamp(Number(o.carbonFixationEst.laiEstimate), 0.1, 10)) : q.lai }));
     } catch (er) { setAiState("error"); setAiErr(er.message || String(er)); }
   };
-  const preview = { id: "draft", ts: tsRef.current, mode, researcher, lat: p.lat, lng: p.lng, ai, weather: w, model: est,
+  const preview = { id: "draft", ts: shotTs, mode, researcher, lat: p.lat, lng: p.lng, ai, weather: w, model: est,
     koreanName: f.koreanName, scientificName: f.scientificName, confidence: ai ? ai.confidence : null, growthForm: f.growthForm, psType: f.psType };
   const canSave = !!(f.koreanName.trim() || raw) && !saving;
   const save = async () => {
@@ -1002,9 +1075,9 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     let photo = null;
     if (raw) { try { photo = await EM.composeFrame(raw, meta); } catch (e) { photo = raw; } }
     onSave({ ...preview, id: uid(), photo, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
-      weather: { temp: w.temp, rh: w.rh, cloud: w.cloud, sw: w.sw, ppfd: w.ppfd, par: w.par } });
+      weather: { temp: w.temp, rh: w.rh, cloud: w.cloud, sw: w.sw, ppfd: w.ppfd, par: w.par, ...(pastWx ? { past: true } : {}) }, ...(album ? { fromAlbum: true } : {}) });
   };
-  const srcLabel = { gps: `내 위치(GPS) ±${Math.round(p.accuracy || 0)}m`, map: "지도에서 콕 찍은 자리", home: `우리 동네 기본 위치 · ${home.label}`, default: "지도를 눌러 위치를 찍어 주세요" }[p.source];
+  const srcLabel = { gps: `내 위치(GPS) ±${Math.round(p.accuracy || 0)}m`, map: "지도에서 콕 찍은 자리", photo: "사진에 담긴 촬영 위치", home: `우리 동네 기본 위치 · ${home.label}`, default: "지도를 눌러 위치를 찍어 주세요" }[p.source];
 
   return html`<div class="modal-bg" onClick=${onClose}>
     <div class="modal" role="dialog" aria-modal="true" aria-label="새 식물 기록" onClick=${(e) => e.stopPropagation()} style=${{ borderColor: m.color }}>
@@ -1026,11 +1099,11 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
             ${mode === "solo" && html`<button type="button" class="mini-btn" onClick=${() => setPos({ lat: home.lat, lng: home.lng, accuracy: null, source: "home" })}><${Icon} name="House" size=${13} />우리 동네</button>`}
           </span>
         </div>
-        ${p.source === "gps" && p.accuracy > 8 && html`<p class="text-[12px] text-mist">GPS 오차가 약 ${Math.round(p.accuracy)}m예요. 위성사진을 크게 확대해서 실제 자리를 다시 콕 찍으면 더 정확해요.</p>`}
+        ${p.source === "gps" && p.accuracy > 8 && html`<p class="text-[12px] text-mist">GPS 오차가 약 ${Math.round(p.accuracy)}m예요. 지도를 크게 확대(위성으로 바꾸면 나무까지 보여요)해서 실제 자리를 다시 콕 찍으면 더 정확해요.</p>`}
       </div>
       <div class="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-mist mb-4 mt-2">
         <span class="flex items-center gap-1"><${Dot} color=${rColor(researcher)} size=${8} />${researcher}</span>
-        <span class="mono">${weather ? `${fix(w.temp)}℃ · ${fix(w.sw, 0)} W/m² · PAR ${w.par}` : "기상 정보 없음"}</span>
+        <span class="mono">${(pastWx || weather) ? `${pastWx ? "촬영 당시 " : ""}${fix(w.temp)}℃ · ${fix(w.sw, 0)} W/m² · PAR ${w.par}` : "기상 정보 없음"}</span>
       </div>
       <div class="grid gap-4">
         <div>
@@ -1043,11 +1116,17 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
               <button type="button" class="drop" onClick=${() => camRef.current.click()}><${Icon} name="Camera" size=${24} />촬영</button>
               <button type="button" class="drop" onClick=${() => galRef.current.click()}><${Icon} name="ImagePlus" size=${24} />앨범에서 선택</button>
             </div>`}
-          <input ref=${camRef} id="camIn" type="file" accept="image/*" capture="environment" class="hidden" onChange=${onFile} />
-          <input ref=${galRef} id="galIn" type="file" accept="image/*" class="hidden" onChange=${onFile} />
+          <input ref=${camRef} id="camIn" type="file" accept="image/*" capture="environment" class="hidden" onChange=${(e) => onFile(e, false)} />
+          <input ref=${galRef} id="galIn" type="file" accept="image/*" class="hidden" onChange=${(e) => onFile(e, true)} />
+          ${album && html`<div class="album-note">
+            <${Icon} name="Images" size=${16} />
+            <span><b>앨범 사진 · ${fmtDate(album.ts)} ${album.exif ? "촬영" : "(파일 날짜)"}</b>
+              <small>${album.gps ? "사진에 담긴 위치로 핀을 옮겼어요." : "사진에 위치 정보가 없어요. 지도에서 찍은 자리를 콕 눌러 주세요."}
+              ${album.wx === "loading" ? " 그날 그 시각 날씨를 불러오는 중…" : album.wx === "ok" ? " 빛·기온은 그날 그 시각 기록으로 계산해요." : album.wx === "fail" ? " 그날 날씨 기록을 못 찾아 지금 날씨로 계산해요." : ""}</small></span>
+          </div>`}
           ${raw && html`<button type="button" class="btn-primary w-full mt-2" onClick=${runAI} disabled=${aiState === "loading"}>
             <${Icon} name=${aiState === "loading" ? "Loader2" : "ScanSearch"} size=${18} className=${aiState === "loading" ? "animate-spin" : ""} />
-            ${aiState === "loading" ? "식물생리학 분석 중…" : aiReady(settings) ? "AI로 종 찾기 (사진 + 지금 빛)" : "AI 분석하려면 API 키 설정"}</button>`}
+            ${aiState === "loading" ? "식물생리학 분석 중…" : aiReady(settings) ? `AI로 종 찾기 (사진 + ${pastWx ? "그때" : "지금"} 빛)` : "AI 분석하려면 API 키 설정"}</button>`}
           ${aiState === "error" && html`<div class="err mt-2">${aiErr}</div>`}
         </div>
         <div class="grid sm:grid-cols-2 gap-3">

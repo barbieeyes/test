@@ -220,11 +220,12 @@
     return { blob: new Blob(chunks, { type }), ext: type.includes("mp4") ? "mp4" : "webm", seconds: Math.round(total) };
   }
 
-  /** JPEG EXIF 촬영 시각(DateTimeOriginal) 읽기. 없으면 null */
-  async function exifDate(file) {
+  /** JPEG EXIF에서 촬영 시각(DateTimeOriginal)과 GPS 위치 읽기. 없는 값은 null */
+  async function exifInfo(file) {
+    const out = { ts: null, lat: null, lng: null };
     try {
       const buf = await file.slice(0, 256 * 1024).arrayBuffer(); const v = new DataView(buf);
-      if (v.getUint16(0) !== 0xFFD8) return null;
+      if (v.getUint16(0) !== 0xFFD8) return out;
       let o = 2;
       while (o + 4 < v.byteLength) {
         const marker = v.getUint16(o), size = v.getUint16(o + 2);
@@ -233,20 +234,36 @@
           const u16 = (x) => v.getUint16(x, le), u32 = (x) => v.getUint32(x, le);
           const readStr = (x, n) => { let s = ""; for (let i = 0; i < n - 1; i++) s += String.fromCharCode(v.getUint8(x + i)); return s; };
           const scan = (ifd, want) => { const n = u16(t + ifd); for (let i = 0; i < n; i++) { const e = t + ifd + 2 + i * 12; if (u16(e) === want) return e; } return -1; };
+          const str = (e) => { const n = u32(e + 4); return n <= 4 ? readStr(e + 8, n) : readStr(t + u32(e + 8), n); };
+          const ifd0 = u32(t + 4);
+          // 시각
           let found = null;
-          const ex = scan(u32(t + 4), 0x8769);
-          if (ex > 0) { const e = scan(u32(ex + 8), 0x9003); if (e > 0) found = readStr(t + u32(e + 8), u32(e + 4)); }
-          if (!found) { const e = scan(u32(t + 4), 0x0132); if (e > 0) found = readStr(t + u32(e + 8), u32(e + 4)); }
+          const ex = scan(ifd0, 0x8769);
+          if (ex > 0) { const e = scan(u32(ex + 8), 0x9003); if (e > 0) found = str(e); }
+          if (!found) { const e = scan(ifd0, 0x0132); if (e > 0) found = str(e); }
           const m = found && found.match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
-          if (m) { const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]); if (!isNaN(d) && d.getFullYear() > 2000) return d.getTime(); }
-          return null;
+          if (m) { const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]); if (!isNaN(d) && d.getFullYear() > 2000) out.ts = d.getTime(); }
+          // GPS
+          const g = scan(ifd0, 0x8825);
+          if (g > 0) {
+            const gi = u32(g + 8);
+            const rat3 = (e) => { if (e < 0) return null; const off = t + u32(e + 8); const r = (k) => { const d = u32(off + k * 8 + 4); return d ? u32(off + k * 8) / d : 0; }; return r(0) + r(1) / 60 + r(2) / 3600; };
+            const ref = (tag) => { const e = scan(gi, tag); return e > 0 ? String.fromCharCode(v.getUint8(e + 8)) : ""; };
+            let lat = rat3(scan(gi, 0x0002)), lng = rat3(scan(gi, 0x0004));
+            if (lat != null && lng != null && (lat || lng)) {
+              if (ref(0x0001) === "S") lat = -lat; if (ref(0x0003) === "W") lng = -lng;
+              if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) { out.lat = +lat.toFixed(7); out.lng = +lng.toFixed(7); }
+            }
+          }
+          return out;
         }
         if ((marker & 0xFF00) !== 0xFF00) break;
         o += 2 + size;
       }
     } catch (e) {}
-    return null;
+    return out;
   }
+  async function exifDate(file) { return (await exifInfo(file)).ts; }
 
-  root.EcoMedia = { exifDate, MODE_INFO, TEAM, composeFrame, makeVideo, drawVideoFrame, buildPlan, loadImg, fontsReady, stampDate, pickMime };
+  root.EcoMedia = { exifDate, exifInfo, MODE_INFO, TEAM, composeFrame, makeVideo, drawVideoFrame, buildPlan, loadImg, fontsReady, stampDate, pickMime };
 })(typeof window !== "undefined" ? window : globalThis);
