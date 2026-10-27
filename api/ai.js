@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
   if (!b || !Array.isArray(b.messages) || !b.messages.length) return res.status(400).json({ error: "요청 형식이 올바르지 않아요" });
   const payload = {
     model: MODELS.includes(b.model) ? b.model : DEFAULT_MODEL,
-    max_tokens: Math.max(64, Math.min(Number(b.max_tokens) || 1500, 4000)),
+    max_tokens: Math.max(64, Math.min(Number(b.max_tokens) || 1500, 12000)),
     messages: b.messages.slice(0, 4),
   };
   if (typeof b.system === "string") payload.system = b.system.slice(0, 2000);

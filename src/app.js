@@ -246,11 +246,13 @@ async function callClaude(st, { max_tokens = 1400, system, content }) {
     throw new Error(`AI 요청 실패 (${r.status}) ${msg}`.trim());
   }
   const d = await r.json();
-  return (d.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
+  const text = (d.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
+  if (d.stop_reason === "max_tokens" && !/\}\s*$/.test(text.trim())) throw new Error("AI 답이 너무 길어 중간에 끊겼어요. 한 번 더 눌러 주세요.");
+  return text;
 }
 async function analyzePlant({ settings, dataUrl, weather, lat, lng, mode }) {
   const b64 = dataUrl.split(",")[1];
-  const text = await callClaude(settings, { max_tokens: 1400, system: "응답은 반드시 유효한 JSON 객체 하나여야 합니다.",
+  const text = await callClaude(settings, { max_tokens: 6000, system: "응답은 반드시 유효한 JSON 객체 하나여야 합니다.",
     content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: buildPrompt(weather, lat, lng, mode) }] });
   try { return parseAI(text); } catch (e) { throw new Error("AI 응답을 해석하지 못했어요. 다시 분석해 보세요."); }
 }
@@ -280,7 +282,7 @@ function parseMinutes(text) {
     todos: Array.isArray(o.todos) ? o.todos.filter((x) => x && x.what).map((x) => ({ what: String(x.what), who: String(x.who || ""), when: String(x.when || "") })) : [] };
 }
 async function summarizeMeeting(settings, info) {
-  const text = await callClaude(settings, { max_tokens: 2500, system: "응답은 반드시 유효한 JSON 객체 하나여야 합니다.", content: [{ type: "text", text: minutesPrompt(info) }] });
+  const text = await callClaude(settings, { max_tokens: 10000, system: "응답은 반드시 유효한 JSON 객체 하나여야 합니다.", content: [{ type: "text", text: minutesPrompt(info) }] });
   try { return parseMinutes(text); } catch (e) { throw new Error("AI 정리 결과를 해석하지 못했어요. 다시 눌러 보세요."); }
 }
 const todosToText = (todos) => (todos || []).map((t) => `- ${t.what}${t.who ? ` (담당: ${t.who})` : ""}${t.when ? ` · ${t.when}` : ""}`).join("\n");
