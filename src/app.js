@@ -982,7 +982,7 @@ function ArchiveView({ records, acts, meetings, onOpen, onOpenAct, onOpenMeeting
           <${Icon} name="NotebookPen" size=${20} className="text-photon" /><span><b>협의회록 (CSV)</b><small>날짜·장소·멤버·협의 내용·결정 사항</small></span></button>
         <button type="button" class="exp" disabled=${!real.length} onClick=${() => saveFile(`에코쌤즈_광합성지도_${today()}.geojson`, toGeoJSON(real), "application/geo+json")}>
           <${Icon} name="Globe" size=${20} className="text-photon" /><span><b>GeoJSON</b><small>QGIS · 구글 어스용 좌표</small></span></button>
-        <button type="button" class="exp" disabled=${!real.length && !acts.length && !meetings.length} onClick=${() => saveFile(`에코쌤즈_백업_${today()}.json`, JSON.stringify(real.concat(acts.map(({ raw, ...a }) => a), meetings.map((m) => ({ ...m, photos: (m.photos || []).map((ph) => ({ photo: ph.photo })) })))), "application/json")}>
+        <button type="button" class="exp" disabled=${!real.length && !acts.length && !meetings.length} onClick=${() => saveFile(`에코쌤즈_백업_${today()}.json`, JSON.stringify(real.map(({ raw, ...r }) => r).concat(acts.map(({ raw, ...a }) => a), meetings.map((m) => ({ ...m, photos: (m.photos || []).map((ph) => ({ photo: ph.photo })) })))), "application/json")}>
           <${Icon} name="HardDriveDownload" size=${20} className="text-photon" /><span><b>내 기록 보내기 (JSON)</b><small>식물 기록 + 활동 사진 + 협의록 · 팀원에게 공유</small></span></button>
         <button type="button" class="exp" onClick=${() => fileRef.current.click()}>
           <${Icon} name="Merge" size=${20} className="text-photon" /><span><b>팀원 기록 합치기</b><small>받은 JSON을 넣으면 내 지도에 합쳐져요</small></span></button>
@@ -1089,7 +1089,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     if (!raw) { setFramed(null); return; }
     let live = true; const t = setTimeout(() => { EM.composeFrame(raw, meta).then((d) => { if (live) setFramed(d); }, () => {}); }, 250);
     return () => { live = false; clearTimeout(t); };
-  }, [raw, mode, meta.name, meta.sci, meta.place]);
+  }, [raw, mode, meta.name, meta.sci, meta.place, shotTs]);
 
   const onFile = async (e, fromAlbum) => {
     const file = e.target.files && e.target.files[0]; e.target.value = ""; if (!file) return;
@@ -1104,23 +1104,20 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
       let at = pos;
       if (hasGps) { at = { lat: info.lat, lng: info.lng, accuracy: null, source: "photo" }; setPos(at); }
       setRaw(await resizeImage(file, 1280, 0.86)); setReading(false);
-      const old = Date.now() - ts > 30 * 60 * 1000;
-      setAlbum({ ts, gps: hasGps, exif: !!info.ts, wx: old ? "loading" : "now" });
-      if (old) {
-        const q = at || (gps ? { lat: gps.lat, lng: gps.lng } : { lat: home.lat, lng: home.lng });
-        try { setPastWx(await fetchWeatherAt(q.lat, q.lng, ts)); setAlbum((a) => a && { ...a, wx: "ok" }); }
-        catch (er) { setAlbum((a) => a && { ...a, wx: "fail" }); }
-      }
+      setAlbum({ ts, gps: hasGps, exif: !!info.ts });
     } catch (er) { setReading(false); setPhotoErr(`이 사진을 읽지 못했어요 (${(file.type || file.name || "알 수 없는 형식").slice(0, 30)}). 다른 사진을 고르거나 '촬영'으로 찍어 주세요. 카카오톡 안에서 열었다면 ⋯ → 다른 브라우저로 열어 보세요.`); }
   };
-  // 앨범 사진 위치를 지도에서 옮기면 그 자리 날씨로 다시 계산
+  // 관찰 시각이 지난 시각이면(앨범 사진·날짜 고침) 그 자리·그 시각 날씨로 계산
+  const [wxState, setWxState] = useState("now"); // now | loading | ok | fail
   useEffect(() => {
-    if (!album || album.wx === "now" || !pos) return;
-    if (pastWx && Math.abs(pastWx.lat - pos.lat) < 0.01 && Math.abs(pastWx.lng - pos.lng) < 0.01) return;
-    let live = true;
-    fetchWeatherAt(pos.lat, pos.lng, album.ts).then((x) => { if (live) { setPastWx(x); setAlbum((a) => a && { ...a, wx: "ok" }); } }, () => {});
-    return () => { live = false; };
-  }, [pos && pos.lat, pos && pos.lng]);
+    const old = Date.now() - shotTs > 30 * 60 * 1000;
+    if (!old) { setPastWx(null); setWxState("now"); return; }
+    const q = pos || (gps ? { lat: gps.lat, lng: gps.lng } : { lat: home.lat, lng: home.lng });
+    let live = true; setWxState("loading");
+    const t = setTimeout(() => fetchWeatherAt(q.lat, q.lng, shotTs).then((x) => { if (live) { setPastWx(x); setWxState("ok"); } },
+      () => { if (live) { setPastWx(null); setWxState("fail"); } }), 400);
+    return () => { live = false; clearTimeout(t); };
+  }, [shotTs, pos && Math.round(pos.lat * 100), pos && Math.round(pos.lng * 100)]);
   const p = pos || { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1], source: "default", accuracy: null };
   const runAI = async () => {
     if (!aiReady(settings)) { onOpenSettings(); return; }
@@ -1139,7 +1136,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     setSaving(true);
     let photo = null;
     if (raw) { try { photo = await EM.composeFrame(raw, meta); } catch (e) { photo = raw; } }
-    onSave({ ...preview, id: uid(), photo, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
+    onSave({ ...preview, id: uid(), photo, raw: raw || undefined, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
       weather: { temp: w.temp, rh: w.rh, cloud: w.cloud, sw: w.sw, ppfd: w.ppfd, par: w.par, ...(pastWx ? { past: true } : {}) }, ...(album ? { fromAlbum: true } : {}) });
   };
   const srcLabel = { gps: `내 위치(GPS) ±${Math.round(p.accuracy || 0)}m`, map: "지도에서 콕 찍은 자리", photo: "사진에 담긴 촬영 위치", home: `우리 동네 기본 위치 · ${home.label}`, default: "지도를 눌러 위치를 찍어 주세요" }[p.source];
@@ -1188,8 +1185,13 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
             <${Icon} name="Images" size=${16} />
             <span><b>앨범 사진 · ${fmtDate(album.ts)} ${album.exif ? "촬영" : "(파일 날짜)"}</b>
               <small>${album.gps ? "사진에 담긴 위치로 핀을 옮겼어요." : "사진에 위치 정보가 없어요. 지도에서 찍은 자리를 콕 눌러 주세요."}
-              ${album.wx === "loading" ? " 그날 그 시각 날씨를 불러오는 중…" : album.wx === "ok" ? " 빛·기온은 그날 그 시각 기록으로 계산해요." : album.wx === "fail" ? " 그날 날씨 기록을 못 찾아 지금 날씨로 계산해요." : ""}</small></span>
+              ${wxState === "loading" ? " 그날 그 시각 날씨를 불러오는 중…" : wxState === "ok" ? " 빛·기온은 그날 그 시각 기록으로 계산해요." : wxState === "fail" ? " 그날 날씨 기록을 못 찾아 지금 날씨로 계산해요." : ""}</small></span>
           </div>`}
+          ${raw && html`<label class="fld mt-3"><span>관찰 날짜·시각 · 틀리면 고쳐 주세요</span>
+            <input id="fWhen" type="datetime-local" value=${toLocalInput(shotTs)} max=${toLocalInput(Date.now())}
+              onInput=${(e) => { const v = fromLocalInput(e.target.value); if (v && v <= Date.now() + 60000) setShotTs(v); }} />
+            ${!album && wxState !== "now" && html`<small class="text-[12px] text-mist">${wxState === "loading" ? "그 시각 날씨를 불러오는 중…" : wxState === "ok" ? "빛·기온을 그날 그 시각 기록으로 다시 계산했어요." : "그 시각 날씨 기록을 못 찾아 지금 날씨로 계산해요."}</small>`}
+          </label>`}
           ${raw && html`<button type="button" class="btn-primary w-full mt-2" onClick=${runAI} disabled=${aiState === "loading"}>
             <${Icon} name=${aiState === "loading" ? "Loader2" : "ScanSearch"} size=${18} className=${aiState === "loading" ? "animate-spin" : ""} />
             ${aiState === "loading" ? "식물생리학 분석 중…" : aiReady(settings) ? `AI로 종 찾기 (사진 + ${pastWx ? "그때" : "지금"} 빛)` : "AI 분석하려면 API 키 설정"}</button>`}
@@ -1218,14 +1220,41 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
 }
 
 /* ---------- 상세 ---------- */
-function DetailModal({ rec, me, onClose, onDelete }) {
+function DetailModal({ rec, me, onClose, onDelete, onUpdate }) {
   const [ask, setAsk] = useState(false);
+  const [editWhen, setEditWhen] = useState(null), [busy, setBusy] = useState(false), [err, setErr] = useState("");
+  const mine = rec.researcher === me || rec.sample;
+  const saveWhen = async () => {
+    const ts = fromLocalInput(editWhen); if (!ts || ts > Date.now() + 60000) { setErr("날짜를 다시 확인해 주세요."); return; }
+    setBusy(true); setErr("");
+    try {
+      let weather = rec.weather, model = rec.model, note = "";
+      try {
+        const x = await fetchWeatherAt(rec.lat, rec.lng, ts);
+        weather = { temp: x.temp, rh: x.rh, cloud: x.cloud, sw: x.sw, ppfd: x.ppfd, par: x.par, past: true };
+        model = M.estimate({ sw: x.sw, temp: x.temp, rh: x.rh, psType: rec.psType, growthForm: rec.growthForm, lai: rec.lai });
+      } catch (e) { note = " (그 시각 날씨 기록이 없어 빛·기온은 그대로)"; }
+      let photo = rec.photo;
+      if (rec.raw) { try { photo = await EM.composeFrame(rec.raw, { mode: rec.mode, researcher: rec.researcher, ts, name: rec.koreanName || "", sci: rec.scientificName || "", place: rec.place || MODES[rec.mode].place }); } catch (e) {} }
+      await onUpdate({ ...rec, ts, weather, model, photo }, `날짜를 고쳤어요${note}${rec.raw || !rec.photo ? "" : " · 사진 속 날짜 도장은 예전 그대로예요"}`);
+      setEditWhen(null);
+    } catch (e) { setErr("저장하지 못했어요."); }
+    setBusy(false);
+  };
   return html`<div class="modal-bg" onClick=${onClose}>
     <div class="modal" role="dialog" aria-modal="true" aria-label="기록 상세" onClick=${(e) => e.stopPropagation()}>
       <div class="flex items-center gap-2 mb-3 text-[12px] text-mist flex-wrap">
-        <${ModeTag} mode=${rec.mode} /><${Dot} color=${rColor(rec.researcher)} size=${8} /><span>${rec.researcher}</span><span>· ${fmtDate(rec.ts)}</span><span>· ${rec.place || MODES[rec.mode].place}</span>
+        <${ModeTag} mode=${rec.mode} /><${Dot} color=${rColor(rec.researcher)} size=${8} /><span>${rec.researcher}</span><span>· ${fmtDate(rec.ts)}</span>
+        ${mine && editWhen == null && html`<button type="button" class="link-btn" onClick=${() => setEditWhen(toLocalInput(rec.ts))}><${Icon} name="CalendarClock" size=${13} />날짜 고치기</button>`}<span>· ${rec.place || MODES[rec.mode].place}</span>
         <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>
       </div>
+      ${editWhen != null && html`<div class="when-edit">
+        <label class="fld flex-1"><span>관찰 날짜·시각</span><input id="dWhen" type="datetime-local" value=${editWhen} max=${toLocalInput(Date.now())} onInput=${(e) => setEditWhen(e.target.value)} /></label>
+        <div class="flex gap-2 items-end"><button type="button" class="btn-ghost" onClick=${() => { setEditWhen(null); setErr(""); }} disabled=${busy}>취소</button>
+          <button type="button" class="btn-save" onClick=${saveWhen} disabled=${busy}><${Icon} name=${busy ? "Loader2" : "Check"} size=${16} className=${busy ? "animate-spin" : ""} />${busy ? "다시 계산 중…" : "저장"}</button></div>
+        <p class="text-[12px] text-mist w-full">저장하면 그 시각 날씨로 빛·탄소 고정을 다시 계산하고, 사진 날짜 도장도 새로 찍어요.</p>
+        ${err && html`<div class="err w-full">${err}</div>`}
+      </div>`}
       ${rec.photo && html`<img src=${rec.photo} alt=${rec.koreanName || "식물 사진"} class="detail-photo" />`}
       ${rec.photo && html`<div class="flex justify-end -mt-1 mb-3"><button type="button" class="link-btn" onClick=${() => openSaver([{ url: rec.photo, name: `에코쌤즈_${rec.koreanName || "식물"}_${ymd(rec.ts)}.jpg` }], "프레임 사진 앨범에 저장")}>
         <${Icon} name="ImageDown" size=${14} />앨범에 저장</button></div>`}
@@ -1652,7 +1681,7 @@ async function buildAllZip({ records, acts, meetings }, onStep) {
     z.file(`07_협의록_전체_${meetings.length}건.hwpx`, await minutesHwpx(meetings));
   }
   if (real.length) z.file("08_광합성지도.geojson", JSON.stringify(toGeoJSON(real), null, 1));
-  z.file("09_백업_앱에_다시_불러오기용.json", JSON.stringify(real.concat(acts.map(({ raw, ...a }) => a), meetings.map((m) => ({ ...m, photos: (m.photos || []).map((ph) => ({ photo: ph.photo })) })))));
+  z.file("09_백업_앱에_다시_불러오기용.json", JSON.stringify(real.map(({ raw, ...r }) => r).concat(acts.map(({ raw, ...a }) => a), meetings.map((m) => ({ ...m, photos: (m.photos || []).map((ph) => ({ photo: ph.photo })) })))));
   z.file("읽어주세요.txt", [
     "기후행동 실천모임 에코쌤즈 · 따로 또 같이 자료 묶음", `만든 날: ${new Date().toLocaleString("ko-KR")}`, "",
     `사진 ${n}장 (팀 프레임·날짜 도장이 찍힌 사진)`, `식물 기록 ${real.length}건 · 활동 사진 ${acts.length}장 · 협의록 ${meetings.length}건`, "",
@@ -1766,6 +1795,10 @@ function App() {
     setActEdit(null); say(list.length > 1 ? `활동 사진 ${list.length}장을 올렸어요` : "활동 사진을 저장했어요");
   };
   const deleteAct = async (id) => { await db.del(id); setActs((as) => as.filter((a) => a.id !== id)); setActEdit(null); say("활동 사진을 지웠어요"); };
+  const updateRecord = async (rec, msg) => {
+    await db.put(rec);
+    setRecords((rs) => rs.map((r) => (r.id === rec.id ? rec : r)).sort((a, b) => b.ts - a.ts)); say(msg || "고쳤어요");
+  };
   const deleteRecord = async (id) => { await db.del(id); setRecords((rs) => rs.filter((r) => r.id !== id)); setOpenId(null); say("기록을 지웠어요"); };
   const clearSamples = async () => { for (const r of records.filter((x) => x.sample)) await db.del(r.id); setRecords((rs) => rs.filter((r) => !r.sample)); say("예시를 지웠어요"); };
   const importJSON = (file) => {
@@ -1814,7 +1847,7 @@ function App() {
     ${saver && html`<${PhotoSaver} items=${saver.items} title=${saver.title} onClose=${() => setSaver(null)} />`}
     ${showSwitch && html`<${SwitchModal} me=${me} onPick=${switchTo} onClose=${() => setShowSwitch(false)} />`}
     ${actEdit && html`<${ActivityModal} me=${me} item=${actEdit.isNew ? null : actEdit} onClose=${() => setActEdit(null)} onSave=${saveActs} onDelete=${deleteAct} />`}
-    ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} />`}
+    ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} onUpdate=${updateRecord} />`}
     ${showSettings && html`<${SettingsModal} settings=${settings} onClose=${() => setShowSettings(false)}
       onSave=${(s) => { setSettings(s); store.set(LS_SET, { ...store.get(LS_SET, {}), apiKey: s.apiKey, model: s.model }); setShowSettings(false); say(s.apiKey ? "AI 설정을 저장했어요" : "API 키를 지웠어요"); }} />`}
     ${toast && html`<div class="toast" role="status">${toast}</div>`}
