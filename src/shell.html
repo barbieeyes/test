@@ -370,6 +370,35 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .meet-ph{position:relative;display:block}
 .meet-ph img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:10px;border:2px solid #E4D3B8}
 .meet-ph button{position:absolute;top:4px;right:4px;width:24px;height:24px;display:grid;place-items:center;border-radius:999px;background:rgba(0,0,0,.6);color:#fff}
+
+/* ---- 협의회 녹음 ---- */
+.rec-box{display:grid;gap:10px;padding:14px;border-radius:18px;background:#FBF4E8;border:2px solid #E4D3B8}
+.rec-box.live{background:#FFF1EE;border-color:#F3A99B;box-shadow:0 0 0 4px rgba(220,75,49,.12)}
+.rec-btn{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 18px;border-radius:999px;background:#DC4B31;color:#fff;font-weight:800;font-size:16px;border:2px solid #A8321D;box-shadow:0 4px 0 #A8321D}
+.rec-btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 2px 0 #A8321D}
+.rec-btn.stop{background:#3E2A12;border-color:#1F150A;box-shadow:0 4px 0 #1F150A}
+.rec-btn:disabled{opacity:.5}
+.rec-sq{width:14px;height:14px;border-radius:3px;background:#fff}
+.rec-time{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#6E4A1E}
+.rec-dot{width:10px;height:10px;border-radius:99px;background:#DC4B31;animation:recblink 1s infinite}
+@keyframes recblink{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.rec-dot{animation:none}}
+.rec-sum{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 16px;border-radius:14px;background:#9A6A2F;color:#fff;font-weight:800;font-size:15px;border:2px solid #6E4A1E;box-shadow:0 3px 0 #6E4A1E}
+.rec-sum:disabled{opacity:.45;box-shadow:none}
+.rec-help{font-size:12.5px;color:#6E4A1E;line-height:1.6}
+.rec-tr summary{cursor:pointer;font-size:12.5px;font-weight:700;color:#6E4A1E;padding:2px 0}
+.rec-tr textarea{margin-top:6px;width:100%;background:#fff;border:1.5px solid #E4D3B8;border-radius:12px;padding:9px 12px;font-size:14px;line-height:1.65;color:var(--grass-ink);resize:vertical}
+.ok-note{font-size:13px;color:#1E7A43;background:#EEF8E8;border:1.5px solid #BFE3C6;border-radius:12px;padding:9px 12px}
+.minutes-todo{display:flex;gap:5px;align-items:flex-start;font-size:12.5px;font-weight:600;color:#6E4A1E;background:#FBF0DD;border-radius:8px;padding:5px 8px;white-space:pre-line}
+.minutes-todo svg{flex:none;margin-top:2px}
+.team-ai{display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:#FFF7E0;border:1.5px solid #F2D27A;color:#7A5A00;margin-bottom:10px}
+.team-ai.on{background:#EEF8E8;border-color:#BFE3C6;color:#1E7A43}
+.team-ai svg{flex:none;margin-top:2px} .team-ai b{display:block;font-size:14px} .team-ai small{display:block;font-size:12px;opacity:.9;line-height:1.5}
+.all-in-one{display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px;border-radius:18px;background:var(--grass);color:#fff;border:2.5px solid var(--grass-deep);box-shadow:4px 4px 0 var(--grass-deep)}
+.all-in-one:active:not(:disabled){transform:translate(2px,2px);box-shadow:2px 2px 0 var(--grass-deep)}
+.all-in-one:disabled{opacity:.6}
+.all-in-one b{display:block;font-family:var(--f-display);font-weight:400;font-size:20px} .all-in-one small{display:block;font-size:12px;opacity:.95;line-height:1.5}
+.aio-ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.2);flex:none}
 </style>
 </head>
 <body>
@@ -380,11 +409,18 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 /*__MODEL__*/
 </script>
 <script>
 /*__MEDIA__*/
+</script>
+<script>
+/*__HWPXTPL__*/
+</script>
+<script>
+/*__HWPX__*/
 </script>
 <script>
 if (!window.React || !window.ReactDOM || !window.htm || !window.EcoMedia) {

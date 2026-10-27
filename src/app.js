@@ -20,6 +20,7 @@ function h(type, props, ...children) {
 const html = htm.bind(h);
 const M = window.PSModel;
 const EM = window.EcoMedia;
+const EH = window.EcoHwpx;
 
 /* ---------- 상수 ---------- */
 /* 연구원 색: 붉은 잎 → 노란 잎 → 연두 잎 → 진초록 잎 */
@@ -187,27 +188,69 @@ function parseAI(text) {
   o.confidence = M.clamp(Math.round(Number(o.confidence) || 0), 0, 100);
   return o;
 }
-async function analyzePlant({ apiKey, model, dataUrl, weather, lat, lng, mode }) {
-  const b64 = dataUrl.split(",")[1];
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
+/** Claude 부르기: 이 기기에 키가 있으면 직접, 없으면 팀 공용 서버(/api/ai)로 */
+const TEAM_AI = "/api/ai";
+const aiReady = (st) => !!(st && (st.apiKey || st.team));
+async function callClaude(st, { max_tokens = 1400, system, content }) {
+  const body = { model: (st && st.model) || DEFAULT_MODEL, max_tokens, system, messages: [{ role: "user", content }] };
+  const direct = !!(st && st.apiKey);
+  const r = await fetch(direct ? "https://api.anthropic.com/v1/messages" : TEAM_AI, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: model || DEFAULT_MODEL, max_tokens: 1400, system: "응답은 반드시 유효한 JSON 객체 하나여야 합니다.",
-      messages: [{ role: "user", content: [
-        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
-        { type: "text", text: buildPrompt(weather, lat, lng, mode) } ] }] }),
+    headers: direct
+      ? { "content-type": "application/json", "x-api-key": st.apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }
+      : { "content-type": "application/json", "x-team-pin": TEAM_PIN },
+    body: JSON.stringify(body),
   });
   if (!r.ok) {
-    let msg = ""; try { const j = await r.json(); msg = (j.error && j.error.message) || ""; } catch (e) {}
-    if (r.status === 401) throw new Error("API 키가 올바르지 않아요. 설정에서 키를 다시 확인하세요.");
-    if (r.status === 404) throw new Error(`모델 '${model}'을 찾을 수 없어요. 설정에서 모델 이름을 바꿔 보세요.`);
+    let msg = ""; try { const j = await r.json(); msg = (j.error && (j.error.message || j.error)) || ""; } catch (e) {}
+    if (!direct && r.status === 503) throw new Error("팀 공용 AI 키가 아직 연결되지 않았어요. 설정에서 이 기기용 키를 넣거나 관리자에게 알려 주세요.");
+    if (r.status === 401) throw new Error(direct ? "API 키가 올바르지 않아요. 설정에서 키를 다시 확인하세요." : "팀 공용 AI 키가 올바르지 않아요. 관리자에게 알려 주세요.");
+    if (r.status === 404) throw new Error(`모델 '${body.model}'을 찾을 수 없어요. 설정에서 모델 이름을 바꿔 보세요.`);
     if (r.status === 429) throw new Error("요청이 많아 잠시 막혔어요. 1분 뒤 다시 시도하세요.");
-    throw new Error(`분석 요청 실패 (${r.status}) ${msg}`.trim());
+    if (r.status === 400 && /credit|balance/i.test(String(msg))) throw new Error("API 크레딧이 부족해요. console.anthropic.com에서 충전해 주세요.");
+    throw new Error(`AI 요청 실패 (${r.status}) ${msg}`.trim());
   }
   const d = await r.json();
-  const text = (d.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
+  return (d.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
+}
+async function analyzePlant({ settings, dataUrl, weather, lat, lng, mode }) {
+  const b64 = dataUrl.split(",")[1];
+  const text = await callClaude(settings, { max_tokens: 1400, system: "응답은 반드시 유효한 JSON 객체 하나여야 합니다.",
+    content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: buildPrompt(weather, lat, lng, mode) }] });
   try { return parseAI(text); } catch (e) { throw new Error("AI 응답을 해석하지 못했어요. 다시 분석해 보세요."); }
 }
+
+/* ---------- 협의회 녹음 정리 ---------- */
+function minutesPrompt({ transcript, when, place, people, title, content }) {
+  return `당신은 학교 교사 연구 모임 '기후행동 실천모임 에코쌤즈'의 협의회 서기입니다. 아래는 휴대폰 음성 인식으로 받아 적은 회의 원문입니다.
+음성 인식이라 띄어쓰기·맞춤법 오류, 잘린 문장, 같은 말 반복, 잡담이 섞여 있습니다. 문맥으로 바로잡되, 원문에 없는 사실·숫자·이름·날짜는 절대 지어내지 마세요.
+회의 정보: 일시 ${when}, 장소 ${place || "미기재"}, 참석 ${people.join(", ") || "미기재"}${title ? `, 기존 안건 "${title}"` : ""}.
+${content ? `이미 적혀 있던 메모(함께 반영):\n${content}\n` : ""}
+학교 협의록에 바로 옮겨 적을 수 있게 공문체(~함, ~하기로 함)로 간결하게 정리하고, 아래 JSON 하나만 출력하세요. 마크다운·코드펜스 금지.
+{
+ "title": "안건을 한 줄로 (25자 이내)",
+ "content": "협의 내용. 주제별로 '1. 소주제' 다음 줄에 '- 핵심 내용' 형식, 줄바꿈은 \\n",
+ "decisions": "결정 사항. '- ' 로 시작하는 줄들, 없으면 빈 문자열",
+ "todos": [{"what": "할 일", "who": "참석자 이름 중 담당(모르면 빈 문자열)", "when": "기한(말한 경우만)"}]
+}
+
+[회의 원문]
+${transcript}`;
+}
+function parseMinutes(text) {
+  const t = (text || "").replace(/```json/gi, "").replace(/```/g, "").trim();
+  const s = t.indexOf("{"), e = t.lastIndexOf("}");
+  const o = JSON.parse(s >= 0 && e > s ? t.slice(s, e + 1) : t);
+  return { title: String(o.title || "").trim(), content: String(o.content || "").trim(), decisions: String(o.decisions || "").trim(),
+    todos: Array.isArray(o.todos) ? o.todos.filter((x) => x && x.what).map((x) => ({ what: String(x.what), who: String(x.who || ""), when: String(x.when || "") })) : [] };
+}
+async function summarizeMeeting(settings, info) {
+  const text = await callClaude(settings, { max_tokens: 2500, system: "응답은 반드시 유효한 JSON 객체 하나여야 합니다.", content: [{ type: "text", text: minutesPrompt(info) }] });
+  try { return parseMinutes(text); } catch (e) { throw new Error("AI 정리 결과를 해석하지 못했어요. 다시 눌러 보세요."); }
+}
+const todosToText = (todos) => (todos || []).map((t) => `- ${t.what}${t.who ? ` (담당: ${t.who})` : ""}${t.when ? ` · ${t.when}` : ""}`).join("\n");
+const textToTodos = (s) => String(s || "").split("\n").map((l) => l.replace(/^\s*[-•·*]\s*/, "").trim()).filter(Boolean).map((l) => {
+  const m = l.match(/^(.*?)(?:\s*\(담당:\s*([^)]*)\))?(?:\s*·\s*(.+))?$/); return { what: (m && m[1]) || l, who: (m && m[2]) || "", when: (m && m[3]) || "" }; });
 
 /* ---------- 내보내기 ---------- */
 function saveFile(name, blobOrText, type) {
@@ -236,13 +279,14 @@ function toGeoJSON(recs) {
 function toCSV(recs) {
   const head = ["일시", "따로/같이", "장소", "연구원", "위도", "경도", "위치 기준", "GPS정확도(m)", "국명", "학명", "신뢰도(%)", "과", "생활형", "광합성유형",
     "기온(℃)", "습도(%)", "운량(%)", "일사량(W/m²)", "PPFD(µmol/m²/s)", "PAR지수", "광합성활성", "잎 순광합성(µmol/m²/s)",
-    "LAI", "탄소고정(gCO₂/h·m²)", "기후지표종", "메모", "예시"];
+    "LAI", "탄소고정(gCO₂/h·m²)", "기후지표종", "메모", "AI 광합성 해설", "AI 기후지표 근거", "AI 수업 연계 조언", "예시"];
   const src = { gps: "GPS", map: "지도 지정", home: "우리 동네 기본 위치", default: "임시 위치" };
   const rows = recs.map((r) => [new Date(r.ts).toLocaleString("ko-KR"), MODES[r.mode] ? MODES[r.mode].label : "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
     r.koreanName, r.scientificName, r.confidence ?? "", r.ai && r.ai.taxonomy ? r.ai.taxonomy.family : "", r.growthForm, r.psType,
     r.weather.temp, r.weather.rh, r.weather.cloud, r.weather.sw, r.weather.ppfd, r.weather.par, M.activity(r.weather.ppfd).label,
     r.model.aLeaf, r.model.lai, r.model.gco2, r.ai && r.ai.ecologicalInsight && r.ai.ecologicalInsight.climateIndicator ? "O" : "",
-    (r.notes || "").replace(/\n/g, " "), r.sample ? "O" : ""]
+    (r.notes || "").replace(/\n/g, " "), (r.ai && r.ai.carbonFixationEst && r.ai.carbonFixationEst.comment) || "",
+    (r.ai && r.ai.ecologicalInsight && r.ai.ecologicalInsight.note) || "", (r.ai && r.ai.ecologicalInsight && r.ai.ecologicalInsight.classroom) || "", r.sample ? "O" : ""]
     .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
   return "﻿" + head.join(",") + "\n" + rows.join("\n");
 }
@@ -517,12 +561,12 @@ function SoloView({ me, records, gps, onAdd, onOpen, say }) {
 }
 
 /* ---------- 같이: 학교 식물 표본함 ---------- */
-function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting, onOpenMeeting }) {
+function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting, onOpenMeeting, onExportMinutes }) {
   const seg = html`<div class="seg3" role="tablist" aria-label="같이 보기">
     <button type="button" role="tab" aria-selected=${sub === "plants"} class=${"seg3-b" + (sub === "plants" ? " on" : "")} onClick=${() => setSub("plants")}>학교 식물 표본함</button>
     <button type="button" role="tab" aria-selected=${sub === "meetings"} class=${"seg3-b" + (sub === "meetings" ? " on s-meeting" : "")} onClick=${() => setSub("meetings")}>협의회 기록 ${meetings.length}</button>
   </div>`;
-  if (sub === "meetings") return html`<div class="grid gap-4">${seg}<${MeetingList} meetings=${meetings} onAdd=${onAddMeeting} onOpen=${onOpenMeeting} /></div>`;
+  if (sub === "meetings") return html`<div class="grid gap-4">${seg}<${MeetingList} meetings=${meetings} onAdd=${onAddMeeting} onOpen=${onOpenMeeting} onExport=${onExportMinutes} /></div>`;
   const total = records.filter((r) => r.mode === "team");
   const groups = useMemo(() => {
     const m = new Map();
@@ -765,8 +809,15 @@ function VideoMaker({ records, onClose }) {
 
 function ArchiveView({ records, acts, meetings, onOpen, onOpenAct, onOpenMeeting, onClearSamples, onImport }) {
   const [video, setVideo] = useState(false);
+  const [zipState, setZipState] = useState(""), [zipErr, setZipErr] = useState("");
   const fileRef = useRef(null);
   const real = records.filter((r) => !r.sample);
+  const nPhotos = real.filter((r) => r.photo).length + acts.filter((a) => a.photo).length + meetings.reduce((k, m) => k + (m.photos || []).length, 0);
+  const getAll = async () => {
+    setZipErr(""); setZipState("사진 모으는 중…");
+    try { const blob = await buildAllZip({ records, acts, meetings }, setZipState); saveFile(`에코쌤즈_자료묶음_${today()}.zip`, blob); setZipState(""); }
+    catch (e) { setZipState(""); setZipErr(e.message || "자료 묶음을 만들지 못했어요."); }
+  };
   const all = useMemo(() => records.concat(acts, meetingPhotos(meetings)).sort((a, b) => b.ts - a.ts), [records, acts, meetings]);
   const photos = all.filter((r) => r.photo);
   const byDay = useMemo(() => {
@@ -793,6 +844,13 @@ function ArchiveView({ records, acts, meetings, onOpen, onOpenAct, onOpenMeeting
     </section>
     <section class="glass p-4 grid gap-3">
       <h2 class="pill-h justify-self-start"><${Icon} name="Download" size=${17} />보고서용 데이터</h2>
+      <button type="button" class="all-in-one" onClick=${getAll} disabled=${!!zipState || (!real.length && !acts.length && !meetings.length)}>
+        <span class="aio-ic"><${Icon} name=${zipState ? "Loader2" : "PackageOpen"} size=${28} className=${zipState ? "animate-spin" : ""} /></span>
+        <span class="flex-1 min-w-0"><b>${zipState || "자료 한 번에 받기 (ZIP)"}</b>
+          <small>사진 ${nPhotos}장(선생님별·같이·활동·협의회 폴더) + 메모·AI 조언 기록표 + 한글 협의록 + 지도 데이터 + 백업</small></span>
+      </button>
+      ${zipErr && html`<div class="err">${zipErr}</div>`}
+      <p class="text-[12px] text-mist leading-relaxed">이 휴대폰에 있는 자료만 묶여요. 다른 선생님 자료까지 받으려면 각자 아래 <b>내 기록 보내기</b>로 파일을 보내 주고, 받은 파일을 <b>팀원 기록 합치기</b>로 불러온 다음 눌러 주세요.</p>
       <div class="grid sm:grid-cols-2 gap-2">
         <button type="button" class="exp" disabled=${!real.length} onClick=${() => saveFile(`에코쌤즈_광합성지도_${today()}.csv`, toCSV(real), "text/csv;charset=utf-8")}>
           <${Icon} name="FileSpreadsheet" size=${20} className="text-photon" /><span><b>CSV</b><small>엑셀 분석 · 실천모임 결과 보고서</small></span></button>
@@ -913,10 +971,10 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   };
   const p = pos || { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1], source: "default", accuracy: null };
   const runAI = async () => {
-    if (!settings.apiKey) { onOpenSettings(); return; }
+    if (!aiReady(settings)) { onOpenSettings(); return; }
     setAiState("loading"); setAiErr("");
     try {
-      const o = await analyzePlant({ apiKey: settings.apiKey, model: settings.model, dataUrl: raw, weather: w, lat: p.lat, lng: p.lng, mode });
+      const o = await analyzePlant({ settings, dataUrl: raw, weather: w, lat: p.lat, lng: p.lng, mode });
       setAi(o); setAiState("ok");
       setF((q) => ({ ...q, koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType,
         lai: o.carbonFixationEst && Number(o.carbonFixationEst.laiEstimate) > 0 ? String(M.clamp(Number(o.carbonFixationEst.laiEstimate), 0.1, 10)) : q.lai }));
@@ -975,7 +1033,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
           <input ref=${galRef} id="galIn" type="file" accept="image/*" class="hidden" onChange=${onFile} />
           ${raw && html`<button type="button" class="btn-primary w-full mt-2" onClick=${runAI} disabled=${aiState === "loading"}>
             <${Icon} name=${aiState === "loading" ? "Loader2" : "ScanSearch"} size=${18} className=${aiState === "loading" ? "animate-spin" : ""} />
-            ${aiState === "loading" ? "식물생리학 분석 중…" : settings.apiKey ? "AI로 종 찾기 (사진 + 지금 빛)" : "AI 분석하려면 API 키 설정"}</button>`}
+            ${aiState === "loading" ? "식물생리학 분석 중…" : aiReady(settings) ? "AI로 종 찾기 (사진 + 지금 빛)" : "AI 분석하려면 API 키 설정"}</button>`}
           ${aiState === "error" && html`<div class="err mt-2">${aiErr}</div>`}
         </div>
         <div class="grid sm:grid-cols-2 gap-3">
@@ -1040,15 +1098,18 @@ function SettingsModal({ settings, onSave, onClose }) {
       <div class="flex items-center gap-2 mb-2"><${Icon} name="KeyRound" size=${19} className="text-photon" />
         <h2 class="font-display text-[20px] text-snow">AI 분석 설정</h2>
         <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button></div>
-      <p class="text-[13px] text-mist leading-relaxed mb-4">Anthropic API 키를 넣으면 사진과 지금의 빛·기상값을 함께 보내 종을 찾고 광합성 특성을 분석해요. 키는 <b class="text-snow">이 휴대폰에만</b> 저장돼요.</p>
+      <div class=${"team-ai" + (settings.team ? " on" : "")}><${Icon} name=${settings.team ? "CircleCheck" : "CircleAlert"} size=${17} />
+        <span>${settings.team ? html`<b>팀 공용 AI 연결됨</b><small>키를 넣지 않아도 식물 동정·협의회 정리가 돼요.</small>`
+          : html`<b>팀 공용 AI 키 없음</b><small>관리자가 Vercel에 ANTHROPIC_API_KEY를 넣으면 네 분 모두 바로 쓸 수 있어요.</small>`}</span></div>
+      <p class="text-[13px] text-mist leading-relaxed mb-4">이 기기에서만 따로 쓰려면 Anthropic API 키를 넣으세요. 넣으면 팀 공용 대신 이 키를 쓰고, 키는 <b class="text-snow">이 휴대폰에만</b> 저장돼요. (Claude 구독과 API 크레딧은 별개예요)</p>
       <label class="fld"><span>API 키</span>
         <div class="flex gap-2"><input id="apiKey" type=${show ? "text" : "password"} autocomplete="off" value=${key} onInput=${(e) => setKey(e.target.value)} placeholder="sk-ant-..." class="flex-1" />
           <button type="button" class="icon-btn" onClick=${() => setShow(!show)} aria-label=${show ? "키 숨기기" : "키 보기"}><${Icon} name=${show ? "EyeOff" : "Eye"} size=${17} /></button></div></label>
       <a class="text-[12px] text-photon underline underline-offset-2" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console에서 키 발급 ↗</a>
       <label class="fld mt-3"><span>모델</span><input id="aiModel" class="mono" value=${model} onInput=${(e) => setModel(e.target.value)} /></label>
       <div class="flex gap-2 mt-4">
-        <button type="button" class="btn-save flex-1" onClick=${() => onSave({ apiKey: key.trim(), model: model.trim() || DEFAULT_MODEL })}><${Icon} name="Check" size=${17} />저장</button>
-        ${settings.apiKey && html`<button type="button" class="btn-ghost text-rose-600" onClick=${() => { setKey(""); onSave({ apiKey: "", model }); }}>키 삭제</button>`}
+        <button type="button" class="btn-save flex-1" onClick=${() => onSave({ ...settings, apiKey: key.trim(), model: model.trim() || DEFAULT_MODEL })}><${Icon} name="Check" size=${17} />저장</button>
+        ${settings.apiKey && html`<button type="button" class="btn-ghost text-rose-600" onClick=${() => { setKey(""); onSave({ ...settings, apiKey: "", model }); }}>키 삭제</button>`}
       </div>
     </div>
   </div>`;
@@ -1181,13 +1242,17 @@ function ActivityModal({ me, item, onClose, onSave, onDelete }) {
 }
 
 /* ---------- 같이: 협의회 기록 ---------- */
-function MeetingList({ meetings, onAdd, onOpen }) {
+function MeetingList({ meetings, onAdd, onOpen, onExport }) {
+  const [busy, setBusy] = useState(false);
   return html`<div class="grid gap-4">
     <button type="button" class="act-hero meet-hero" onClick=${onAdd}>
       <span class="act-hero-ic"><${Icon} name="NotebookPen" size=${28} /></span>
       <span class="flex-1 min-w-0"><b>협의회 기록하기</b><small>날짜·장소·모임 멤버·협의 내용·사진을 한 장의 회의록으로. 나중에 언제든 고칠 수 있어요.</small></span>
     </button>
-    ${meetings.length ? html`<div class="meet-list">${meetings.map((m) => { const d = new Date(m.ts);
+    ${meetings.length ? html`<button type="button" class="exp" disabled=${busy} onClick=${async () => { setBusy(true); try { await onExport(meetings); } finally { setBusy(false); } }}>
+        <${Icon} name=${busy ? "Loader2" : "FileText"} size=${20} className=${"text-photon" + (busy ? " animate-spin" : "")} />
+        <span><b>${busy ? "한글 파일 만드는 중…" : `협의록 ${meetings.length}건 한글 파일로 받기`}</b><small>.hwpx · 한글에서 바로 열려요 · 협의록 양식 표 + 사진, 회차마다 쪽 나눔</small></span></button>
+      <div class="meet-list">${meetings.map((m) => { const d = new Date(m.ts);
       return html`<button key=${m.id} type="button" class="minutes" onClick=${() => onOpen(m)}>
         <span class="minutes-date"><b class="mono">${d.getMonth() + 1}.${String(d.getDate()).padStart(2, "0")}</b><small>${d.getFullYear()} · ${["일", "월", "화", "수", "목", "금", "토"][d.getDay()]}</small>
           <em class="mono">${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}</em></span>
@@ -1197,6 +1262,8 @@ function MeetingList({ meetings, onAdd, onOpen }) {
           <span class="minutes-who">${(m.people || []).map((n) => html`<span key=${n}><${Dot} color=${rColor(n)} size=${7} />${n}</span>`)}</span>
           ${m.content && html`<span class="minutes-text">${m.content}</span>`}
           ${m.decisions && html`<span class="minutes-dec"><${Icon} name="CircleCheck" size=${13} />${m.decisions}</span>`}
+          ${m.todos && m.todos.length ? html`<span class="minutes-todo"><${Icon} name="ListTodo" size=${13} />${todosToText(m.todos)}</span>` : null}
+          ${m.transcript && html`<span class="minutes-no mono"><${Icon} name="Mic" size=${11} /> 녹음 원문 ${m.transcript.length.toLocaleString()}자</span>`}
           ${m.photos && m.photos.length ? html`<span class="minutes-ph">${m.photos.slice(0, 4).map((ph, i) => html`<img key=${i} src=${ph.photo} alt="" />`)}${m.photos.length > 4 ? html`<i>+${m.photos.length - 4}</i>` : null}</span>` : null}
         </span>
       </button>`; })}</div>`
@@ -1204,7 +1271,57 @@ function MeetingList({ meetings, onAdd, onOpen }) {
   </div>`;
 }
 
-function MeetingModal({ me, item, onClose, onSave, onDelete }) {
+/** 휴대폰 음성 인식으로 회의 받아 적기 (끊기면 자동으로 다시 이어 듣기) */
+const SpeechRec = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+function useDictation(onLine) {
+  const [on, setOn] = useState(false), [interim, setInterim] = useState(""), [err, setErr] = useState(""), [secs, setSecs] = useState(0);
+  const want = useRef(false), rec = useRef(null), lock = useRef(null), t0 = useRef(0), base = useRef(0), tick = useRef(null), lineRef = useRef(onLine);
+  lineRef.current = onLine;
+  const elapsed = () => base.current + (want.current ? (Date.now() - t0.current) / 1000 : 0);
+  const grabLock = async () => { try { if (navigator.wakeLock) lock.current = await navigator.wakeLock.request("screen"); } catch (e) {} };
+  const startRec = () => {
+    const r = new SpeechRec(); rec.current = r;
+    r.lang = "ko-KR"; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
+    r.onresult = (e) => {
+      let tmp = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i], txt = res[0].transcript.trim();
+        if (res.isFinal) { if (txt) lineRef.current(txt, elapsed()); } else tmp += txt + " ";
+      }
+      setInterim(tmp.trim());
+    };
+    r.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        want.current = false; setErr("마이크를 쓸 수 없어요. 브라우저 주소창의 자물쇠(설정)에서 마이크를 허용해 주세요.");
+      } else if (e.error === "audio-capture") { want.current = false; setErr("마이크를 찾지 못했어요."); }
+    };
+    r.onend = () => { setInterim(""); if (want.current) setTimeout(() => { if (want.current) { try { startRec(); } catch (er) {} } }, 200); else setOn(false); };
+    r.start();
+  };
+  const start = () => {
+    if (!SpeechRec) { setErr("이 브라우저는 받아 적기를 지원하지 않아요. 크롬(안드로이드)이나 사파리(아이폰)에서 열어 주세요. 키보드의 🎤 받아쓰기로 원문 칸에 바로 입력해도 돼요."); return; }
+    setErr(""); want.current = true; t0.current = Date.now(); setOn(true); grabLock();
+    clearInterval(tick.current); tick.current = setInterval(() => setSecs(Math.floor(elapsed())), 1000);
+    try { startRec(); } catch (e) { want.current = false; setOn(false); setErr("받아 적기를 시작하지 못했어요. 다시 눌러 보세요."); }
+  };
+  const stop = () => {
+    if (want.current) base.current += (Date.now() - t0.current) / 1000;
+    want.current = false; clearInterval(tick.current); setSecs(Math.floor(base.current));
+    try { rec.current && rec.current.stop(); } catch (e) {}
+    try { lock.current && lock.current.release(); } catch (e) {} lock.current = null;
+    setOn(false);
+  };
+  useEffect(() => {
+    const vis = () => { if (document.visibilityState === "visible" && want.current) grabLock(); };
+    document.addEventListener("visibilitychange", vis);
+    return () => { document.removeEventListener("visibilitychange", vis); want.current = false; clearInterval(tick.current);
+      try { rec.current && rec.current.abort(); } catch (e) {} try { lock.current && lock.current.release(); } catch (e) {} };
+  }, []);
+  return { on, interim, err, secs, start, stop, supported: !!SpeechRec };
+}
+const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+function MeetingModal({ me, item, settings, onClose, onSave, onDelete, onExport, onOpenSettings }) {
   const isNew = !item;
   const [when, setWhen] = useState(toLocalInput(item ? item.ts : Date.now()));
   const [place, setPlace] = useState(item ? item.place || "" : "");
@@ -1212,9 +1329,23 @@ function MeetingModal({ me, item, onClose, onSave, onDelete }) {
   const [title, setTitle] = useState(item ? item.title || "" : "");
   const [content, setContent] = useState(item ? item.content || "" : "");
   const [decisions, setDecisions] = useState(item ? item.decisions || "" : "");
+  const [todos, setTodos] = useState(item ? (item.todos ? todosToText(item.todos) : "") : "");
+  const [transcript, setTranscript] = useState(item ? item.transcript || "" : "");
+  const [showTr, setShowTr] = useState(false);
   const [photos, setPhotos] = useState(item ? (item.photos || []) : []); // [{raw?, photo}]
   const [busy, setBusy] = useState(false), [ask, setAsk] = useState(false), [err, setErr] = useState("");
-  const inRef = useRef(null), camRef = useRef(null);
+  const [sum, setSum] = useState("idle"), [sumMsg, setSumMsg] = useState("");
+  const inRef = useRef(null), camRef = useRef(null), trRef = useRef(null);
+  const dict = useDictation((line, t) => setTranscript((tr) => {
+    // 안드로이드 크롬은 같은 말을 조금씩 늘려 가며 여러 번 확정하기도 해서, 앞 줄을 이어 쓴 것이면 바꿔 끼운다
+    const lines = tr ? tr.split("\n") : [];
+    const last = lines.length ? lines[lines.length - 1].replace(/^\[\d+:\d+\]\s*/, "") : "";
+    if (last && (line === last || line.startsWith(last))) { lines[lines.length - 1] = lines[lines.length - 1].replace(last, line); return lines.join("\n"); }
+    if (last && last.startsWith(line)) return tr;
+    return (tr ? tr + "\n" : "") + `[${mmss(t)}] ${line}`;
+  }));
+  useEffect(() => { if (dict.on) setShowTr(true); }, [dict.on]);
+  useEffect(() => { if (trRef.current && dict.on) trRef.current.scrollTop = trRef.current.scrollHeight; }, [transcript, dict.interim]);
   const togglePerson = (n) => setPeople((ps) => ps.includes(n) ? ps.filter((x) => x !== n) : RESEARCHERS.map((r) => r.name).filter((x) => ps.includes(x) || x === n));
   const addPhotos = async (e) => {
     const list = [...(e.target.files || [])]; e.target.value = ""; if (!list.length) return;
@@ -1223,24 +1354,64 @@ function MeetingModal({ me, item, onClose, onSave, onDelete }) {
     catch (er) { setErr("사진을 읽지 못했어요."); }
     setBusy(false);
   };
-  const save = async () => {
-    const ts = fromLocalInput(when) || Date.now();
-    if (!title.trim() && !content.trim()) { setErr("안건이나 협의 내용을 조금이라도 적어 주세요."); return; }
-    setBusy(true); setErr("");
+  const summarize = async () => {
+    if (dict.on) dict.stop();
+    if (!aiReady(settings)) { onOpenSettings(); return; }
+    const tr = transcript.trim();
+    if (tr.length < 20) { setSumMsg("받아 적은 내용이 너무 짧아요. 조금 더 녹음해 주세요."); setSum("error"); return; }
+    setSum("loading"); setSumMsg("");
     try {
-      const meta = { mode: "meeting", researcher: me, ts, name: title.trim() || "에코쌤즈 협의회", place: place.trim(), people };
-      const framed = [];
-      for (const ph of photos) framed.push(ph.raw ? { raw: ph.raw, photo: await EM.composeFrame(ph.raw, meta) } : ph);
-      onSave({ ...(item || { id: uid(), kind: "meeting", researcher: me }), ts, place: place.trim(), people, title: title.trim(), content: content.trim(),
-        decisions: decisions.trim(), photos: framed, editedBy: me, editedAt: Date.now() });
-    } catch (e) { setErr("저장하지 못했어요. 다시 시도해 주세요."); setBusy(false); }
+      const o = await summarizeMeeting(settings, { transcript: tr.slice(-60000), when: EH.fmtWhen(fromLocalInput(when) || Date.now()), place, people, title, content });
+      if (o.title) setTitle(o.title);
+      if (o.content) setContent(o.content);
+      setDecisions(o.decisions || "");
+      setTodos(todosToText(o.todos));
+      setSum("ok"); setSumMsg("정리했어요. 아래 칸을 확인하고 필요하면 고친 뒤 저장하세요.");
+    } catch (e) { setSum("error"); setSumMsg(e.message || String(e)); }
   };
-  return html`<div class="modal-bg" onClick=${busy ? null : onClose}>
-    <div class="modal" role="dialog" aria-modal="true" aria-label="협의회 기록" onClick=${(e) => e.stopPropagation()} style=${{ borderColor: MODES.meeting.color }}>
-      <div class="flex items-center gap-2 mb-3"><${Icon} name="NotebookPen" size=${20} style=${{ color: MODES.meeting.color }} />
+  const build = async () => {
+    const ts = fromLocalInput(when) || Date.now();
+    const meta = { mode: "meeting", researcher: me, ts, name: title.trim() || "에코쌤즈 협의회", place: place.trim(), people };
+    const framed = [];
+    for (const ph of photos) framed.push(ph.raw ? { raw: ph.raw, photo: await EM.composeFrame(ph.raw, meta) } : ph);
+    return { ...(item || { id: uid(), kind: "meeting", researcher: me }), ts, place: place.trim(), people, title: title.trim(), content: content.trim(),
+      decisions: decisions.trim(), todos: textToTodos(todos), transcript: transcript.trim(), photos: framed, editedBy: me, editedAt: Date.now() };
+  };
+  const save = async () => {
+    if (dict.on) dict.stop();
+    if (!title.trim() && !content.trim() && !transcript.trim()) { setErr("안건이나 협의 내용을 조금이라도 적어 주세요."); return; }
+    setBusy(true); setErr("");
+    try { onSave(await build()); } catch (e) { setErr("저장하지 못했어요. 다시 시도해 주세요."); setBusy(false); }
+  };
+  const exportNow = async () => { setBusy(true); setErr(""); try { await onExport([await build()]); } catch (e) { setErr(e.message || "한글 파일을 만들지 못했어요."); } setBusy(false); };
+  const close = () => { if (dict.on) dict.stop(); onClose(); };
+  const C = MODES.meeting;
+  return html`<div class="modal-bg" onClick=${busy || dict.on ? null : close}>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="협의회 기록" onClick=${(e) => e.stopPropagation()} style=${{ borderColor: C.color }}>
+      <div class="flex items-center gap-2 mb-3"><${Icon} name="NotebookPen" size=${20} style=${{ color: C.color }} />
         <h2 class="font-display text-[20px] text-snow">${isNew ? "협의회 기록하기" : "협의회 기록 고치기"}</h2>
-        <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기" disabled=${busy}><${Icon} name="X" size=${18} /></button></div>
+        <button type="button" class="icon-btn ml-auto" onClick=${close} aria-label="닫기" disabled=${busy}><${Icon} name="X" size=${18} /></button></div>
       <div class="grid gap-4 minutes-form">
+        <section class=${"rec-box" + (dict.on ? " live" : "")}>
+          <div class="flex items-center gap-2 flex-wrap">
+            ${dict.on
+              ? html`<button type="button" class="rec-btn stop" onClick=${dict.stop}><span class="rec-sq"></span>중지</button>
+                  <span class="rec-time mono"><i class="rec-dot"></i>${mmss(dict.secs)} 듣는 중</span>`
+              : html`<button type="button" class="rec-btn" onClick=${dict.start} disabled=${sum === "loading"}><${Icon} name="Mic" size=${20} />${transcript ? "이어서 녹음" : "녹음 시작"}</button>
+                  ${transcript && html`<span class="rec-time mono">${dict.secs ? `${mmss(dict.secs)} · ` : ""}${transcript.length.toLocaleString()}자 받아 적음</span>`}`}
+            <button type="button" class="rec-sum" onClick=${summarize} disabled=${!transcript.trim() || sum === "loading"}>
+              <${Icon} name=${sum === "loading" ? "Loader2" : "Sparkles"} size=${18} className=${sum === "loading" ? "animate-spin" : ""} />${sum === "loading" ? "정리하는 중…" : "정리하기"}</button>
+          </div>
+          ${!transcript && !dict.on && !dict.err && html`<p class="rec-help">휴대폰을 탁자 가운데 두고 녹음 시작 → 회의 → 중지 → <b>정리하기</b>. 받아 적은 말을 AI가 안건·협의 내용·결정 사항·할 일로 정리해 아래 칸을 채워요.</p>`}
+          ${dict.err && html`<div class="err">${dict.err}</div>`}
+          ${(transcript || dict.on) && html`<details class="rec-tr" open=${showTr} onToggle=${(e) => setShowTr(e.currentTarget.open)}>
+            <summary>받아 적은 원문 ${dict.on ? "(실시간)" : "· 고칠 수 있어요"}</summary>
+            <textarea ref=${trRef} id="mTr" rows="6" value=${transcript + (dict.interim ? (transcript ? "\n" : "") + "… " + dict.interim : "")} readOnly=${dict.on}
+              onInput=${(e) => setTranscript(e.target.value)} placeholder="여기에 회의 내용이 적혀요"></textarea>
+          </details>`}
+          ${sumMsg && html`<div class=${sum === "ok" ? "ok-note" : "err"}>${sumMsg}</div>`}
+          ${!aiReady(settings) && transcript && html`<p class="rec-help">정리하기는 AI 키가 필요해요. <button type="button" class="underline" onClick=${onOpenSettings}>설정 열기</button></p>`}
+        </section>
         <div class="grid sm:grid-cols-2 gap-3">
           <label class="fld"><span>날짜와 시각</span><input id="mWhen" type="datetime-local" value=${when} onInput=${(e) => setWhen(e.target.value)} /></label>
           <label class="fld"><span>장소</span><input id="mPlace" value=${place} onInput=${(e) => setPlace(e.target.value)} placeholder="예: 송례중 과학실, 온라인(줌)" /></label>
@@ -1248,10 +1419,12 @@ function MeetingModal({ me, item, onClose, onSave, onDelete }) {
         <div><${Label}>모임 멤버</${Label}><div class="flex flex-wrap gap-1.5">${RESEARCHERS.map((r) => html`<${Chip} key=${r.name} on=${people.includes(r.name)} color=${r.color} onClick=${() => togglePerson(r.name)}>
           <${Dot} color=${people.includes(r.name) ? "#fff" : r.color} size=${7} />${r.name}</${Chip}>`)}</div></div>
         <label class="fld"><span>안건 (협의회 이름)</span><input id="mTitle" value=${title} onInput=${(e) => setTitle(e.target.value)} placeholder="예: 2차 협의회 · 학교 식물 조사 구역 나누기" /></label>
-        <label class="fld"><span>협의 내용</span><textarea id="mContent" rows="6" value=${content} onInput=${(e) => setContent(e.target.value)}
-          placeholder="오간 이야기, 의견, 자료를 적어요"></textarea></label>
-        <label class="fld"><span>결정 사항 · 다음에 할 일</span><textarea id="mDec" rows="3" value=${decisions} onInput=${(e) => setDecisions(e.target.value)}
-          placeholder="예: 11월 둘째 주까지 따로 기록 5종씩, 다음 협의회 11/18"></textarea></label>
+        <label class="fld"><span>협의 내용</span><textarea id="mContent" rows="7" value=${content} onInput=${(e) => setContent(e.target.value)}
+          placeholder="오간 이야기, 의견, 자료를 적어요 (정리하기를 누르면 자동으로 채워져요)"></textarea></label>
+        <label class="fld"><span>결정 사항</span><textarea id="mDec" rows="3" value=${decisions} onInput=${(e) => setDecisions(e.target.value)}
+          placeholder="- 11월 둘째 주까지 따로 기록 5종씩"></textarea></label>
+        <label class="fld"><span>향후 계획 · 할 일</span><textarea id="mTodo" rows="3" value=${todos} onInput=${(e) => setTodos(e.target.value)}
+          placeholder="- 후문 쪽 식물 조사 (담당: 이귀리) · 11/7"></textarea></label>
         <div class="grid gap-2"><${Label}>사진 ${photos.length ? `${photos.length}장 · 협의회 날짜 도장이 찍혀요` : ""}</${Label}>
           ${photos.length ? html`<div class="meet-photos">${photos.map((ph, i) => html`<span key=${i} class="meet-ph">
               <img src=${ph.photo || ph.raw} alt="" /><button type="button" onClick=${() => setPhotos((ps) => ps.filter((_, j) => j !== i))} aria-label="사진 빼기"><${Icon} name="X" size=${13} /></button></span>`)}</div>` : null}
@@ -1264,25 +1437,74 @@ function MeetingModal({ me, item, onClose, onSave, onDelete }) {
         </div>
         ${!isNew && item.editedBy && html`<p class="text-[12px] text-mist">마지막 수정: ${item.editedBy} · ${fmtDate(item.editedAt || item.ts)}</p>`}
         ${err && html`<div class="err">${err}</div>`}
-        <button type="button" class="btn-save" onClick=${save} disabled=${busy}
-          style=${{ background: MODES.meeting.color, borderColor: MODES.meeting.deep, boxShadow: `0 4px 0 ${MODES.meeting.deep}` }}>
-          <${Icon} name="Save" size=${18} />${busy ? "저장하는 중…" : isNew ? "협의회 기록 저장" : "고친 내용 저장"}</button>
-        ${!isNew && html`<div class="flex">${!ask ? html`<button type="button" class="btn-ghost ml-auto text-rose-600" onClick=${() => setAsk(true)}><${Icon} name="Trash2" size=${15} />이 협의록 삭제</button>`
+        <button type="button" class="btn-save" onClick=${save} disabled=${busy || sum === "loading"}
+          style=${{ background: C.color, borderColor: C.deep, boxShadow: `0 4px 0 ${C.deep}` }}>
+          <${Icon} name="Save" size=${18} />${busy ? "잠시만요…" : isNew ? "협의회 기록 저장" : "고친 내용 저장"}</button>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" class="btn-ghost" onClick=${exportNow} disabled=${busy}><${Icon} name="FileText" size=${15} />한글 파일(.hwpx)로 받기</button>
+          ${!isNew && (!ask ? html`<button type="button" class="btn-ghost ml-auto text-rose-600" onClick=${() => setAsk(true)}><${Icon} name="Trash2" size=${15} />이 협의록 삭제</button>`
           : html`<div class="ml-auto flex items-center gap-2"><span class="text-[13px] text-rose-700">지울까요?</span>
-            <button type="button" class="btn-ghost" onClick=${() => setAsk(false)}>취소</button><button type="button" class="btn-danger" onClick=${() => onDelete(item.id)}>삭제</button></div>`}</div>`}
+            <button type="button" class="btn-ghost" onClick=${() => setAsk(false)}>취소</button><button type="button" class="btn-danger" onClick=${() => onDelete(item.id)}>삭제</button></div>`)}
+        </div>
       </div>
     </div>
   </div>`;
 }
 function meetingsCSV(ms) {
-  const head = ["일시", "장소", "모임 멤버", "안건", "협의 내용", "결정 사항·다음 할 일", "사진 수", "마지막 수정"];
+  const head = ["일시", "장소", "모임 멤버", "안건", "협의 내용", "결정 사항", "향후 계획·할 일", "사진 수", "녹음 원문", "마지막 수정"];
   const rows = ms.slice().sort((a, b) => a.ts - b.ts).map((m) => [new Date(m.ts).toLocaleString("ko-KR"), m.place || "", (m.people || []).join(", "), m.title || "",
-    (m.content || "").replace(/\n/g, " / "), (m.decisions || "").replace(/\n/g, " / "), (m.photos || []).length, m.editedBy || m.researcher || ""]
+    m.content || "", m.decisions || "", todosToText(m.todos), (m.photos || []).length, m.transcript || "", m.editedBy || m.researcher || ""]
     .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
   return "﻿" + head.join(",") + "\n" + rows.join("\n");
 }
 /** 협의회 사진을 사진첩·영상용 낱장으로 펼치기 */
 const meetingPhotos = (ms) => ms.flatMap((m) => (m.photos || []).map((ph, i) => ({ id: `${m.id}#${i}`, kind: "meeting", ts: m.ts + i, title: m.title, people: m.people, researcher: m.researcher, photo: ph.photo, _meeting: m })));
+
+/* ---------- 한글 협의록 · 전체 자료 묶음 ---------- */
+const ymd = (ts) => { const d = new Date(ts), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+const hm = (ts) => { const d = new Date(ts), p = (n) => String(n).padStart(2, "0"); return `${p(d.getHours())}${p(d.getMinutes())}`; };
+const safeName = (s) => String(s || "").replace(/[\\/:*?"<>|\n\r\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 40) || "무제";
+async function minutesHwpx(ms) {
+  if (!window.JSZip || !EH) throw new Error("한글 파일 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.");
+  return EH.build(ms, { photos: async (m) => {
+    const out = []; for (const ph of (m.photos || [])) { const u = ph.photo || ph.raw; if (u) { try { out.push(await EH.photoFromDataURL(u)); } catch (e) {} } } return out; } });
+}
+const minutesFileName = (ms) => ms.length === 1 ? `에코쌤즈_협의록_${ymd(ms[0].ts)}_${safeName(ms[0].title)}.hwpx` : `에코쌤즈_협의록_전체_${ms.length}건_${today()}.hwpx`;
+const dataUrlBytes = (u) => { const b = atob(u.slice(u.indexOf(",") + 1)), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };
+/** 사진·기록·조언·협의록을 폴더별로 정리한 ZIP */
+async function buildAllZip({ records, acts, meetings }, onStep) {
+  if (!window.JSZip) throw new Error("압축 도구를 불러오지 못했어요. 새로고침해 주세요.");
+  const z = new window.JSZip();
+  const real = records.filter((r) => !r.sample);
+  const used = new Set();
+  const uniq = (path) => { let p = path, i = 2; while (used.has(p)) p = path.replace(/(\.[a-z]+)$/, `_${i++}$1`); used.add(p); return p; };
+  let n = 0;
+  for (const r of real) {
+    if (!r.photo) continue;
+    const dir = r.mode === "solo" ? `01_따로_우리동네/${r.researcher}` : `02_같이_학교`;
+    z.file(uniq(`${dir}/${ymd(r.ts)}_${hm(r.ts)}_${safeName(r.koreanName || "미확인")}${r.mode === "team" ? `_${r.researcher}` : ""}.jpg`), dataUrlBytes(r.photo)); n++;
+  }
+  for (const a of acts) { if (a.photo) { z.file(uniq(`03_활동사진/${ymd(a.ts)}_${hm(a.ts)}_${safeName(a.title || "활동")}.jpg`), dataUrlBytes(a.photo)); n++; } }
+  for (const m of meetings) (m.photos || []).forEach((ph, i) => { if (ph.photo) { z.file(uniq(`04_협의회/${ymd(m.ts)}_${safeName(m.title || "협의회")}/사진${i + 1}.jpg`), dataUrlBytes(ph.photo)); n++; } });
+  onStep && onStep("기록표 만드는 중…");
+  z.file("05_식물기록표_메모_AI조언.csv", toCSV(real));
+  if (meetings.length) {
+    z.file("06_협의록_목록.csv", meetingsCSV(meetings));
+    onStep && onStep("한글 협의록 만드는 중…");
+    z.file(`07_협의록_전체_${meetings.length}건.hwpx`, await minutesHwpx(meetings));
+  }
+  if (real.length) z.file("08_광합성지도.geojson", JSON.stringify(toGeoJSON(real), null, 1));
+  z.file("09_백업_앱에_다시_불러오기용.json", JSON.stringify(real.concat(acts.map(({ raw, ...a }) => a), meetings.map((m) => ({ ...m, photos: (m.photos || []).map((ph) => ({ photo: ph.photo })) })))));
+  z.file("읽어주세요.txt", [
+    "기후행동 실천모임 에코쌤즈 · 따로 또 같이 자료 묶음", `만든 날: ${new Date().toLocaleString("ko-KR")}`, "",
+    `사진 ${n}장 (팀 프레임·날짜 도장이 찍힌 사진)`, `식물 기록 ${real.length}건 · 활동 사진 ${acts.length}장 · 협의록 ${meetings.length}건`, "",
+    "01_따로_우리동네 : 선생님별 우리 동네 식물", "02_같이_학교 : 학교에서 같이 모은 식물", "03_활동사진", "04_협의회 : 회차별 사진",
+    "05 CSV : 엑셀에서 열기 (메모, AI 광합성 해설·기후지표 근거·수업 연계 조언 포함)", "06 CSV : 협의록 목록 (녹음 원문 포함)",
+    "07 .hwpx : 한글에서 열리는 협의록 (회차마다 쪽 나눔)", "08 .geojson : 지도 프로그램용 위치 데이터", "09 .json : 앱 아카이브 → '팀원 기록 합치기'로 다시 불러오기",
+  ].join("\r\n"));
+  onStep && onStep("압축하는 중…");
+  return z.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 3 } });
+}
 
 /* ---------- 앱 ---------- */
 function App() {
@@ -1359,6 +1581,14 @@ function App() {
     setMeetings((ms) => [m, ...ms.filter((x) => x.id !== m.id)].sort((a, b) => b.ts - a.ts)); setMeetEdit(null);
     say("협의회 기록을 저장했어요"); setTeamSub("meetings"); setTab("team");
   };
+  const exportMinutes = async (ms) => {
+    say("한글 협의록을 만드는 중…");
+    try { const blob = await minutesHwpx(ms); saveFile(minutesFileName(ms), blob); say("한글 협의록(.hwpx)을 받았어요"); }
+    catch (e) { say(e.message || "한글 파일을 만들지 못했어요"); throw e; }
+  };
+  useEffect(() => { let live = true;
+    fetch(TEAM_AI, { method: "GET" }).then((r) => r.ok ? r.json() : null).then((j) => { if (live && j) setSettings((st) => ({ ...st, team: !!j.configured })); }).catch(() => {});
+    return () => { live = false; }; }, []);
   const deleteMeeting = async (id) => { await db.del(id); setMeetings((ms) => ms.filter((m) => m.id !== id)); setMeetEdit(null); say("협의회 기록을 지웠어요"); };
   const addRecord = (mode) => setDraft({ mode, pos: null });
   const onMapPick = useCallback((lat, lng) => { setOpenId(null); setDraft({ mode: "team", pos: { lat, lng, source: "map", accuracy: null } }); }, []);
@@ -1399,7 +1629,7 @@ function App() {
 
   return html`<div class=${"app tab-is-" + tab}>
     <${NavBar} tab=${tab} name=${me} canBack=${depth.current > 0 || tab !== "today"} onBack=${goBack} onHome=${goHome}
-      onSwitch=${() => setShowSwitch(true)} onSettings=${() => setShowSettings(true)} onLogout=${logout} hasKey=${!!settings.apiKey} />
+      onSwitch=${() => setShowSwitch(true)} onSettings=${() => setShowSettings(true)} onLogout=${logout} hasKey=${aiReady(settings)} />
     ${tab === "today" && html`<${Hero} />`}
     <main class="wrap pb-28">
       ${!loaded ? html`<div class="boot" style=${{ minHeight: "30vh" }}>기록을 불러오는 중…</div>`
@@ -1407,7 +1637,7 @@ function App() {
             onRefresh=${() => { const q = gps; if (q) loadWx(q.lat, q.lng, true); else { const hm = getHome(me); loadWx(hm.lat, hm.lng, false); } }} onAdd=${addRecord} onOpen=${setOpenId} goTab=${setTab} />`
         : tab === "solo" ? html`<${SoloView} me=${me} records=${records} gps=${gps} onAdd=${addRecord} onOpen=${setOpenId} say=${say} />`
         : tab === "team" ? html`<${TeamView} records=${records} meetings=${meetings} sub=${teamSub} setSub=${setTeamSub} onAdd=${addRecord} onOpen=${setOpenId}
-            onAddMeeting=${() => setMeetEdit({ isNew: true })} onOpenMeeting=${(m) => setMeetEdit(m)} />`
+            onAddMeeting=${() => setMeetEdit({ isNew: true })} onOpenMeeting=${(m) => setMeetEdit(m)} onExportMinutes=${exportMinutes} />`
         : tab === "activity" ? html`<${ActivityView} me=${me} acts=${acts} onAdd=${() => setActEdit({ isNew: true })} onOpen=${(a) => setActEdit(a)} />`
         : tab === "map" ? html`<${MapView} records=${records} gps=${gps} follow=${follow} setFollow=${setFollow} onMapPick=${onMapPick} onOpen=${setOpenId} openId=${openId} />`
         : html`<${ArchiveView} records=${records} acts=${acts} meetings=${meetings} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onOpenMeeting=${(m) => setMeetEdit(m)} onClearSamples=${clearSamples} onImport=${importJSON} />`}
@@ -1416,12 +1646,13 @@ function App() {
     <${TabBar} tab=${tab} setTab=${setTab} counts=${counts} />
     ${draft && html`<${RecordModal} draft=${draft} researcher=${me} weather=${weather} settings=${settings} gps=${gps}
       onClose=${() => setDraft(null)} onSave=${saveRecord} onOpenSettings=${() => setShowSettings(true)} />`}
-    ${meetEdit && html`<${MeetingModal} me=${me} item=${meetEdit.isNew ? null : meetEdit} onClose=${() => setMeetEdit(null)} onSave=${saveMeeting} onDelete=${deleteMeeting} />`}
+    ${meetEdit && html`<${MeetingModal} me=${me} item=${meetEdit.isNew ? null : meetEdit} settings=${settings} onClose=${() => setMeetEdit(null)} onSave=${saveMeeting} onDelete=${deleteMeeting}
+      onExport=${exportMinutes} onOpenSettings=${() => setShowSettings(true)} />`}
     ${showSwitch && html`<${SwitchModal} me=${me} onPick=${switchTo} onClose=${() => setShowSwitch(false)} />`}
     ${actEdit && html`<${ActivityModal} me=${me} item=${actEdit.isNew ? null : actEdit} onClose=${() => setActEdit(null)} onSave=${saveActs} onDelete=${deleteAct} />`}
     ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} />`}
     ${showSettings && html`<${SettingsModal} settings=${settings} onClose=${() => setShowSettings(false)}
-      onSave=${(s) => { setSettings(s); store.set(LS_SET, { ...store.get(LS_SET, {}), ...s }); setShowSettings(false); say(s.apiKey ? "AI 설정을 저장했어요" : "API 키를 지웠어요"); }} />`}
+      onSave=${(s) => { setSettings(s); store.set(LS_SET, { ...store.get(LS_SET, {}), apiKey: s.apiKey, model: s.model }); setShowSettings(false); say(s.apiKey ? "AI 설정을 저장했어요" : "API 키를 지웠어요"); }} />`}
     ${toast && html`<div class="toast" role="status">${toast}</div>`}
   </div>`;
 }
