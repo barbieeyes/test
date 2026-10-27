@@ -7,7 +7,8 @@ const DEFAULT_MODEL = "claude-sonnet-5-5";
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const key = process.env.ANTHROPIC_API_KEY || "";
-  if (req.method === "GET") return res.status(200).json({ configured: !!key });
+  // Pl@ntNet 키는 사이트 주소(ecossam-map.vercel.app)로만 쓰이게 잠가 두는 공개용 키라 화면에 넘겨 준다
+  if (req.method === "GET") return res.status(200).json({ configured: !!key, plantnet: process.env.PLANTNET_API_KEY || "" });
   if (req.method !== "POST") return res.status(405).json({ error: "POST만 받아요" });
   if ((req.headers["x-team-pin"] || "") !== (process.env.TEAM_PIN || "2144")) return res.status(403).json({ error: "팀 비밀번호가 맞지 않아요" });
   if (!key) return res.status(503).json({ error: "팀 공용 AI 키가 설정되지 않았어요" });

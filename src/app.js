@@ -198,8 +198,13 @@ async function fetchWeatherAt(lat, lng, ts) {
 }
 
 /* ---------- Claude 비전 분석 ---------- */
-function buildPrompt(w, lat, lng, mode) {
-  return `한국 ${mode === "solo" ? "주택가·동네" : "학교 교정"}(위도 ${lat.toFixed(3)}, 경도 ${lng.toFixed(3)})에서 찍은 식물 사진입니다. 사진 속 식물의 종을 알려 주세요.
+function buildPrompt(w, lat, lng, mode, pn) {
+  const pnText = pn && pn.length ? `
+[사진 비교 데이터베이스 Pl@ntNet이 비슷한 사진들과 비교해 뽑은 후보 (점수 = 사진 유사도)]
+${pn.map((c, i) => `${i + 1}. ${c.sci}${c.family ? ` (${c.family})` : ""} ${c.score}%${c.common.length ? ` · 영어 이름 ${c.common.join(", ")}` : ""}`).join("\n")}
+이 후보들과 사진을 함께 보고 가장 맞는 종을 고르세요. 점수가 낮거나 사진과 안 맞으면 후보 밖에서 직접 판단해도 됩니다.
+candidates에는 위 후보들 중 고른 것을 뺀 나머지를 (국명을 붙여) 넣고, confidence는 Pl@ntNet 점수를 참고해 정하세요.` : "";
+  return `한국 ${mode === "solo" ? "주택가·동네" : "학교 교정"}(위도 ${lat.toFixed(3)}, 경도 ${lng.toFixed(3)})에서 찍은 식물 사진입니다. 사진 속 식물의 종을 알려 주세요.${pnText}
 - 한국에서 실제로 볼 수 있는 종 기준. 원예 품종이면 대표 종명을 쓰세요.
 - 사진에 이름표·안내판 글씨가 보이면 참고하되, 실제 모습과 맞는지 확인하세요.
 - 확실하지 않으면 신뢰도를 낮추고, 비슷한 후보를 함께 주세요.
@@ -266,11 +271,37 @@ async function callClaude(st, { max_tokens = 1400, system, content }) {
   if (d.stop_reason === "max_tokens" && !/\}\s*$/.test(text.trim())) throw new Error("AI 답이 너무 길어 중간에 끊겼어요. 한 번 더 눌러 주세요.");
   return text;
 }
+/** Pl@ntNet: 전 세계 식물 사진 데이터와 비교해 후보 뽑기 (키는 사이트 주소로 잠겨 있어 브라우저에서 바로 부름) */
+async function plantnetIdentify(key, dataUrl) {
+  const fd = new FormData();
+  fd.append("images", dataUrlToFile(dataUrl, "plant.jpg")); fd.append("organs", "auto");
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const r = await fetch(`https://my-api.plantnet.org/v2/identify/all?api-key=${encodeURIComponent(key)}&nb-results=5`, { method: "POST", body: fd, signal: ctrl.signal });
+    if (r.status === 404) return { list: [], notPlant: true };
+    if (!r.ok) throw new Error("Pl@ntNet " + r.status);
+    const j = await r.json();
+    return { list: (j.results || []).map((x) => ({ sci: x.species.scientificNameWithoutAuthor, family: x.species.family && x.species.family.scientificNameWithoutAuthor,
+      common: (x.species.commonNames || []).slice(0, 2), score: Math.round((x.score || 0) * 100) })), left: j.remainingIdentificationRequests };
+  } finally { clearTimeout(t); }
+}
 async function analyzePlant({ settings, dataUrl, weather, lat, lng, mode }) {
   const b64 = dataUrl.split(",")[1];
+  let pn = null, pnErr = "";
+  if (settings && settings.plantnet) { try { pn = await plantnetIdentify(settings.plantnet, dataUrl); } catch (e) { pnErr = e.message || String(e); } }
   const text = await callClaude(settings, { max_tokens: 6000, system: "당신은 한국 식물 동정 도우미입니다. 응답은 반드시 유효한 JSON 객체 하나여야 합니다.",
-    content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: buildPrompt(weather, lat, lng, mode) }] });
-  try { return parseAI(text); } catch (e) { try { console.warn("AI 응답", text); } catch (x) {} throw new Error("AI 응답을 해석하지 못했어요. 한 번 더 눌러 주세요."); }
+    content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: buildPrompt(weather, lat, lng, mode, pn && pn.list) }] });
+  let o;
+  try { o = parseAI(text); } catch (e) { try { console.warn("AI 응답", text); } catch (x) {} throw new Error("AI 응답을 해석하지 못했어요. 한 번 더 눌러 주세요."); }
+  // Pl@ntNet 점수를 후보·답에 붙이기
+  if (pn && pn.list.length) {
+    const norm = (x) => String(x || "").toLowerCase().split(" ").slice(0, 2).join(" ");
+    const scoreOf = (sci) => { const m = pn.list.find((c) => norm(c.sci) === norm(sci)); return m ? m.score : null; };
+    o.pnScore = scoreOf(o.scientificName);
+    o.candidates = o.candidates.map((c) => ({ ...c, pnScore: scoreOf(c.scientificName) }));
+    o.plantnet = pn.list; o.source = "plantnet+claude";
+  } else o.source = pnErr ? "claude (Pl@ntNet 실패)" : "claude";
+  return o;
 }
 
 /* ---------- 협의회 녹음 정리 ---------- */
@@ -1214,11 +1245,13 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
           ${aiState === "error" && html`<div class="err mt-2">${aiErr}</div>`}
           ${ai && aiState === "ok" && html`<div class="ai-pick">
             <div class="flex items-center gap-2 flex-wrap"><${Icon} name="Sparkles" size=${15} /><b>${ai.koreanName || "?"}</b>
-              <span class="mono text-[12px]">${ai.confidence}%</span>${ai.family && html`<span class="text-[12px]">· ${ai.family}</span>`}</div>
+              <span class="mono text-[12px]">${ai.confidence}%</span>${ai.family && html`<span class="text-[12px]">· ${ai.family}</span>`}
+              ${ai.pnScore != null && html`<span class="pn-badge" title="Pl@ntNet 사진 유사도">사진 비교 ${ai.pnScore}%</span>`}</div>
             ${ai.note && html`<p class="text-[12.5px] leading-relaxed mt-1">${ai.note}</p>`}
             ${ai.candidates && ai.candidates.length ? html`<div class="mt-2 flex flex-wrap gap-1.5 items-center"><span class="text-[12px]">다른 후보:</span>
               ${ai.candidates.map((c) => html`<button key=${c.koreanName} type="button" class="cand" onClick=${() => setF((q) => ({ ...q, koreanName: c.koreanName, scientificName: c.scientificName || "" }))}>
-                ${c.koreanName}${c.confidence != null ? html` <small class="mono">${c.confidence}%</small>` : null}</button>`)}</div>` : null}
+                ${c.koreanName}${c.pnScore != null ? html` <small class="mono">사진 ${c.pnScore}%</small>` : c.confidence != null ? html` <small class="mono">${c.confidence}%</small>` : null}</button>`)}</div>` : null}
+            <p class="text-[11px] mt-2 opacity-80">${ai.source === "plantnet+claude" ? "Pl@ntNet 사진 데이터 비교 + Claude 판단" : ai.source && ai.source.includes("실패") ? "Pl@ntNet 연결 실패 · Claude 단독 판단" : "Claude 판단"}</p>
           </div>`}
         </div>
         <div class="grid sm:grid-cols-2 gap-3">
@@ -1312,6 +1345,9 @@ function SettingsModal({ settings, onSave, onClose }) {
       <div class=${"team-ai" + (settings.team ? " on" : "")}><${Icon} name=${settings.team ? "CircleCheck" : "CircleAlert"} size=${17} />
         <span>${settings.team ? html`<b>팀 공용 AI 연결됨</b><small>키를 넣지 않아도 식물 동정·협의회 정리가 돼요.</small>`
           : html`<b>팀 공용 AI 키 없음</b><small>관리자가 Vercel에 ANTHROPIC_API_KEY를 넣으면 네 분 모두 바로 쓸 수 있어요.</small>`}</span></div>
+      <div class=${"team-ai" + (settings.plantnet ? " on" : "")}><${Icon} name=${settings.plantnet ? "CircleCheck" : "CircleDashed"} size=${17} />
+        <span>${settings.plantnet ? html`<b>Pl@ntNet 사진 비교 연결됨</b><small>종 찾기 때 전 세계 식물 사진과 먼저 비교해 후보를 뽑아요.</small>`
+          : html`<b>Pl@ntNet 사진 비교 꺼짐</b><small>관리자가 PLANTNET_API_KEY를 넣으면 사진 비교 후보가 함께 나와요.</small>`}</span></div>
       <p class="text-[13px] text-mist leading-relaxed mb-4">이 기기에서만 따로 쓰려면 Anthropic API 키를 넣으세요. 넣으면 팀 공용 대신 이 키를 쓰고, 키는 <b class="text-snow">이 휴대폰에만</b> 저장돼요. (Claude 구독과 API 크레딧은 별개예요)</p>
       <label class="fld"><span>API 키</span>
         <div class="flex gap-2"><input id="apiKey" type=${show ? "text" : "password"} autocomplete="off" value=${key} onInput=${(e) => setKey(e.target.value)} placeholder="sk-ant-..." class="flex-1" />
@@ -1811,7 +1847,7 @@ function App() {
     catch (e) { say(e.message || "한글 파일을 만들지 못했어요"); throw e; }
   };
   useEffect(() => { let live = true;
-    fetch(TEAM_AI, { method: "GET" }).then((r) => r.ok ? r.json() : null).then((j) => { if (live && j) setSettings((st) => ({ ...st, team: !!j.configured })); }).catch(() => {});
+    fetch(TEAM_AI, { method: "GET" }).then((r) => r.ok ? r.json() : null).then((j) => { if (live && j) setSettings((st) => ({ ...st, team: !!j.configured, plantnet: j.plantnet || "" })); }).catch(() => {});
     return () => { live = false; }; }, []);
   const deleteMeeting = async (id) => { await db.del(id); setMeetings((ms) => ms.filter((m) => m.id !== id)); setMeetEdit(null); say("협의회 기록을 지웠어요"); };
   const addRecord = (mode) => setDraft({ mode, pos: null });
