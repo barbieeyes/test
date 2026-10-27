@@ -335,6 +335,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .llink{all:unset;cursor:pointer;display:block;margin:12px auto 0;font-size:12.5px;color:#3f4a38;text-decoration:underline;text-underline-offset:2px;text-align:center}
 .lnote{font-size:11.5px;color:#3f4a38;text-align:center;margin-top:10px}
 .tpane-tabs{margin-bottom:12px}
+.tpane-tabs button{white-space:nowrap;flex:none;font-size:15px;padding:6px 12px}
 .tm-l{display:grid;gap:8px;margin-bottom:10px}
 .tm-r{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center}
 .tm-r .tn{font-family:var(--f-head);font-size:16px;text-align:center;color:#fff;border-radius:8px;padding:6px 0}
@@ -638,7 +639,46 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .jcard dt{color:var(--muted)}.jcard dd{margin:0}
 .t-star{--jc:#f2c75c}.t-bird{--jc:#3a6fb5}.t-flower{--jc:#4f9a4f}.t-stone{--jc:#b07a3c}.t-data{--jc:#8f74e0}
 .proto{font-size:11.5px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:8px 10px;margin-bottom:14px}
-@media (prefers-reduced-motion:reduce){.rk-l li.lv{animation:none}.spcat::after,.cqs{animation:none}.tl li.is-now .ev,.nowpill::before,.livedot,.mbox,.msg.tea .mb,.msg.tea .mb::after,.word .g1,.word .g2,.word .g2::after,.btn.shine::after,.gcard::after,.cta-type::after,.medal.on .mi,.holo,.nextc .cdot{animation:none}*{transition:none!important}}
+
+.role .star{all:unset;cursor:pointer;position:relative;display:inline-flex;align-items:center;gap:4px;padding:4px 11px 4px 8px;border-radius:999px;background:linear-gradient(135deg,#fff3b8,#ffd25a 45%,#f2a21b);color:#3b2600;font-family:var(--f-head);font-size:15px;line-height:1;box-shadow:0 0 0 1px #fff6 inset,0 2px 10px #f2b42a66;overflow:hidden;white-space:nowrap}
+.role .star .si{font-size:14px;filter:drop-shadow(0 0 3px #fff8)}
+.role .star b{font-weight:400;font-variant-numeric:tabular-nums}
+.role .star::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,#fff9 50%,transparent 70%);transform:translateX(-120%);animation:stshine 3.2s ease-in-out infinite}
+@keyframes stshine{0%,60%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.role .star.bump{animation:stbump .6s ease-out}
+@keyframes stbump{0%{transform:scale(1)}35%{transform:scale(1.25)}100%{transform:scale(1)}}
+.stfloat{position:fixed;z-index:60;pointer-events:none;font-family:var(--f-head);font-size:20px;color:#ffd34d;text-shadow:0 1px 0 #7a4b00,0 0 12px #ffcf4d;animation:stfl 1.3s ease-out forwards}
+@keyframes stfl{0%{opacity:0;transform:translateY(6px) scale(.8)}20%{opacity:1;transform:translateY(0) scale(1.1)}100%{opacity:0;transform:translateY(-38px) scale(1)}}
+.stbox{max-height:min(62vh,520px);overflow:auto;margin:0 -4px;padding:0 4px}
+.sthero{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#fff3b822,#f2a21b22);border:1px solid #f2c75c66;border-radius:14px;padding:12px 14px;margin:4px 0 12px}
+.sthero .big{font-family:var(--f-head);font-size:34px;line-height:1;color:var(--fg)}
+.sthero .big small{font-size:14px;margin-left:2px;color:var(--muted)}
+.sthero .rk2{margin-left:auto;text-align:right;font-size:12.5px;color:var(--muted);line-height:1.5}
+.sthero .rk2 b{color:var(--fg);font-size:14px}
+.sth{font-family:var(--f-head);font-size:14px;margin:14px 0 6px;color:var(--fg)}
+.stways{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;font-size:13px;word-break:keep-all}
+.stways span:nth-child(2n){font-family:var(--f-mono);font-size:12px;color:var(--fg);text-align:right;white-space:nowrap}
+.stways span:nth-child(2n+1){color:var(--muted)}
+.stlog,.strank{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px}
+.stlog li,.strank li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--bg2);border-radius:9px;padding:6px 10px}
+.stlog .d{font-family:var(--f-mono);font-size:12.5px;color:var(--fg)}
+.stlog .d.m{color:var(--muted)}
+.stlog small{color:var(--muted);margin-left:6px;font-size:11px}
+.strank li{grid-template-columns:24px minmax(0,1fr) auto}
+.strank .n{font-family:var(--f-head);text-align:center}
+.strank li.me{outline:1.5px solid #f2c75c}
+.strank .v{font-family:var(--f-mono);font-size:12.5px}
+.sp-award{display:grid;gap:8px;margin:4px 0 14px}
+.sp-award .btn{text-align:left;line-height:1.35}
+.sp-award .btn small{display:block;font-size:11.5px;opacity:.8;font-family:inherit}
+.sp-res{font-size:12.5px;color:var(--muted);margin:-6px 0 12px;word-break:keep-all}
+.sp-amt{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+.sp-amt .chip{min-width:44px;text-align:center}
+.sp-teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:12px}
+.sp-teams div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:12.5px;display:flex;justify-content:space-between;gap:6px}
+.sp-teams b{font-family:var(--f-mono);font-weight:500}
+.tk-n.st{color:var(--fg)}
+@media (prefers-reduced-motion:reduce){.role .star::after,.role .star.bump,.stfloat{animation:none}.rk-l li.lv{animation:none}.spcat::after,.cqs{animation:none}.tl li.is-now .ev,.nowpill::before,.livedot,.mbox,.msg.tea .mb,.msg.tea .mb::after,.word .g1,.word .g2,.word .g2::after,.btn.shine::after,.gcard::after,.cta-type::after,.medal.on .mi,.holo,.nextc .cdot{animation:none}*{transition:none!important}}
 </style>
 
 <div class="app" id="app" data-world="glow">
@@ -660,6 +700,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
     <div class="role">
       <span class="badge" id="badge">학생</span>
       <span class="who" id="who"></span>
+      <button class="star" id="starchip" hidden aria-label="내 별 포인트 보기"><span class="si">⭐</span><b id="starn">0</b></button>
       <button class="out" id="logout">나가기</button>
     </div>
     </div>
@@ -737,6 +778,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
           <button id="tpT" aria-pressed="false">조 관리</button>
           <button id="tpP" aria-pressed="false">사진함 <span class="pcnt" id="pcnt"></span></button>
           <button id="tpK" aria-pressed="false">🎟️ 인화권</button>
+          <button id="tpS" aria-pressed="false">⭐ 별 포인트</button>
         </div>
         <div id="tpNotice">
           <div class="field"><span style="font-size:12px;color:var(--muted)">종류</span><div class="chips" id="ncat" style="margin:0"></div></div>
@@ -758,6 +800,22 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
           <div class="tk-bulk"><select id="tkTeam" aria-label="조 선택"></select><button class="mini pr" id="tkTeamGo">조 전체 +1</button><button class="mini" id="tkAllGo">전체 학생 +1</button></div>
           <div class="field" style="margin-top:12px"><label for="tkSearch">학생 찾기</label><input id="tkSearch" placeholder="이름, 반, 조로 찾기"></div>
           <div id="tkList" class="tk-list"></div>
+        </div>
+        <div id="tpStar" hidden>
+          <p class="lede" style="margin-top:0">학생은 활동하면서 <b>별</b>을 자동으로 모아요. 캠프가 끝날 때 아래 순위를 보고 상품을 나눠 주세요. 게임 최종 순위 별은 <b>마지막에 한 번</b> 눌러 주세요(같은 게임은 한 번만 지급돼요).</p>
+          <div class="sp-award">
+            <button class="btn ghost" id="spMeteor">🌠 운석 피하기 최종 순위 별 주기<small>1위 +100 · 2위 +60 · 3위 +30</small></button>
+            <button class="btn ghost" id="spBell">🔔 골든벨 조 순위 별 주기<small>1위 조원 모두 +80 · 2위 +50 · 3위 +30</small></button>
+          </div>
+          <div class="sp-res" id="spRes"></div>
+          <h3 class="sth" style="margin-top:4px">조별 별 합계</h3>
+          <div class="sp-teams" id="spTeams"></div>
+          <h3 class="sth">직접 주기</h3>
+          <div class="sp-amt" role="group" aria-label="줄 별 개수" id="spAmt"><button class="chip" data-amt="10" aria-pressed="true">+10</button><button class="chip" data-amt="30" aria-pressed="false">+30</button><button class="chip" data-amt="50" aria-pressed="false">+50</button><button class="chip" data-amt="100" aria-pressed="false">+100</button><button class="chip" data-amt="-10" aria-pressed="false">−10</button></div>
+          <div class="field"><label for="spWhy">이유 (선택, 학생에게 보여요)</label><input id="spWhy" maxlength="24" placeholder="예) 발표 최고, 정리정돈 우수"></div>
+          <div class="tk-bulk"><select id="spTeam" aria-label="조 선택"></select><button class="mini pr" id="spTeamGo">조 전체 주기</button><button class="mini" id="spAllGo">전체 학생</button></div>
+          <div class="field" style="margin-top:12px"><label for="spSearch">학생 찾기 · 별 많은 순</label><input id="spSearch" placeholder="이름, 반, 조로 찾기"></div>
+          <div id="spList" class="tk-list"></div>
         </div>
         <div id="tpTeams" hidden>
           <p class="lede" style="margin-top:0">조 이름을 정하면 학생 입장 화면, 기록, 채팅, 대시보드에 바로 반영돼요.</p>
@@ -852,7 +910,7 @@ function newKey(){const a=new Uint8Array(24);crypto.getRandomValues(a);return Ar
 let students={},rx={},myRx=new Set(),acks={},myAcks=new Set(),bell={},meteorRows=[],chatRows=[];
 async function q(builder){const {data,error}=await builder;if(error)throw error;return data||[]}
 async function loadTeams(){const d=await q(sb.from('gg_teams').select('id,name,hidden').order('id'));teams=d.filter(t=>!t.hidden).map(t=>({id:t.id,n:t.name}))}
-async function loadStudents(){const d=await q(sb.from('gg_students').select('id,grade,cls,num,name,team,tokens'));students={};d.forEach(s=>students[s.id]=s);if(me&&me.role==='stu'&&students[me.id]){me.tokens=students[me.id].tokens}}
+async function loadStudents(){const d=await q(sb.from('gg_students').select('id,grade,cls,num,name,team,tokens,stars'));students={};d.forEach(s=>students[s.id]=s);if(me&&me.role==='stu'&&students[me.id]){me.tokens=students[me.id].tokens;setStars(students[me.id].stars,true)}}
 async function loadPosts(){const d=await q(sb.from('gg_posts').select('id,program,kind,student_id,author,team,is_teacher,body,img_url,exhibit,created_at').eq('hidden',false).order('created_at',{ascending:false}).limit(600));
   posts.length=0;d.forEach(p=>posts.push({id:p.id,pg:p.program,k:p.kind,sid:p.student_id,n:p.author,tm:p.is_teacher?0:p.team,x:p.body,img:p.img_url,dk:p.exhibit,t:hm(p.created_at)}))}
 async function loadRx(){const d=await q(sb.from('gg_reactions').select('post_id,student_id,kind').eq('active',true));rx={};myRx=new Set();d.forEach(r=>{const o=rx[r.post_id]||(rx[r.post_id]={});o[r.kind]=(o[r.kind]||0)+1;if(me&&me.role==='stu'&&r.student_id===me.id)myRx.add(r.post_id+'|'+r.kind)})}
@@ -867,7 +925,7 @@ async function loadMeteor(){meteorRows=await q(sb.from('gg_meteor').select('stud
 
 const TB={
  gg_teams:[loadTeams,()=>{fillTeamSelect();if(me){enterLabels();renderChans();renderLog();renderBoard();if(!$('#tpTeams').hidden&&document.activeElement&&!document.activeElement.closest('#tml'))renderTeams()}}],
- gg_students:[loadStudents,()=>{if(me){updTkUI();renderNotices();if(!$('#gMeteor').hidden)mRankRender(mg&&mg.run?mg.score:null)}}],
+ gg_students:[loadStudents,()=>{if(me){updTkUI();updStar();if(!$('#tpStar').hidden)renderSP();renderNotices();if(!$('#gMeteor').hidden)mRankRender(mg&&mg.run?mg.score:null)}}],
  gg_posts:[loadPosts,()=>{if(me)renderLog()}],
  gg_reactions:[loadRx,()=>{if(me){renderFeed();renderDash()}}],
  gg_chat:[loadChat,()=>{if(me&&!$('#s-chat').hidden)renderChat()}],
@@ -1108,7 +1166,7 @@ function answer(i){
   if(answered||!$('#qe'))return;answered=true;clearInterval(timer);
   const c=Q[qi];
   document.querySelectorAll('.opt').forEach((b,k)=>{if(k===c.a)b.classList.add('ok');else if(k===i)b.classList.add('no')});
-  if(i===c.a){const pts=500+left*5;score+=pts;if(myRoom()){bell[myRoom()]=(bell[myRoom()]||0)+pts;rpc('gg_bell_add',{...who(),p_pts:pts}).catch(fail)}award('bell');{const ok=document.querySelector('.opt.ok');if(ok){const r=ok.getBoundingClientRect();burst(r.left+r.width/2,r.top,36)}}$('#qe').textContent=`정답! +${pts}점 · ${c.e}`}
+  if(i===c.a){const pts=500+left*5;score+=pts;if(myRoom()){bell[myRoom()]=(bell[myRoom()]||0)+pts;rpc('gg_bell_add',{...who(),p_pts:pts}).catch(fail)}award('bell');if(c.id!=null)earnStar('bell',c.id);{const ok=document.querySelector('.opt.ok');if(ok){const r=ok.getBoundingClientRect();burst(r.left+r.width/2,r.top,36)}}$('#qe').textContent=`정답! +${pts}점 · ${c.e}`}
   else $('#qe').textContent=(i<0?'시간 초과 · ':'아쉬워요 · ')+c.e;
   renderBoard();
   qnext=setTimeout(next,2600);
@@ -1178,7 +1236,7 @@ $('#mx').onclick=closeModal;$('#mok').onclick=closeModal;
 /* ---------- 탭·역할·세계 ---------- */
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.s));
 function show(s){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.s===s));document.querySelectorAll('.screen').forEach(x=>x.hidden=x.id!=='s-'+s);$('#cbar').hidden=s!=='chat';if(s!=='quiz'&&typeof mPause==='function')mPause();window.scrollTo(0,0);if(s==='chat'){$('#cdot').hidden=true;renderChat()}}
-async function enter(u){me=u;role=u.role;
+async function enter(u){me=u;role=u.role;starLast=null;
   $('#login').hidden=true;$('#who').textContent=role==='tea'?u.name+' 선생님':`${u.grade}학년 ${u.cls}반${u.num?' '+u.num+'번':''} ${u.name}`;$('#teaPane').hidden=role!=='tea';
   try{await loadAll()}catch(e){console.warn(e)}subscribe();
   enterLabels();if(role==='tea'){tpane('n');updPcnt()}chan='all';qedit=null;gshow('hub');renderChans();renderPlan();renderLog();renderBoard();renderQAdmin();renderNotices();quizStart();show(role==='tea'?'news':'plan');
@@ -1189,10 +1247,10 @@ async function resume(saved){
   try{const s=await rpc('gg_touch',{p_sid:saved.id,p_key:saved.key});enter({...saved,name:s.name,team:s.team,tokens:s.tokens,grade:s.grade,cls:s.cls,num:s.num})}
   catch(e){const m=String(e&&e.message||e);if(m.includes('not_student')){try{localStorage.removeItem('gg-user')}catch(x){}openLogin();lerr('같은 번호로 다른 기기에서 입장했어요. 다시 입장해 주세요.')}else enter(saved)}
 }
-$('#logout').onclick=()=>{try{localStorage.removeItem('gg-user')}catch(e){}me=null;mPause&&mPause();openLogin()};
+$('#logout').onclick=()=>{try{localStorage.removeItem('gg-user')}catch(e){}me=null;updStar();mPause&&mPause();openLogin()};
 /* ---------- 조 관리 (선생님) ---------- */
-function tpane(w){$('#tpN').setAttribute('aria-pressed',w==='n');$('#tpT').setAttribute('aria-pressed',w==='t');$('#tpP').setAttribute('aria-pressed',w==='p');$('#tpK').setAttribute('aria-pressed',w==='k');$('#tpNotice').hidden=w!=='n';$('#tpTeams').hidden=w!=='t';$('#tpPhotos').hidden=w!=='p';$('#tpTk').hidden=w!=='k';if(w==='t')renderTeams();if(w==='p')renderInbox();if(w==='k')renderTk()}
-$('#tpP').onclick=()=>tpane('p');$('#tpK').onclick=()=>tpane('k');
+function tpane(w){$('#tpN').setAttribute('aria-pressed',w==='n');$('#tpT').setAttribute('aria-pressed',w==='t');$('#tpP').setAttribute('aria-pressed',w==='p');$('#tpK').setAttribute('aria-pressed',w==='k');$('#tpNotice').hidden=w!=='n';$('#tpTeams').hidden=w!=='t';$('#tpPhotos').hidden=w!=='p';$('#tpTk').hidden=w!=='k';$('#tpS').setAttribute('aria-pressed',w==='s');$('#tpStar').hidden=w!=='s';if(w==='s')renderSP();if(w==='t')renderTeams();if(w==='p')renderInbox();if(w==='k')renderTk()}
+$('#tpP').onclick=()=>tpane('p');$('#tpK').onclick=()=>tpane('k');$('#tpS').onclick=()=>tpane('s');
 $('#tpN').onclick=()=>tpane('n');$('#tpT').onclick=()=>tpane('t');
 function renderTeams(){
   $('#tml').innerHTML=teams.map(t=>`<div class="tm-r"><span class="tn" style="background:${tc(t.id)}">${t.id}조</span><input id="tname-${t.id}" data-tid="${t.id}" value="${esc(t.n)}" maxlength="12" placeholder="조 이름" aria-label="${t.id}조 이름"><button class="mini danger" data-tdel="${t.id}">삭제</button></div>`).join('')||'<div class="empty">조가 없어요. 조를 추가해 주세요.</div>';
@@ -1202,7 +1260,7 @@ const tsave={};$('#tml').addEventListener('input',e=>{const i=e.target.closest('
 $('#tml').onclick=e=>{const d=e.target.closest('[data-tdel]');if(d&&arm(d)){const id=+d.dataset.tdel;rpc('gg_team_hide',{p_code:tcode(),p_id:id,p_hide:true}).then(async()=>{await loadTeams();renderTeams();teamsChanged('삭제됨 · 이 조의 기록은 남아 있어요')}).catch(fail)}};
 $('#tadd').onclick=()=>{const id=teams.reduce((m,t)=>Math.max(m,t.id),0)+1;rpc('gg_team_save',{p_code:tcode(),p_id:id,p_name:''}).then(async()=>{await loadTeams();renderTeams();teamsChanged('추가됨');const el=$('#tname-'+id);if(el)el.focus()}).catch(fail)};
 function fillTeamSelect(){const v=$('#lt').value;$('#lt').innerHTML='<option value="">조 선택</option>'+teams.map(t=>`<option value="${t.id}">${esc(tlabel(t.id))}</option>`).join('');$('#lt').value=v}
-function enterLabels(){if(me)$('#badge').textContent=role==='tea'?'선생님':tlabel(me.team)}
+function enterLabels(){if(me)$('#badge').textContent=role==='tea'?'선생님':tlabel(me.team);updStar()}
 /* ---------- 로그인 ---------- */
 let lmode='stu',lg='';
 fillTeamSelect();
@@ -1417,7 +1475,7 @@ const badgeMem={};
 function award(id){
   if(!me)return;const e=earned();if(e.includes(id))return;e.push(id);badgeMem[uid(me)]=e;
   try{localStorage.setItem(bkey(),JSON.stringify(e))}catch(x){}
-  const b=BADGES.find(x=>x.id===id);burst(null,null,70);toast('배지 획득! '+b.n);renderShelf();
+  const b=BADGES.find(x=>x.id===id);burst(null,null,70);toast('배지 획득! '+b.n+(me.role==='stu'?' · ⭐+20':''));renderShelf();earnStar('badge',id);
 }
 function medal(b,on){return `<div class="medal${on?' on':''}" title="${b.d}"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${BICON[b.k]}</svg></span><span class="mn2">${b.n}</span></div>`}
 function renderShelf(){const e=earned();const el=$('#shelf');if(!el)return;el.innerHTML=`<div class="shelf-h"><span>내 배지</span><b>${e.length}<small>/${BADGES.length}</small></b></div><div class="medals">${BADGES.map(b=>medal(b,e.includes(b.id))).join('')}</div>`}
@@ -1937,6 +1995,58 @@ $('#tpTk').addEventListener('click',e=>{
   if(e.target.closest('#tkAllGo')){const btn=e.target.closest('#tkAllGo');if(!arm(btn,'한 번 더 누르면 지급'))return;const ids=roster.map(r=>r.id);give(ids,1,`학생 ${ids.length}명 모두에게 1장씩 줬어요`)}
 });
 $('#tpTk').addEventListener('input',e=>{if(e.target.id==='tkSearch'){tkFilter=e.target.value.trim();renderTk()}if(e.target.id==='tkWhy')tkWhy=e.target.value.trim()});
+
+
+/* ---------- 별 포인트 ---------- */
+const STAR_WAYS=[['탐구 기록 올리기 (하루 8번까지)','+10'],['사진 넣은 기록 · 네컷 사진 보내기','+15'],['배지 하나 얻기','+20'],['골든벨 정답 (문제마다 한 번)','+5'],['운석 피하기 최종 1·2·3위','+100 · 60 · 30'],['골든벨 조 순위 1·2·3위 (조원 모두)','+80 · 50 · 30'],['선생님 칭찬','선생님 마음대로']];
+var starLast=null,spAmt=10,spWhy='',spFilter='',starBusy=false;
+function setStars(v,fromServer){if(!me||me.role!=='stu'||v==null)return;me.stars=v;if(students[me.id])students[me.id].stars=v;if(starLast==null){starLast=v;updStar();return}
+  if(v>starLast){const d=v-starLast;starLast=v;updStar();starFloat(d);if(fromServer)starWhy(d)}else{starLast=v;updStar()}}
+function updStar(){const c=$('#starchip');if(!c)return;const on=!!(me&&me.role==='stu');c.hidden=!on;if(on)$('#starn').textContent=(me.stars||0).toLocaleString('ko-KR')}
+function starFloat(d){const c=$('#starchip');if(!c||c.hidden)return;c.classList.remove('bump');void c.offsetWidth;c.classList.add('bump');const r=c.getBoundingClientRect();const f=document.createElement('div');f.className='stfloat';f.textContent='+'+d+'⭐';f.style.left=(r.left+r.width/2-24)+'px';f.style.top=(r.bottom+2)+'px';document.body.appendChild(f);setTimeout(()=>f.remove(),1400);burst(r.left+r.width/2,r.top+r.height/2,14)}
+const myEarnT={t:0};
+async function starWhy(d){if(Date.now()-myEarnT.t<4000)return;try{const r=await rpc('gg_my_stars',who());const l=(r.log||[])[0];if(l&&l.delta>0&&/선생님|최종|골든벨 조/.test(l.reason))toast(`⭐ 별 +${l.delta}개! ${l.reason}`)}catch(e){}}
+async function earnStar(kind,ref){if(!me||me.role!=='stu')return;myEarnT.t=Date.now();try{const v=await rpc('gg_star_earn',{...who(),p_kind:kind,p_ref:String(ref)});setStars(v)}catch(e){console.warn(e)}}
+function starRanks(){const arr=Object.values(students).map(s=>({...s,stars:s.stars||0}));arr.sort((a,b)=>b.stars-a.stars);
+  const tm={};arr.forEach(s=>{tm[s.team]=(tm[s.team]||0)+s.stars});const tl=teams.map(t=>({id:t.id,sum:tm[t.id]||0,n:arr.filter(s=>s.team===t.id).length})).sort((a,b)=>b.sum-a.sum);return {arr,tl}}
+function rankOf(list,val,key){return list.filter(x=>x[key]>val).length+1}
+async function openStars(){if(!me||me.role!=='stu'||starBusy)return;starBusy=true;let log=[];try{const r=await rpc('gg_my_stars',who());log=r.log||[];setStars(r.stars)}catch(e){fail(e)}starBusy=false;
+  const {arr,tl}=starRanks(),my=me.stars||0,myR=rankOf(arr,my,'stars'),mt=tl.find(t=>t.id===me.team),tR=mt?rankOf(tl,mt.sum,'sum'):'-';
+  pending=null;$('#mtitle').textContent='내 별 포인트';document.querySelector('.mbox .bell').textContent='⭐ STAR POINT';
+  $('#mbody').innerHTML=`<div class="stbox"><div class="sthero"><span style="font-size:30px">⭐</span><span class="big">${my.toLocaleString('ko-KR')}<small>개</small></span><span class="rk2">전체 <b>${myR}위</b> / ${arr.length}명<br>${esc(tlabel(me.team))} <b>${tR}위</b>${mt?` · ${mt.sum.toLocaleString('ko-KR')}개`:''}</span></div>
+  <p style="font-size:12.5px;color:var(--muted);margin:0;word-break:keep-all">별을 많이 모으면 캠프가 끝날 때 선생님이 순위대로 상품을 주실 거예요. 조원 별을 합친 조 순위로도 상을 받을 수 있어요!</p>
+  <h4 class="sth">조별 별 순위</h4><ol class="strank">${tl.slice(0,6).map((t,i)=>`<li class="${t.id===me.team?'me':''}"><span class="n">${i+1}</span><span>${esc(tlabel(t.id))}</span><span class="v">⭐ ${t.sum.toLocaleString('ko-KR')}</span></li>`).join('')||'<li><span></span><span>아직 조가 없어요</span><span></span></li>'}</ol>
+  <h4 class="sth">별 순위 TOP 5</h4><ol class="strank">${arr.slice(0,5).filter(s=>s.stars>0).map(s=>`<li class="${s.id===me.id?'me':''}"><span class="n">${rankOf(arr,s.stars,'stars')}</span><span>${esc(s.name)} <small style="color:var(--muted)">${esc(tlabel(s.team))}</small></span><span class="v">⭐ ${s.stars}</span></li>`).join('')||'<li><span></span><span>아직 별을 모은 친구가 없어요. 첫 번째가 되어 볼까요?</span><span></span></li>'}</ol>
+  <h4 class="sth">최근 받은 별</h4><ul class="stlog">${log.slice(0,15).map(l=>`<li><span>${esc(l.reason)}<small>${hm(l.created_at)}</small></span><span class="d${l.delta<0?' m':''}">${l.delta>0?'+':''}${l.delta}</span></li>`).join('')||'<li><span>아직 받은 별이 없어요. 탐구 기록부터 올려 봐요!</span><span></span></li>'}</ul>
+  <h4 class="sth">별 모으는 방법</h4><div class="stways">${STAR_WAYS.map(w=>`<span>${w[0]}</span><span>${w[1]}</span>`).join('')}</div></div>`;
+  $('#modal').hidden=false;$('#mok').focus()}
+$('#starchip').onclick=openStars;
+
+/* 선생님: 별 포인트 */
+function renderSP(){if(!me||me.role!=='tea')return;
+  $('#spTeam').innerHTML=teams.map(t=>`<option value="${t.id}">${esc(tlabel(t.id))}</option>`).join('');
+  const {arr,tl}=starRanks();
+  $('#spTeams').innerHTML=tl.length?tl.map((t,i)=>`<div><span>${i+1}. ${esc(tlabel(t.id))}</span><b>⭐ ${t.sum.toLocaleString('ko-KR')}</b></div>`).join(''):'<div>조가 아직 없어요</div>';
+  const f=spFilter.replace(/\s/g,'');const ids=arr.filter(r=>!f||(`${r.grade}학년${r.cls}반${r.num}번${r.name}${tlabel(r.team)}`).replace(/\s/g,'').includes(f));
+  const total=arr.reduce((a,r)=>a+r.stars,0);
+  $('#spList').innerHTML=arr.length?`<div class="tk-sum">학생 ${arr.length}명 · 별 합계 ${total.toLocaleString('ko-KR')}개 · 지금 선택: <b>${spAmt>0?'+':''}${spAmt}</b></div>`+(ids.length?ids.map(r=>`<div class="tk-row"><span class="tk-team" style="background:${tc(r.team)}">${rankOf(arr,r.stars,'stars')}위</span><span class="tk-who"><b>${esc(r.name)}</b><span>${r.grade}학년 ${r.cls}반 ${r.num}번 · ${esc(tlabel(r.team))}</span></span><span class="tk-n st">⭐ ${r.stars}</span><span class="tk-btns"><button class="mini pr" data-sp="${r.id}" aria-label="${esc(r.name)}에게 별 ${spAmt}개">${spAmt>0?'+':''}${spAmt}</button></span></div>`).join(''):'<div class="empty">찾는 학생이 없어요.</div>')
+  :'<div class="empty">아직 입장한 학생이 없어요.</div>'}
+async function giveSP(ids,msg){if(!ids.length)return;try{await rpc('gg_stars_give',{p_code:tcode(),p_ids:ids,p_delta:spAmt,p_reason:spWhy});if(msg)toast(msg);if(spAmt>0)burst(null,null,30);await loadStudents()}catch(e){fail(e)}renderSP()}
+async function finalAward(what,btn){if(btn.dataset.arm===undefined){btn.dataset.arm='';const h=btn.innerHTML;btn.innerHTML='한 번 더 누르면 지급해요<small>지급한 별은 되돌릴 수 없어요 · 3초 안에 다시 눌러 주세요</small>';setTimeout(()=>{if(btn.isConnected){delete btn.dataset.arm;btn.innerHTML=h}},3000);return}
+  delete btn.dataset.arm;
+  try{const r=await rpc('gg_award_final',{p_code:tcode(),p_what:what})||[];
+    if(!r.length){$('#spRes').textContent=what==='meteor'?'아직 운석 피하기 기록이 없어요.':'아직 골든벨 점수가 있는 조가 없어요.';return}
+    $('#spRes').innerHTML=(what==='meteor'?'🌠 ':'🔔 ')+r.map(x=>what==='meteor'?`${x.rank}위 ${esc(x.name)} +${x.stars}`:`${x.rank}위 ${esc(tlabel(x.team))} ${x.members}명 +${x.stars}`).join(' · ')+' <span style="opacity:.75">(이미 받은 학생은 다시 받지 않아요)</span>';
+    burst(null,null,80);toast('최종 순위 별을 줬어요');await loadStudents();renderSP()}catch(e){fail(e)}}
+$('#tpStar').addEventListener('click',e=>{const t=e.target;
+  const a=t.closest('[data-amt]');if(a){spAmt=+a.dataset.amt;$('#spAmt').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===a));renderSP();return}
+  const b=t.closest('[data-sp]');if(b){const r=students[b.dataset.sp];giveSP([b.dataset.sp],r?`${r.name}에게 별 ${spAmt}개`:'');return}
+  if(t.closest('#spTeamGo')){const tm=+$('#spTeam').value;const ids=Object.values(students).filter(s=>s.team===tm).map(s=>s.id);if(!ids.length){toast('그 조에 입장한 학생이 아직 없어요');return}giveSP(ids,`${tlabel(tm)} ${ids.length}명에게 별 ${spAmt}개씩`);return}
+  if(t.closest('#spAllGo')){const btn=t.closest('#spAllGo');if(!arm(btn,'한 번 더 누르면 지급'))return;const ids=Object.keys(students);giveSP(ids,`학생 ${ids.length}명 모두에게 별 ${spAmt}개씩`);return}
+  if(t.closest('#spMeteor')){finalAward('meteor',t.closest('#spMeteor'));return}
+  if(t.closest('#spBell')){finalAward('bell',t.closest('#spBell'))}
+});
+$('#tpStar').addEventListener('input',e=>{if(e.target.id==='spSearch'){spFilter=e.target.value.trim();renderSP()}if(e.target.id==='spWhy')spWhy=e.target.value.trim()});
 
 /* ---------- 사진함 (학생 → 선생님) ---------- */
 let inbox=[],pfilter='new';
