@@ -494,7 +494,20 @@ function WeatherCard({ w, state, err, onRefresh, gps }) {
   </section>`;
 }
 
-function TodayView({ me, records, weather, wState, wErr, gps, onRefresh, onAdd, onOpen, goTab }) {
+/** 어디서든 눈에 띄는 협의회 바로가기 */
+function MeetBar({ meetings = [], onAdd, onList }) {
+  const last = meetings[0];
+  return html`<div class="meet-bar">
+    <button type="button" class="meet-bar-main" onClick=${onAdd}>
+      <span class="meet-bar-ic"><${Icon} name="Mic" size=${24} /></span>
+      <span class="flex-1 min-w-0"><b>협의회 기록하기</b><small>녹음 → 정리하기 한 번이면 협의록 완성</small></span>
+      <${Icon} name="ChevronRight" size=${20} /></button>
+    <button type="button" class="meet-bar-list" onClick=${onList}>
+      <b class="mono">${meetings.length}</b><small>${last ? `최근 ${new Date(last.ts).getMonth() + 1}/${new Date(last.ts).getDate()}` : "협의록"}</small></button>
+  </div>`;
+}
+
+function TodayView({ me, records, meetings = [], weather, wState, wErr, gps, onRefresh, onAdd, onOpen, goTab, onAddMeeting, onMeetings }) {
   const solo = records.filter((r) => r.mode === "solo"), team = records.filter((r) => r.mode === "team");
   const mineToday = solo.filter((r) => r.researcher === me && fmtDay(r.ts) === fmtDay(Date.now())).length;
   const teamToday = team.filter((r) => fmtDay(r.ts) === fmtDay(Date.now())).length;
@@ -509,6 +522,7 @@ function TodayView({ me, records, weather, wState, wErr, gps, onRefresh, onAdd, 
         <span class="duo-k">같이</span><b>학교 식물 수집</b><small>교정에서 다 함께 · 오늘 ${teamToday}건</small>
         <span class="duo-go"><${Icon} name="Camera" size=${20} /></span></button>
     </div>
+    <${MeetBar} meetings=${meetings} onAdd=${onAddMeeting} onList=${onMeetings} />
     <${WeatherCard} w=${weather} state=${wState} err=${wErr} onRefresh=${onRefresh} gps=${gps} />
     <section class="glass p-4 grid gap-3">
       <h2 class="pill-h justify-self-start"><${Icon} name="Sprout" size=${17} />우리가 모은 초록</h2>
@@ -575,6 +589,7 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
   }, [records]);
   return html`<div class="grid gap-4">
     ${seg}
+    <${MeetBar} meetings=${meetings} onAdd=${onAddMeeting} onList=${() => setSub("meetings")} />
     <section class="glass p-4 grid gap-3">
       <div class="flex items-center gap-2 flex-wrap">
         <h2 class="pill-h"><${Icon} name="School" size=${17} />학교 식물 표본함</h2>
@@ -1634,7 +1649,8 @@ function App() {
     <main class="wrap pb-28">
       ${!loaded ? html`<div class="boot" style=${{ minHeight: "30vh" }}>기록을 불러오는 중…</div>`
         : tab === "today" ? html`<${TodayView} me=${me} records=${records} weather=${weather} wState=${wState} wErr=${wErr} gps=${!!gps}
-            onRefresh=${() => { const q = gps; if (q) loadWx(q.lat, q.lng, true); else { const hm = getHome(me); loadWx(hm.lat, hm.lng, false); } }} onAdd=${addRecord} onOpen=${setOpenId} goTab=${setTab} />`
+            onRefresh=${() => { const q = gps; if (q) loadWx(q.lat, q.lng, true); else { const hm = getHome(me); loadWx(hm.lat, hm.lng, false); } }} onAdd=${addRecord} onOpen=${setOpenId} goTab=${setTab}
+            meetings=${meetings} onAddMeeting=${() => setMeetEdit({ isNew: true })} onMeetings=${() => { setTeamSub("meetings"); setTab("team"); }} />`
         : tab === "solo" ? html`<${SoloView} me=${me} records=${records} gps=${gps} onAdd=${addRecord} onOpen=${setOpenId} say=${say} />`
         : tab === "team" ? html`<${TeamView} records=${records} meetings=${meetings} sub=${teamSub} setSub=${setTeamSub} onAdd=${addRecord} onOpen=${setOpenId}
             onAddMeeting=${() => setMeetEdit({ isNew: true })} onOpenMeeting=${(m) => setMeetEdit(m)} onExportMinutes=${exportMinutes} />`
