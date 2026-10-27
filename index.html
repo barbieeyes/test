@@ -330,6 +330,46 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .who-b small{font-size:11px;font-weight:600;color:var(--mist)}
 .pb-28{padding-bottom:112px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---- 언제나 위: 이동 막대 ---- */
+.strip-in{justify-content:flex-start}
+.nav-btn{display:inline-flex;align-items:center;gap:2px;height:38px;padding:0 10px 0 4px;border-radius:12px;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.45);color:#fff;font-weight:700;font-size:13px;flex:none}
+.nav-btn:disabled{opacity:.35}
+.nav-logo{display:grid;text-align:left;min-width:0;flex:0 1 auto;padding:2px 4px;border-radius:10px}
+.nav-logo:active{background:rgba(255,255,255,.12)}
+.nav-logo .strip-title{overflow:hidden}
+.nav-me{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 10px;border-radius:999px;background:#fff;color:var(--grass-deep);font-weight:700;font-size:13px;border:2px solid var(--sun);flex:none}
+.nav-out{display:inline-flex;align-items:center;gap:5px;height:38px;padding:0 11px;border-radius:12px;background:rgba(0,0,0,.18);border:1.5px solid rgba(255,255,255,.45);color:#fff;font-weight:700;font-size:13px;flex:none}
+@media (max-width:560px){.nav-lbl{display:none}.nav-btn{padding:0 6px 0 4px}.nav-out{padding:0 9px}.strip-title{font-size:20px}.strip-team{font-size:11px}}
+@media (max-width:420px){.nav-logo .strip-team{font-size:0}.nav-logo .strip-team b{font-size:13px}.nav-me{padding:0 8px;gap:4px}}
+@media (max-width:360px){.nav-me span{max-width:3.2em;overflow:hidden;white-space:nowrap}}
+/* ---- 협의회 ---- */
+.seg3-b.on.s-meeting{background:#9A6A2F;box-shadow:0 2px 0 #6E4A1E;color:#fff}
+.meet-hero{background:#9A6A2F;border-color:#6E4A1E;box-shadow:5px 5px 0 #6E4A1E}
+.meet-list{display:grid;gap:12px}
+.minutes{display:flex;gap:0;text-align:left;border-radius:16px;background:#FFFCF5;border:2px solid #E4D3B8;box-shadow:0 3px 0 #E4D3B8;overflow:hidden;
+  background-image:repeating-linear-gradient(#FFFCF5 0 25px,#F1E6D3 25px 26px)}
+.minutes:active{transform:translateY(2px);box-shadow:0 1px 0 #E4D3B8}
+.minutes-date{flex:0 0 74px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:#9A6A2F;color:#fff;padding:12px 4px}
+.minutes-date b{font-size:22px;line-height:1} .minutes-date small{font-size:10.5px;opacity:.9} .minutes-date em{font-style:normal;font-size:11px;margin-top:4px;padding:1px 6px;border-radius:6px;background:rgba(255,255,255,.2)}
+.minutes-body{flex:1;min-width:0;display:grid;gap:5px;padding:11px 13px}
+.minutes-no{font-size:10.5px;color:#9A6A2F;letter-spacing:.04em}
+.minutes-body>b{font-family:var(--f-display);font-weight:400;font-size:18px;color:#3E2A12;line-height:1.25}
+.minutes-who{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;font-weight:600;color:#5B4630}
+.minutes-who span{display:inline-flex;align-items:center;gap:4px}
+.minutes-text{font-size:13px;color:#4A3B2A;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line}
+.minutes-dec{display:flex;gap:5px;align-items:flex-start;font-size:12.5px;font-weight:600;color:#1E7A43;background:#EEF8E8;border-radius:8px;padding:5px 8px;white-space:pre-line}
+.minutes-dec svg{flex:none;margin-top:2px}
+.minutes-ph{display:flex;gap:5px;align-items:center}
+.minutes-ph img{width:46px;height:46px;object-fit:cover;border-radius:7px;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.minutes-ph i{font-style:normal;font-size:12px;font-weight:700;color:#9A6A2F}
+.minutes-form .fld>span{color:#6E4A1E}
+.minutes-form textarea{line-height:1.6;resize:vertical}
+.drop-meet{border-color:#C9A36E;background:#FBF4E8;color:#6E4A1E}
+.meet-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.meet-ph{position:relative;display:block}
+.meet-ph img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:10px;border:2px solid #E4D3B8}
+.meet-ph button{position:absolute;top:4px;right:4px;width:24px;height:24px;display:grid;place-items:center;border-radius:999px;background:rgba(0,0,0,.6);color:#fff}
 </style>
 </head>
 <body>
@@ -419,6 +459,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     solo: { label: "따로", place: "우리 동네", color: "#2B9BD6", deep: "#1C6E9C" },
     team: { label: "같이", place: "학교", color: "#1E9E57", deep: "#16713E" },
     activity: { label: "활동", place: "", color: "#E8862A", deep: "#B4600E" },
+    meeting: { label: "협의", place: "", color: "#9A6A2F", deep: "#6E4A1E" },
   };
   const FONT_DISPLAY = '"Jua", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   const FONT_BODY = '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
@@ -480,7 +521,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     g.restore();
     // 아래 띠: 이름·학명·팀
     const bx = P + 6, textW = W - P * 2 - 190;
-    const name = meta.name || (meta.mode === "activity" ? "우리의 활동" : "이름을 찾는 중인 식물");
+    const name = meta.name || (meta.mode === "meeting" ? "에코쌤즈 협의회" : meta.mode === "activity" ? "우리의 활동" : "이름을 찾는 중인 식물");
     g.fillStyle = "#1E5E38"; g.textBaseline = "alphabetic";
     const fn = fitText(g, name, textW, `{px}px ${FONT_DISPLAY}`, 58, 34);
     if (typeof fn === "object") { g.font = `${fn.px}px ${FONT_DISPLAY}`; g.fillText(fn.text, bx, 935); } else g.fillText(name, bx, 935);
@@ -488,7 +529,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     if (meta.sci) { g.font = `italic 27px ${FONT_BODY}`; const s2 = fitText(g, meta.sci, textW, `italic {px}px ${FONT_BODY}`, 27, 20);
       g.fillText(typeof s2 === "object" ? s2.text : meta.sci, bx, 978); }
     g.font = `22px ${FONT_BODY}`; g.fillStyle = "#3D5A48";
-    const line3 = meta.mode === "activity"
+    const group = meta.mode === "activity" || meta.mode === "meeting";
+    const line3 = group
       ? [meta.people && meta.people.length ? "함께 " + meta.people.join("·") : meta.researcher, meta.place, dotDate(meta.ts)].filter(Boolean).join(" · ")
       : `${M.label} · ${meta.researcher} · ${meta.place || M.place} · ${dotDate(meta.ts)}`;
     const l3 = fitText(g, line3, textW, `{px}px ${FONT_BODY}`, 22, 16);
@@ -500,7 +542,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     g.beginPath(); g.arc(0, 0, 70, 0, Math.PI * 2); g.stroke();
     g.lineWidth = 2; g.beginPath(); g.arc(0, 0, 60, 0, Math.PI * 2); g.stroke();
     g.textAlign = "center"; g.font = `46px ${FONT_DISPLAY}`; g.fillText(M.label, 0, 10);
-    g.font = `17px ${FONT_BODY}`; g.fillText("에코쌤즈", 0, -30); g.fillText(meta.mode === "activity" ? "기후행동" : (meta.researcher || ""), 0, 42);
+    g.font = `17px ${FONT_BODY}`; g.fillText("에코쌤즈", 0, -30); g.fillText(group ? "기후행동" : (meta.researcher || ""), 0, 42);
     g.restore();
     // 맨 아래 색띠
     g.fillStyle = M.color; g.fillRect(0, H - 14, W, 14);
@@ -541,7 +583,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     const tp = t - intro, idx = Math.floor(tp / per);
     if (idx < items.length) {
       const it = items[idx], u = (tp - idx * per) / per, M = MODE_INFO[it.mode] || MODE_INFO.team;
-      grid(g, W, H, it.mode === "solo" ? "#2386BC" : it.mode === "activity" ? "#D9781E" : "#2FA463", 0.13);
+      grid(g, W, H, it.mode === "solo" ? "#2386BC" : it.mode === "activity" ? "#D9781E" : it.mode === "meeting" ? "#8A5E2A" : "#2FA463", 0.13);
       // 위: 따로/같이 꼬리표 + 순번
       g.textAlign = "left"; g.fillStyle = "#fff"; g.font = `44px ${FONT_DISPLAY}`;
       g.fillText(`${M.label} · ${it.researcher}`, 56, 120);
@@ -569,7 +611,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     g.globalAlpha = u; g.textAlign = "center";
     g.fillStyle = "#FFEB3B"; g.font = `70px ${FONT_DISPLAY}`; g.fillText("따로 또 같이", W / 2, 360);
     g.fillStyle = "#fff"; g.font = `34px ${FONT_BODY}`; g.fillText("우리가 함께 기록한 초록", W / 2, 420);
-    const rows = [["따로 · 우리 동네", stats.solo + "건"], ["같이 · 학교", stats.team + "건"], ["함께한 활동", stats.acts + "장"], ["만난 식물", stats.species + "종"], ["탄소 고정 합계 (g/h·m²)", stats.carbon]];
+    const rows = [["따로 · 우리 동네", stats.solo + "건"], ["같이 · 학교", stats.team + "건"], ["함께한 활동·협의", stats.acts + "장"], ["만난 식물", stats.species + "종"], ["탄소 고정 합계 (g/h·m²)", stats.carbon]];
     rows.forEach(([k, v], i) => {
       const y = 520 + i * 98;
       g.fillStyle = "rgba(255,255,255,.12)"; g.fillRect(90, y - 62, W - 180, 88);
@@ -583,11 +625,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
   function buildPlan(recs, opts) {
     const per = opts.per || 2.2;
-    const items = recs.map((r) => r.kind === "activity"
-      ? { mode: "activity", researcher: (r.people && r.people.length ? r.people.join("·") : r.researcher), img: r._img || null, caption: r.title || "우리의 활동" }
+    const items = recs.map((r) => (r.kind === "activity" || r.kind === "meeting")
+      ? { mode: r.kind, researcher: (r.people && r.people.length ? r.people.join("·") : r.researcher), img: r._img || null, caption: r.title || (r.kind === "meeting" ? "에코쌤즈 협의회" : "우리의 활동") }
       : { mode: r.mode, researcher: r.researcher, img: r._img || null,
           caption: `${r.koreanName || "이름 모를 식물"} · 탄소 ${r.model && isFinite(r.model.gco2) ? r.model.gco2.toFixed(2) : "–"} g/h·m²` });
-    const plants = recs.filter((r) => r.kind !== "activity");
+    const plants = recs.filter((r) => r.kind !== "activity" && r.kind !== "meeting");
     const ts = recs.map((r) => r.ts).sort((a, b) => a - b);
     const d = (x) => { const v = new Date(x); return `${v.getFullYear()}.${v.getMonth() + 1}.${v.getDate()}`; };
     const species = new Set(plants.map((r) => r.scientificName || r.koreanName).filter(Boolean)).size;
@@ -1009,21 +1051,37 @@ function Hero({ children }) {
   </header>`;
 }
 
-/** 탭 화면 위의 얇은 머리띠 */
-function TopStrip({ tab, name, onSettings, onLogout, hasKey }) {
+/** 언제나 위에 있는 이동 막대: 뒤로 · 처음(로고) · 멤버 전환 · 설정 · 나가기 */
+function NavBar({ tab, name, canBack, onBack, onHome, onSwitch, onSettings, onLogout, hasKey }) {
   const t = TABS.find((x) => x.id === tab) || TABS[0];
-  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "" }[tab];
+  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "따로 또 같이" }[tab];
   return html`<div class="strip">
     <div class="strip-in">
-      <div class="min-w-0">
-        <div class="strip-team">기후행동 실천모임 <b>에코쌤즈</b></div>
-        <div class="strip-title"><${Icon} name=${t.icon} size=${20} />${t.label}<small>${sub}</small></div>
-      </div>
-      <div class="flex items-center gap-1.5 shrink-0">
-        <span class="strip-me"><${Dot} color=${rColor(name)} size=${9} />${name}</span>
+      <button type="button" class="nav-btn" onClick=${onBack} aria-label=${canBack ? "뒤로 가기" : "처음 화면으로"} disabled=${!canBack && tab === "today"}>
+        <${Icon} name="ChevronLeft" size=${22} /><span class="nav-lbl">뒤로</span></button>
+      <button type="button" class="nav-logo" onClick=${onHome} aria-label="처음 화면(오늘)으로">
+        <span class="strip-team">기후행동 실천모임 <b>에코쌤즈</b></span>
+        <span class="strip-title"><${Icon} name=${t.icon} size=${18} />${t.label}<small>${sub}</small></span>
+      </button>
+      <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+        <button type="button" class="nav-me" onClick=${onSwitch} aria-label="멤버 전환">
+          <${Dot} color=${rColor(name)} size=${10} /><span>${name}</span><${Icon} name="Repeat" size=${14} /></button>
         <button type="button" class=${"strip-btn" + (hasKey ? " on" : "")} onClick=${onSettings} aria-label="AI 분석 설정"><${Icon} name="Settings2" size=${17} /></button>
-        <button type="button" class="strip-btn" onClick=${onLogout} aria-label="로그아웃"><${Icon} name="LogOut" size=${17} /></button>
+        <button type="button" class="nav-out" onClick=${onLogout}><${Icon} name="LogOut" size=${16} /><span class="nav-lbl">나가기</span></button>
       </div>
+    </div>
+  </div>`;
+}
+
+function SwitchModal({ me, onPick, onClose }) {
+  return html`<div class="modal-bg" onClick=${onClose}>
+    <div class="modal max-w-sm" role="dialog" aria-modal="true" aria-label="멤버 전환" onClick=${(e) => e.stopPropagation()}>
+      <div class="flex items-center gap-2 mb-3"><${Icon} name="Repeat" size=${19} className="text-photon" />
+        <h2 class="font-display text-[20px] text-snow">멤버 전환</h2>
+        <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button></div>
+      <p class="text-[13px] text-mist mb-3">이 휴대폰에서 기록할 사람을 바꿔요. 이미 팀 비밀번호로 열린 기기라 다시 묻지 않아요.</p>
+      <div class="who-grid">${RESEARCHERS.map((r) => html`<button key=${r.name} type="button" class=${"who-b" + (me === r.name ? " who-on" : "")} onClick=${() => onPick(r.name)}>
+        <${Dot} color=${r.color} size=${10} /><span class="grid text-left leading-tight">${r.name}<small>${HOME_DEFAULT[r.name].label}${me === r.name ? " · 지금" : ""}</small></span></button>`)}</div>
     </div>
   </div>`;
 }
@@ -1171,7 +1229,12 @@ function SoloView({ me, records, gps, onAdd, onOpen, say }) {
 }
 
 /* ---------- 같이: 학교 식물 표본함 ---------- */
-function TeamView({ records, onAdd, onOpen }) {
+function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting, onOpenMeeting }) {
+  const seg = html`<div class="seg3" role="tablist" aria-label="같이 보기">
+    <button type="button" role="tab" aria-selected=${sub === "plants"} class=${"seg3-b" + (sub === "plants" ? " on" : "")} onClick=${() => setSub("plants")}>학교 식물 표본함</button>
+    <button type="button" role="tab" aria-selected=${sub === "meetings"} class=${"seg3-b" + (sub === "meetings" ? " on s-meeting" : "")} onClick=${() => setSub("meetings")}>협의회 기록 ${meetings.length}</button>
+  </div>`;
+  if (sub === "meetings") return html`<div class="grid gap-4">${seg}<${MeetingList} meetings=${meetings} onAdd=${onAddMeeting} onOpen=${onOpenMeeting} /></div>`;
   const total = records.filter((r) => r.mode === "team");
   const groups = useMemo(() => {
     const m = new Map();
@@ -1179,6 +1242,7 @@ function TeamView({ records, onAdd, onOpen }) {
     return [...m.values()];
   }, [records]);
   return html`<div class="grid gap-4">
+    ${seg}
     <section class="glass p-4 grid gap-3">
       <div class="flex items-center gap-2 flex-wrap">
         <h2 class="pill-h"><${Icon} name="School" size=${17} />학교 식물 표본함</h2>
@@ -1368,7 +1432,8 @@ function VideoMaker({ records, onClose }) {
   const [per, setPer] = useState(2.2);
   const [state, setState] = useState("idle"), [prog, setProg] = useState(0), [err, setErr] = useState("");
   const [out, setOut] = useState(null);
-  const inScope = (r, k) => k === "all" || (k === "activity" ? r.kind === "activity" : r.kind !== "activity" && r.mode === k);
+  const group = (r) => r.kind === "activity" || r.kind === "meeting";
+  const inScope = (r, k) => k === "all" || (k === "activity" ? group(r) : !group(r) && r.mode === k);
   const list = withPhoto.filter((r) => inScope(r, scope)).slice().sort((a, b) => a.ts - b.ts);
   const secs = Math.round(2.6 + list.length * per + 3.6);
   useEffect(() => () => { if (out) URL.revokeObjectURL(out.url); }, [out]);
@@ -1386,7 +1451,7 @@ function VideoMaker({ records, onClose }) {
         <h2 class="font-display text-[20px] text-snow">한 번에 영상 만들기</h2>
         ${state !== "rec" && html`<button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>`}</div>
       ${state !== "done" ? html`<div class="grid gap-3">
-        <div class="seg3">${[["all", "모두"], ["solo", "따로"], ["team", "같이"], ["activity", "활동"]].map(([k, l]) => html`<button key=${k} type="button" disabled=${state === "rec"}
+        <div class="seg3">${[["all", "모두"], ["solo", "따로"], ["team", "같이"], ["activity", "활동·협의"]].map(([k, l]) => html`<button key=${k} type="button" disabled=${state === "rec"}
           class=${"seg3-b" + (scope === k ? " on" : "") + " s-" + k} onClick=${() => setScope(k)}>${l} ${withPhoto.filter((r) => inScope(r, k)).length}</button>`)}</div>
         <label class="fld"><span>사진 한 장당 ${per.toFixed(1)}초</span>
           <input id="perIn" type="range" min="1.2" max="4" step="0.2" value=${per} disabled=${state === "rec"} onInput=${(e) => setPer(Number(e.target.value))} /></label>
@@ -1410,11 +1475,11 @@ function VideoMaker({ records, onClose }) {
   </div>`;
 }
 
-function ArchiveView({ records, acts, onOpen, onOpenAct, onClearSamples, onImport }) {
+function ArchiveView({ records, acts, meetings, onOpen, onOpenAct, onOpenMeeting, onClearSamples, onImport }) {
   const [video, setVideo] = useState(false);
   const fileRef = useRef(null);
   const real = records.filter((r) => !r.sample);
-  const all = useMemo(() => records.concat(acts).sort((a, b) => b.ts - a.ts), [records, acts]);
+  const all = useMemo(() => records.concat(acts, meetingPhotos(meetings)).sort((a, b) => b.ts - a.ts), [records, acts, meetings]);
   const photos = all.filter((r) => r.photo);
   const byDay = useMemo(() => {
     const m = new Map(); all.forEach((r) => { const d = fmtDay(r.ts); if (!m.has(d)) m.set(d, []); m.get(d).push(r); });
@@ -1424,7 +1489,7 @@ function ArchiveView({ records, acts, onOpen, onOpenAct, onClearSamples, onImpor
   return html`<div class="grid gap-4">
     <button type="button" class="reel" onClick=${() => setVideo(true)}>
       <span class="reel-holes" aria-hidden="true"></span>
-      <span class="reel-body"><${Icon} name="Clapperboard" size=${30} /><span class="flex-1 min-w-0"><b>한 번에 영상 만들기</b><small>식물·활동 사진 ${photos.length}장을 팀 프레임 그대로 세로 영상으로</small></span>
+      <span class="reel-body"><${Icon} name="Clapperboard" size=${30} /><span class="flex-1 min-w-0"><b>한 번에 영상 만들기</b><small>식물·활동·협의회 사진 ${photos.length}장을 팀 프레임 그대로 세로 영상으로</small></span>
         <${Icon} name="ChevronRight" size=${22} /></span>
       <span class="reel-holes" aria-hidden="true"></span>
     </button>
@@ -1432,9 +1497,9 @@ function ArchiveView({ records, acts, onOpen, onOpenAct, onClearSamples, onImpor
       <div class="flex items-center gap-2 flex-wrap"><h2 class="pill-h"><${Icon} name="Images" size=${17} />날짜별 사진첩</h2>
         <span class="text-[12px] text-mist">모든 사진에 팀 이름·날짜 도장이 찍혀 있어요</span></div>
       ${byDay.length ? byDay.map(([d, list]) => html`<div key=${d} class="grid gap-2">
-          <div class="day-h"><span class="mono">${d}</span><small>따로 ${list.filter((r) => r.mode === "solo").length} · 같이 ${list.filter((r) => r.mode === "team").length} · 활동 ${list.filter((r) => r.kind === "activity").length}</small></div>
-          <div class="prints prints-s">${list.map((r, i) => r.kind === "activity"
-            ? html`<button key=${r.id} type="button" class="print" style=${{ "--tilt": `${i % 2 ? 1.5 : -1.5}deg` }} onClick=${() => onOpenAct(r)} aria-label=${`${r.title || "활동"} 사진 열기`}><img src=${r.photo} alt="" loading="lazy" /></button>`
+          <div class="day-h"><span class="mono">${d}</span><small>따로 ${list.filter((r) => r.mode === "solo").length} · 같이 ${list.filter((r) => r.mode === "team").length} · 활동 ${list.filter((r) => r.kind === "activity").length} · 협의 ${list.filter((r) => r.kind === "meeting").length}</small></div>
+          <div class="prints prints-s">${list.map((r, i) => (r.kind === "activity" || r.kind === "meeting")
+            ? html`<button key=${r.id} type="button" class="print" style=${{ "--tilt": `${i % 2 ? 1.5 : -1.5}deg` }} onClick=${() => r.kind === "meeting" ? onOpenMeeting(r._meeting) : onOpenAct(r)} aria-label=${`${r.title || "활동"} 사진 열기`}><img src=${r.photo} alt="" loading="lazy" /></button>`
             : html`<${Print} key=${r.id} rec=${r} onOpen=${onOpen} tilt=${i % 2 ? 1.5 : -1.5} />`)}</div>
         </div>`) : html`<div class="empty-note">아직 사진이 없어요.</div>`}
     </section>
@@ -1443,10 +1508,12 @@ function ArchiveView({ records, acts, onOpen, onOpenAct, onClearSamples, onImpor
       <div class="grid sm:grid-cols-2 gap-2">
         <button type="button" class="exp" disabled=${!real.length} onClick=${() => saveFile(`에코쌤즈_광합성지도_${today()}.csv`, toCSV(real), "text/csv;charset=utf-8")}>
           <${Icon} name="FileSpreadsheet" size=${20} className="text-photon" /><span><b>CSV</b><small>엑셀 분석 · 실천모임 결과 보고서</small></span></button>
+        <button type="button" class="exp" disabled=${!meetings.length} onClick=${() => saveFile(`에코쌤즈_협의회록_${today()}.csv`, meetingsCSV(meetings), "text/csv;charset=utf-8")}>
+          <${Icon} name="NotebookPen" size=${20} className="text-photon" /><span><b>협의회록 (CSV)</b><small>날짜·장소·멤버·협의 내용·결정 사항</small></span></button>
         <button type="button" class="exp" disabled=${!real.length} onClick=${() => saveFile(`에코쌤즈_광합성지도_${today()}.geojson`, toGeoJSON(real), "application/geo+json")}>
           <${Icon} name="Globe" size=${20} className="text-photon" /><span><b>GeoJSON</b><small>QGIS · 구글 어스용 좌표</small></span></button>
-        <button type="button" class="exp" disabled=${!real.length && !acts.length} onClick=${() => saveFile(`에코쌤즈_백업_${today()}.json`, JSON.stringify(real.concat(acts.map(({ raw, ...a }) => a))), "application/json")}>
-          <${Icon} name="HardDriveDownload" size=${20} className="text-photon" /><span><b>내 기록 보내기 (JSON)</b><small>식물 기록 + 활동 사진 · 팀원에게 공유</small></span></button>
+        <button type="button" class="exp" disabled=${!real.length && !acts.length && !meetings.length} onClick=${() => saveFile(`에코쌤즈_백업_${today()}.json`, JSON.stringify(real.concat(acts.map(({ raw, ...a }) => a), meetings.map((m) => ({ ...m, photos: (m.photos || []).map((ph) => ({ photo: ph.photo })) })))), "application/json")}>
+          <${Icon} name="HardDriveDownload" size=${20} className="text-photon" /><span><b>내 기록 보내기 (JSON)</b><small>식물 기록 + 활동 사진 + 협의록 · 팀원에게 공유</small></span></button>
         <button type="button" class="exp" onClick=${() => fileRef.current.click()}>
           <${Icon} name="Merge" size=${20} className="text-photon" /><span><b>팀원 기록 합치기</b><small>받은 JSON을 넣으면 내 지도에 합쳐져요</small></span></button>
         <input ref=${fileRef} id="impIn" type="file" accept=".json,application/json" class="hidden" onChange=${(e) => { const f = e.target.files && e.target.files[0]; if (f) onImport(f); e.target.value = ""; }} />
@@ -1825,6 +1892,110 @@ function ActivityModal({ me, item, onClose, onSave, onDelete }) {
   </div>`;
 }
 
+/* ---------- 같이: 협의회 기록 ---------- */
+function MeetingList({ meetings, onAdd, onOpen }) {
+  return html`<div class="grid gap-4">
+    <button type="button" class="act-hero meet-hero" onClick=${onAdd}>
+      <span class="act-hero-ic"><${Icon} name="NotebookPen" size=${28} /></span>
+      <span class="flex-1 min-w-0"><b>협의회 기록하기</b><small>날짜·장소·모임 멤버·협의 내용·사진을 한 장의 회의록으로. 나중에 언제든 고칠 수 있어요.</small></span>
+    </button>
+    ${meetings.length ? html`<div class="meet-list">${meetings.map((m) => { const d = new Date(m.ts);
+      return html`<button key=${m.id} type="button" class="minutes" onClick=${() => onOpen(m)}>
+        <span class="minutes-date"><b class="mono">${d.getMonth() + 1}.${String(d.getDate()).padStart(2, "0")}</b><small>${d.getFullYear()} · ${["일", "월", "화", "수", "목", "금", "토"][d.getDay()]}</small>
+          <em class="mono">${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}</em></span>
+        <span class="minutes-body">
+          <span class="minutes-no mono">에코쌤즈 협의록 · ${m.place || "장소 미정"}</span>
+          <b>${m.title || "에코쌤즈 협의회"}</b>
+          <span class="minutes-who">${(m.people || []).map((n) => html`<span key=${n}><${Dot} color=${rColor(n)} size=${7} />${n}</span>`)}</span>
+          ${m.content && html`<span class="minutes-text">${m.content}</span>`}
+          ${m.decisions && html`<span class="minutes-dec"><${Icon} name="CircleCheck" size=${13} />${m.decisions}</span>`}
+          ${m.photos && m.photos.length ? html`<span class="minutes-ph">${m.photos.slice(0, 4).map((ph, i) => html`<img key=${i} src=${ph.photo} alt="" />`)}${m.photos.length > 4 ? html`<i>+${m.photos.length - 4}</i>` : null}</span>` : null}
+        </span>
+      </button>`; })}</div>`
+      : html`<div class="empty-note">첫 협의회를 기록해 보세요. 계획 회의, 중간 점검, 성과 정리까지 모두 여기 쌓여 마지막 아카이브와 영상에 들어가요.</div>`}
+  </div>`;
+}
+
+function MeetingModal({ me, item, onClose, onSave, onDelete }) {
+  const isNew = !item;
+  const [when, setWhen] = useState(toLocalInput(item ? item.ts : Date.now()));
+  const [place, setPlace] = useState(item ? item.place || "" : "");
+  const [people, setPeople] = useState(item ? item.people || [] : RESEARCHERS.map((r) => r.name));
+  const [title, setTitle] = useState(item ? item.title || "" : "");
+  const [content, setContent] = useState(item ? item.content || "" : "");
+  const [decisions, setDecisions] = useState(item ? item.decisions || "" : "");
+  const [photos, setPhotos] = useState(item ? (item.photos || []) : []); // [{raw?, photo}]
+  const [busy, setBusy] = useState(false), [ask, setAsk] = useState(false), [err, setErr] = useState("");
+  const inRef = useRef(null), camRef = useRef(null);
+  const togglePerson = (n) => setPeople((ps) => ps.includes(n) ? ps.filter((x) => x !== n) : RESEARCHERS.map((r) => r.name).filter((x) => ps.includes(x) || x === n));
+  const addPhotos = async (e) => {
+    const list = [...(e.target.files || [])]; e.target.value = ""; if (!list.length) return;
+    setBusy(true); setErr("");
+    try { const out = []; for (const f of list.slice(0, 20)) out.push({ raw: await resizeImage(f, 1280, 0.85), photo: null }); setPhotos((ps) => ps.concat(out)); }
+    catch (er) { setErr("사진을 읽지 못했어요."); }
+    setBusy(false);
+  };
+  const save = async () => {
+    const ts = fromLocalInput(when) || Date.now();
+    if (!title.trim() && !content.trim()) { setErr("안건이나 협의 내용을 조금이라도 적어 주세요."); return; }
+    setBusy(true); setErr("");
+    try {
+      const meta = { mode: "meeting", researcher: me, ts, name: title.trim() || "에코쌤즈 협의회", place: place.trim(), people };
+      const framed = [];
+      for (const ph of photos) framed.push(ph.raw ? { raw: ph.raw, photo: await EM.composeFrame(ph.raw, meta) } : ph);
+      onSave({ ...(item || { id: uid(), kind: "meeting", researcher: me }), ts, place: place.trim(), people, title: title.trim(), content: content.trim(),
+        decisions: decisions.trim(), photos: framed, editedBy: me, editedAt: Date.now() });
+    } catch (e) { setErr("저장하지 못했어요. 다시 시도해 주세요."); setBusy(false); }
+  };
+  return html`<div class="modal-bg" onClick=${busy ? null : onClose}>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="협의회 기록" onClick=${(e) => e.stopPropagation()} style=${{ borderColor: MODES.meeting.color }}>
+      <div class="flex items-center gap-2 mb-3"><${Icon} name="NotebookPen" size=${20} style=${{ color: MODES.meeting.color }} />
+        <h2 class="font-display text-[20px] text-snow">${isNew ? "협의회 기록하기" : "협의회 기록 고치기"}</h2>
+        <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기" disabled=${busy}><${Icon} name="X" size=${18} /></button></div>
+      <div class="grid gap-4 minutes-form">
+        <div class="grid sm:grid-cols-2 gap-3">
+          <label class="fld"><span>날짜와 시각</span><input id="mWhen" type="datetime-local" value=${when} onInput=${(e) => setWhen(e.target.value)} /></label>
+          <label class="fld"><span>장소</span><input id="mPlace" value=${place} onInput=${(e) => setPlace(e.target.value)} placeholder="예: 송례중 과학실, 온라인(줌)" /></label>
+        </div>
+        <div><${Label}>모임 멤버</${Label}><div class="flex flex-wrap gap-1.5">${RESEARCHERS.map((r) => html`<${Chip} key=${r.name} on=${people.includes(r.name)} color=${r.color} onClick=${() => togglePerson(r.name)}>
+          <${Dot} color=${people.includes(r.name) ? "#fff" : r.color} size=${7} />${r.name}</${Chip}>`)}</div></div>
+        <label class="fld"><span>안건 (협의회 이름)</span><input id="mTitle" value=${title} onInput=${(e) => setTitle(e.target.value)} placeholder="예: 2차 협의회 · 학교 식물 조사 구역 나누기" /></label>
+        <label class="fld"><span>협의 내용</span><textarea id="mContent" rows="6" value=${content} onInput=${(e) => setContent(e.target.value)}
+          placeholder="오간 이야기, 의견, 자료를 적어요"></textarea></label>
+        <label class="fld"><span>결정 사항 · 다음에 할 일</span><textarea id="mDec" rows="3" value=${decisions} onInput=${(e) => setDecisions(e.target.value)}
+          placeholder="예: 11월 둘째 주까지 따로 기록 5종씩, 다음 협의회 11/18"></textarea></label>
+        <div class="grid gap-2"><${Label}>사진 ${photos.length ? `${photos.length}장 · 협의회 날짜 도장이 찍혀요` : ""}</${Label}>
+          ${photos.length ? html`<div class="meet-photos">${photos.map((ph, i) => html`<span key=${i} class="meet-ph">
+              <img src=${ph.photo || ph.raw} alt="" /><button type="button" onClick=${() => setPhotos((ps) => ps.filter((_, j) => j !== i))} aria-label="사진 빼기"><${Icon} name="X" size=${13} /></button></span>`)}</div>` : null}
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" class="drop drop-meet" onClick=${() => camRef.current.click()} disabled=${busy}><${Icon} name="Camera" size=${22} />지금 찍기</button>
+            <button type="button" class="drop drop-meet" onClick=${() => inRef.current.click()} disabled=${busy}><${Icon} name="Images" size=${22} />앨범에서 여러 장</button>
+          </div>
+          <input ref=${inRef} id="mIn" type="file" accept="image/*" multiple class="hidden" onChange=${addPhotos} />
+          <input ref=${camRef} id="mCam" type="file" accept="image/*" capture="environment" class="hidden" onChange=${addPhotos} />
+        </div>
+        ${!isNew && item.editedBy && html`<p class="text-[12px] text-mist">마지막 수정: ${item.editedBy} · ${fmtDate(item.editedAt || item.ts)}</p>`}
+        ${err && html`<div class="err">${err}</div>`}
+        <button type="button" class="btn-save" onClick=${save} disabled=${busy}
+          style=${{ background: MODES.meeting.color, borderColor: MODES.meeting.deep, boxShadow: `0 4px 0 ${MODES.meeting.deep}` }}>
+          <${Icon} name="Save" size=${18} />${busy ? "저장하는 중…" : isNew ? "협의회 기록 저장" : "고친 내용 저장"}</button>
+        ${!isNew && html`<div class="flex">${!ask ? html`<button type="button" class="btn-ghost ml-auto text-rose-600" onClick=${() => setAsk(true)}><${Icon} name="Trash2" size=${15} />이 협의록 삭제</button>`
+          : html`<div class="ml-auto flex items-center gap-2"><span class="text-[13px] text-rose-700">지울까요?</span>
+            <button type="button" class="btn-ghost" onClick=${() => setAsk(false)}>취소</button><button type="button" class="btn-danger" onClick=${() => onDelete(item.id)}>삭제</button></div>`}</div>`}
+      </div>
+    </div>
+  </div>`;
+}
+function meetingsCSV(ms) {
+  const head = ["일시", "장소", "모임 멤버", "안건", "협의 내용", "결정 사항·다음 할 일", "사진 수", "마지막 수정"];
+  const rows = ms.slice().sort((a, b) => a.ts - b.ts).map((m) => [new Date(m.ts).toLocaleString("ko-KR"), m.place || "", (m.people || []).join(", "), m.title || "",
+    (m.content || "").replace(/\n/g, " / "), (m.decisions || "").replace(/\n/g, " / "), (m.photos || []).length, m.editedBy || m.researcher || ""]
+    .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
+  return "﻿" + head.join(",") + "\n" + rows.join("\n");
+}
+/** 협의회 사진을 사진첩·영상용 낱장으로 펼치기 */
+const meetingPhotos = (ms) => ms.flatMap((m) => (m.photos || []).map((ph, i) => ({ id: `${m.id}#${i}`, kind: "meeting", ts: m.ts + i, title: m.title, people: m.people, researcher: m.researcher, photo: ph.photo, _meeting: m })));
+
 /* ---------- 앱 ---------- */
 function App() {
   const saved = store.get(LS_SET, {});
@@ -1834,6 +2005,11 @@ function App() {
   const [records, setRecords] = useState([]);
   const [acts, setActs] = useState([]);
   const [actEdit, setActEdit] = useState(null);
+  const [meetings, setMeetings] = useState([]);
+  const [meetEdit, setMeetEdit] = useState(null);
+  const [teamSub, setTeamSub] = useState("plants");
+  const [showSwitch, setShowSwitch] = useState(false);
+  const depth = useRef(0);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTabS] = useState(() => { const hsh = (location.hash || "").slice(1); return TABS.some((t) => t.id === hsh) ? hsh : "today"; });
   const [weather, setWeather] = useState(null), [wState, setWState] = useState("idle"), [wErr, setWErr] = useState("");
@@ -1846,9 +2022,16 @@ function App() {
   const lastWx = useRef(null), gpsRef = useRef(null); gpsRef.current = gps;
 
   const say = (m) => { setToast(m); clearTimeout(say.t); say.t = setTimeout(() => setToast(""), 2600); };
-  const setTab = (t) => { setTabS(t); try { history.replaceState(null, "", "#" + t); } catch (e) {} window.scrollTo(0, 0); };
-  useEffect(() => { const fn = () => { const hsh = (location.hash || "").slice(1); if (TABS.some((t) => t.id === hsh)) setTabS(hsh); };
-    window.addEventListener("hashchange", fn); return () => window.removeEventListener("hashchange", fn); }, []);
+  const setTab = (t) => { if (t === tabRef.current) { window.scrollTo(0, 0); return; } setTabS(t); try { history.pushState(null, "", "#" + t); depth.current++; } catch (e) {} window.scrollTo(0, 0); };
+  const tabRef = useRef(tab); tabRef.current = tab;
+  const goBack = () => {
+    if (depth.current > 0) history.back();
+    else if (tab !== "today") { setTabS("today"); try { history.replaceState(null, "", "#today"); } catch (e) {} window.scrollTo(0, 0); }
+  };
+  const goHome = () => setTab("today");
+  useEffect(() => { const fn = () => { const hsh = (location.hash || "").slice(1); depth.current = Math.max(0, depth.current - 1);
+      setTabS(TABS.some((t) => t.id === hsh) ? hsh : "today"); window.scrollTo(0, 0); };
+    window.addEventListener("popstate", fn); return () => window.removeEventListener("popstate", fn); }, []);
 
   // 기록 불러오기 (IndexedDB) + 이전 버전 기록 옮기기
   useEffect(() => { (async () => {
@@ -1857,7 +2040,7 @@ function App() {
     if (old && Array.isArray(old)) { for (const r of old) { if (!r.sample) await db.put({ mode: "team", ...r }); } store.del(LS_OLD); all = await db.all(); }
     if (!all.length && !store.get("ecossam.v2.seeded", false)) { for (const r of sampleRecords()) await db.put(r); store.set("ecossam.v2.seeded", true); all = await db.all(); }
     all.sort((a, b) => b.ts - a.ts);
-    setRecords(all.filter((r) => r.kind !== "activity")); setActs(all.filter((r) => r.kind === "activity")); setLoaded(true);
+    setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting")); setLoaded(true);
   })(); }, []);
 
   const loadWx = useCallback(async (lat, lng, fromGps) => {
@@ -1881,7 +2064,14 @@ function App() {
   useEffect(() => { const t = setInterval(() => { const q = gpsRef.current; if (q) loadWx(q.lat, q.lng, true); else { const hm = getHome(me); loadWx(hm.lat, hm.lng, false); } }, 600000); return () => clearInterval(t); }, [me]);
 
   const login = (name) => { const a = { name, at: Date.now() }; store.set(LS_AUTH, a); setAuth(a); setTab("today"); };
-  const logout = () => { store.del(LS_AUTH); setAuth(null); setDraft(null); setOpenId(null); setActEdit(null); window.scrollTo(0, 0); };
+  const logout = () => { store.del(LS_AUTH); setAuth(null); setDraft(null); setOpenId(null); setActEdit(null); setMeetEdit(null); window.scrollTo(0, 0); };
+  const switchTo = (name) => { const a = { name, at: Date.now() }; store.set(LS_AUTH, a); setAuth(a); setShowSwitch(false); say(`${name} 님으로 바꿨어요`); };
+  const saveMeeting = async (m) => {
+    await db.put(m);
+    setMeetings((ms) => [m, ...ms.filter((x) => x.id !== m.id)].sort((a, b) => b.ts - a.ts)); setMeetEdit(null);
+    say("협의회 기록을 저장했어요"); setTeamSub("meetings"); setTab("team");
+  };
+  const deleteMeeting = async (id) => { await db.del(id); setMeetings((ms) => ms.filter((m) => m.id !== id)); setMeetEdit(null); say("협의회 기록을 지웠어요"); };
   const addRecord = (mode) => setDraft({ mode, pos: null });
   const onMapPick = useCallback((lat, lng) => { setOpenId(null); setDraft({ mode: "team", pos: { lat, lng, source: "map", accuracy: null } }); }, []);
   const saveRecord = async (rec) => {
@@ -1903,12 +2093,13 @@ function App() {
     rd.onload = async (e) => {
       try {
         const arr = JSON.parse(e.target.result); if (!Array.isArray(arr)) throw 0;
-        const ok = arr.filter((o) => o && o.id && o.kind !== "activity" && typeof o.lat === "number" && o.weather && o.model).map((o) => ({ mode: "team", ...o }));
+        const ok = arr.filter((o) => o && o.id && !o.kind && typeof o.lat === "number" && o.weather && o.model).map((o) => ({ mode: "team", ...o }));
         const okA = arr.filter((o) => o && o.id && o.kind === "activity" && o.photo);
-        for (const o of ok.concat(okA)) await db.put(o);
+        const okM = arr.filter((o) => o && o.id && o.kind === "meeting");
+        for (const o of ok.concat(okA, okM)) await db.put(o);
         const merge = (rs, add) => { const mm = new Map(rs.map((r) => [r.id, r])); add.forEach((o) => mm.set(o.id, o)); return [...mm.values()].sort((a, b) => b.ts - a.ts); };
-        setRecords((rs) => merge(rs, ok)); setActs((as) => merge(as, okA));
-        say(`식물 ${ok.length}건 · 활동 사진 ${okA.length}장을 합쳤어요`);
+        setRecords((rs) => merge(rs, ok)); setActs((as) => merge(as, okA)); setMeetings((ms) => merge(ms, okM));
+        say(`식물 ${ok.length}건 · 활동 사진 ${okA.length}장 · 협의록 ${okM.length}건을 합쳤어요`);
       } catch (_) { say("합치기 실패: 이 앱에서 보낸 JSON 파일인지 확인하세요"); }
     };
     rd.readAsText(file);
@@ -1916,28 +2107,29 @@ function App() {
 
   if (!auth) return html`<${Gate} onLogin=${login} />`;
   const openRec = records.find((r) => r.id === openId);
-  const counts = { solo: records.filter((r) => r.mode === "solo" && r.researcher === me).length, team: records.filter((r) => r.mode === "team").length, activity: acts.length };
+  const counts = { solo: records.filter((r) => r.mode === "solo" && r.researcher === me).length, team: records.filter((r) => r.mode === "team").length + meetings.length, activity: acts.length };
 
   return html`<div class=${"app tab-is-" + tab}>
-    ${tab === "today"
-      ? html`<${Hero}><div class="hero-top"><span class="hero-me"><${Dot} color=${rColor(me)} size=${10} />${me} 님 · ${getHome(me).label}</span>
-          <span class="flex gap-1.5"><button type="button" class=${"strip-btn" + (settings.apiKey ? " on" : "")} onClick=${() => setShowSettings(true)} aria-label="AI 분석 설정"><${Icon} name="Settings2" size=${17} /></button>
-          <button type="button" class="strip-btn" onClick=${logout} aria-label="로그아웃"><${Icon} name="LogOut" size=${17} /></button></span></div></${Hero}>`
-      : html`<${TopStrip} tab=${tab} name=${me} hasKey=${!!settings.apiKey} onSettings=${() => setShowSettings(true)} onLogout=${logout} />`}
+    <${NavBar} tab=${tab} name=${me} canBack=${depth.current > 0 || tab !== "today"} onBack=${goBack} onHome=${goHome}
+      onSwitch=${() => setShowSwitch(true)} onSettings=${() => setShowSettings(true)} onLogout=${logout} hasKey=${!!settings.apiKey} />
+    ${tab === "today" && html`<${Hero} />`}
     <main class="wrap pb-28">
       ${!loaded ? html`<div class="boot" style=${{ minHeight: "30vh" }}>기록을 불러오는 중…</div>`
         : tab === "today" ? html`<${TodayView} me=${me} records=${records} weather=${weather} wState=${wState} wErr=${wErr} gps=${!!gps}
             onRefresh=${() => { const q = gps; if (q) loadWx(q.lat, q.lng, true); else { const hm = getHome(me); loadWx(hm.lat, hm.lng, false); } }} onAdd=${addRecord} onOpen=${setOpenId} goTab=${setTab} />`
         : tab === "solo" ? html`<${SoloView} me=${me} records=${records} gps=${gps} onAdd=${addRecord} onOpen=${setOpenId} say=${say} />`
-        : tab === "team" ? html`<${TeamView} records=${records} onAdd=${addRecord} onOpen=${setOpenId} />`
+        : tab === "team" ? html`<${TeamView} records=${records} meetings=${meetings} sub=${teamSub} setSub=${setTeamSub} onAdd=${addRecord} onOpen=${setOpenId}
+            onAddMeeting=${() => setMeetEdit({ isNew: true })} onOpenMeeting=${(m) => setMeetEdit(m)} />`
         : tab === "activity" ? html`<${ActivityView} me=${me} acts=${acts} onAdd=${() => setActEdit({ isNew: true })} onOpen=${(a) => setActEdit(a)} />`
         : tab === "map" ? html`<${MapView} records=${records} gps=${gps} follow=${follow} setFollow=${setFollow} onMapPick=${onMapPick} onOpen=${setOpenId} openId=${openId} />`
-        : html`<${ArchiveView} records=${records} acts=${acts} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onClearSamples=${clearSamples} onImport=${importJSON} />`}
+        : html`<${ArchiveView} records=${records} acts=${acts} meetings=${meetings} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onOpenMeeting=${(m) => setMeetEdit(m)} onClearSamples=${clearSamples} onImport=${importJSON} />`}
       <footer class="text-center text-[11px] text-mist leading-relaxed mt-6">기후행동 실천모임 에코쌤즈 · 이정연 · 신민화 · 이귀리 · 정종화<br/>기상 Open-Meteo · 지도 © OpenStreetMap, CARTO · 탄소 고정 값은 대표 계수 기반 추정치</footer>
     </main>
     <${TabBar} tab=${tab} setTab=${setTab} counts=${counts} />
     ${draft && html`<${RecordModal} draft=${draft} researcher=${me} weather=${weather} settings=${settings} gps=${gps}
       onClose=${() => setDraft(null)} onSave=${saveRecord} onOpenSettings=${() => setShowSettings(true)} />`}
+    ${meetEdit && html`<${MeetingModal} me=${me} item=${meetEdit.isNew ? null : meetEdit} onClose=${() => setMeetEdit(null)} onSave=${saveMeeting} onDelete=${deleteMeeting} />`}
+    ${showSwitch && html`<${SwitchModal} me=${me} onPick=${switchTo} onClose=${() => setShowSwitch(false)} />`}
     ${actEdit && html`<${ActivityModal} me=${me} item=${actEdit.isNew ? null : actEdit} onClose=${() => setActEdit(null)} onSave=${saveActs} onDelete=${deleteAct} />`}
     ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} />`}
     ${showSettings && html`<${SettingsModal} settings=${settings} onClose=${() => setShowSettings(false)}

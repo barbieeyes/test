@@ -5,6 +5,7 @@
     solo: { label: "따로", place: "우리 동네", color: "#2B9BD6", deep: "#1C6E9C" },
     team: { label: "같이", place: "학교", color: "#1E9E57", deep: "#16713E" },
     activity: { label: "활동", place: "", color: "#E8862A", deep: "#B4600E" },
+    meeting: { label: "협의", place: "", color: "#9A6A2F", deep: "#6E4A1E" },
   };
   const FONT_DISPLAY = '"Jua", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   const FONT_BODY = '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
@@ -66,7 +67,7 @@
     g.restore();
     // 아래 띠: 이름·학명·팀
     const bx = P + 6, textW = W - P * 2 - 190;
-    const name = meta.name || (meta.mode === "activity" ? "우리의 활동" : "이름을 찾는 중인 식물");
+    const name = meta.name || (meta.mode === "meeting" ? "에코쌤즈 협의회" : meta.mode === "activity" ? "우리의 활동" : "이름을 찾는 중인 식물");
     g.fillStyle = "#1E5E38"; g.textBaseline = "alphabetic";
     const fn = fitText(g, name, textW, `{px}px ${FONT_DISPLAY}`, 58, 34);
     if (typeof fn === "object") { g.font = `${fn.px}px ${FONT_DISPLAY}`; g.fillText(fn.text, bx, 935); } else g.fillText(name, bx, 935);
@@ -74,7 +75,8 @@
     if (meta.sci) { g.font = `italic 27px ${FONT_BODY}`; const s2 = fitText(g, meta.sci, textW, `italic {px}px ${FONT_BODY}`, 27, 20);
       g.fillText(typeof s2 === "object" ? s2.text : meta.sci, bx, 978); }
     g.font = `22px ${FONT_BODY}`; g.fillStyle = "#3D5A48";
-    const line3 = meta.mode === "activity"
+    const group = meta.mode === "activity" || meta.mode === "meeting";
+    const line3 = group
       ? [meta.people && meta.people.length ? "함께 " + meta.people.join("·") : meta.researcher, meta.place, dotDate(meta.ts)].filter(Boolean).join(" · ")
       : `${M.label} · ${meta.researcher} · ${meta.place || M.place} · ${dotDate(meta.ts)}`;
     const l3 = fitText(g, line3, textW, `{px}px ${FONT_BODY}`, 22, 16);
@@ -86,7 +88,7 @@
     g.beginPath(); g.arc(0, 0, 70, 0, Math.PI * 2); g.stroke();
     g.lineWidth = 2; g.beginPath(); g.arc(0, 0, 60, 0, Math.PI * 2); g.stroke();
     g.textAlign = "center"; g.font = `46px ${FONT_DISPLAY}`; g.fillText(M.label, 0, 10);
-    g.font = `17px ${FONT_BODY}`; g.fillText("에코쌤즈", 0, -30); g.fillText(meta.mode === "activity" ? "기후행동" : (meta.researcher || ""), 0, 42);
+    g.font = `17px ${FONT_BODY}`; g.fillText("에코쌤즈", 0, -30); g.fillText(group ? "기후행동" : (meta.researcher || ""), 0, 42);
     g.restore();
     // 맨 아래 색띠
     g.fillStyle = M.color; g.fillRect(0, H - 14, W, 14);
@@ -127,7 +129,7 @@
     const tp = t - intro, idx = Math.floor(tp / per);
     if (idx < items.length) {
       const it = items[idx], u = (tp - idx * per) / per, M = MODE_INFO[it.mode] || MODE_INFO.team;
-      grid(g, W, H, it.mode === "solo" ? "#2386BC" : it.mode === "activity" ? "#D9781E" : "#2FA463", 0.13);
+      grid(g, W, H, it.mode === "solo" ? "#2386BC" : it.mode === "activity" ? "#D9781E" : it.mode === "meeting" ? "#8A5E2A" : "#2FA463", 0.13);
       // 위: 따로/같이 꼬리표 + 순번
       g.textAlign = "left"; g.fillStyle = "#fff"; g.font = `44px ${FONT_DISPLAY}`;
       g.fillText(`${M.label} · ${it.researcher}`, 56, 120);
@@ -155,7 +157,7 @@
     g.globalAlpha = u; g.textAlign = "center";
     g.fillStyle = "#FFEB3B"; g.font = `70px ${FONT_DISPLAY}`; g.fillText("따로 또 같이", W / 2, 360);
     g.fillStyle = "#fff"; g.font = `34px ${FONT_BODY}`; g.fillText("우리가 함께 기록한 초록", W / 2, 420);
-    const rows = [["따로 · 우리 동네", stats.solo + "건"], ["같이 · 학교", stats.team + "건"], ["함께한 활동", stats.acts + "장"], ["만난 식물", stats.species + "종"], ["탄소 고정 합계 (g/h·m²)", stats.carbon]];
+    const rows = [["따로 · 우리 동네", stats.solo + "건"], ["같이 · 학교", stats.team + "건"], ["함께한 활동·협의", stats.acts + "장"], ["만난 식물", stats.species + "종"], ["탄소 고정 합계 (g/h·m²)", stats.carbon]];
     rows.forEach(([k, v], i) => {
       const y = 520 + i * 98;
       g.fillStyle = "rgba(255,255,255,.12)"; g.fillRect(90, y - 62, W - 180, 88);
@@ -169,11 +171,11 @@
 
   function buildPlan(recs, opts) {
     const per = opts.per || 2.2;
-    const items = recs.map((r) => r.kind === "activity"
-      ? { mode: "activity", researcher: (r.people && r.people.length ? r.people.join("·") : r.researcher), img: r._img || null, caption: r.title || "우리의 활동" }
+    const items = recs.map((r) => (r.kind === "activity" || r.kind === "meeting")
+      ? { mode: r.kind, researcher: (r.people && r.people.length ? r.people.join("·") : r.researcher), img: r._img || null, caption: r.title || (r.kind === "meeting" ? "에코쌤즈 협의회" : "우리의 활동") }
       : { mode: r.mode, researcher: r.researcher, img: r._img || null,
           caption: `${r.koreanName || "이름 모를 식물"} · 탄소 ${r.model && isFinite(r.model.gco2) ? r.model.gco2.toFixed(2) : "–"} g/h·m²` });
-    const plants = recs.filter((r) => r.kind !== "activity");
+    const plants = recs.filter((r) => r.kind !== "activity" && r.kind !== "meeting");
     const ts = recs.map((r) => r.ts).sort((a, b) => a - b);
     const d = (x) => { const v = new Date(x); return `${v.getFullYear()}.${v.getMonth() + 1}.${v.getDate()}`; };
     const species = new Set(plants.map((r) => r.scientificName || r.koreanName).filter(Boolean)).size;
