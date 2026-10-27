@@ -129,21 +129,31 @@ function sampleRecords() {
 }
 
 /* ---------- 사진 ---------- */
-function resizeImage(file, maxDim, q) {
-  return new Promise((res, rej) => {
-    const rd = new FileReader();
-    rd.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        let { width: w, height: hh } = img; const s = Math.min(1, maxDim / Math.max(w, hh));
-        w = Math.round(w * s); hh = Math.round(hh * s);
-        const c = document.createElement("canvas"); c.width = w; c.height = hh; c.getContext("2d").drawImage(img, 0, 0, w, hh);
-        res(c.toDataURL("image/jpeg", q));
-      };
-      img.onerror = rej; img.src = e.target.result;
-    };
-    rd.onerror = rej; rd.readAsDataURL(file);
-  });
+const HEIC_LIB = "https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js";
+const loadScript = (src) => new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("변환 도구를 불러오지 못했어요")); document.head.appendChild(el); });
+/** 사진(파일/Blob)을 maxDim 이하 JPEG dataURL로. 큰 사진도 메모리를 덜 쓰게 objectURL·ImageBitmap으로 읽는다 */
+async function decodeScaled(blob, maxDim, q) {
+  const draw = (src, w0, h0) => {
+    const s = Math.min(1, maxDim / Math.max(w0, h0)), w = Math.max(1, Math.round(w0 * s)), hh = Math.max(1, Math.round(h0 * s));
+    const c = document.createElement("canvas"); c.width = w; c.height = hh; c.getContext("2d").drawImage(src, 0, 0, w, hh);
+    return c.toDataURL("image/jpeg", q);
+  };
+  if (window.createImageBitmap) {
+    try { const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" }); const out = draw(bmp, bmp.width, bmp.height); bmp.close && bmp.close(); return out; } catch (e) {}
+  }
+  const u = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("decode")); i.src = u; });
+    return draw(img, img.naturalWidth, img.naturalHeight);
+  } finally { URL.revokeObjectURL(u); }
+}
+/** 앨범 사진 읽기: 일반 JPG/PNG는 바로, 갤럭시·아이폰 HEIC(고효율) 사진은 JPG로 바꿔서 */
+async function resizeImage(file, maxDim, q) {
+  const heic = /hei[cf]/i.test(file.type || "") || /\.hei[cf]$/i.test(file.name || "");
+  if (!heic) { try { return await decodeScaled(file, maxDim, q); } catch (e) { if (file.type && !/octet|^$/.test(file.type)) throw e; } }
+  if (!window.heic2any) await loadScript(HEIC_LIB);
+  const out = await window.heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+  return decodeScaled(Array.isArray(out) ? out[0] : out, maxDim, q);
 }
 
 /* ---------- 기상 (Open-Meteo) ---------- */
@@ -1060,7 +1070,8 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   const [f, setF] = useState({ koreanName: "", scientificName: "", growthForm: "초본", psType: "C3", lai: "", notes: "", place: (draft.mode === "solo") ? home.label : "" });
   const camRef = useRef(null), galRef = useRef(null);
   const [shotTs, setShotTs] = useState(Date.now());
-  const [pastWx, setPastWx] = useState(null), [album, setAlbum] = useState(null); // album: {ts, gps:bool, wx:"loading"|"ok"|"fail"|"now"}
+  const [pastWx, setPastWx] = useState(null), [album, setAlbum] = useState(null);
+  const [reading, setReading] = useState(false), [photoErr, setPhotoErr] = useState(""); // album: {ts, gps:bool, wx:"loading"|"ok"|"fail"|"now"}
   const w = pastWx || weather || { temp: null, rh: null, cloud: null, sw: 0, ppfd: 0, par: 0 };
   const m = MODES[mode];
   const est = useMemo(() => M.estimate({ sw: w.sw, temp: w.temp, rh: w.rh, psType: f.psType, growthForm: f.growthForm,
@@ -1081,8 +1092,8 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   const onFile = async (e, fromAlbum) => {
     const file = e.target.files && e.target.files[0]; e.target.value = ""; if (!file) return;
     try {
-      setAi(null); setAiState("idle"); setPastWx(null); setAlbum(null);
-      if (!fromAlbum) { setShotTs(Date.now()); setRaw(await resizeImage(file, 1280, 0.86)); return; }
+      setAi(null); setAiState("idle"); setPastWx(null); setAlbum(null); setPhotoErr(""); setReading(true);
+      if (!fromAlbum) { setShotTs(Date.now()); setRaw(await resizeImage(file, 1280, 0.86)); setReading(false); return; }
       // 앨범 사진: 찍은 시각·위치를 사진에서 읽고, 그때 날씨로 계산
       const info = await EM.exifInfo(file);
       const ts = info.ts || file.lastModified || Date.now();
@@ -1090,7 +1101,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
       const hasGps = info.lat != null;
       let at = pos;
       if (hasGps) { at = { lat: info.lat, lng: info.lng, accuracy: null, source: "photo" }; setPos(at); }
-      setRaw(await resizeImage(file, 1280, 0.86));
+      setRaw(await resizeImage(file, 1280, 0.86)); setReading(false);
       const old = Date.now() - ts > 30 * 60 * 1000;
       setAlbum({ ts, gps: hasGps, exif: !!info.ts, wx: old ? "loading" : "now" });
       if (old) {
@@ -1098,7 +1109,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
         try { setPastWx(await fetchWeatherAt(q.lat, q.lng, ts)); setAlbum((a) => a && { ...a, wx: "ok" }); }
         catch (er) { setAlbum((a) => a && { ...a, wx: "fail" }); }
       }
-    } catch (er) { setAiErr("사진을 읽지 못했어요. 다른 사진으로 시도하세요."); setAiState("error"); }
+    } catch (er) { setReading(false); setPhotoErr(`이 사진을 읽지 못했어요 (${(file.type || file.name || "알 수 없는 형식").slice(0, 30)}). 다른 사진을 고르거나 '촬영'으로 찍어 주세요. 카카오톡 안에서 열었다면 ⋯ → 다른 브라우저로 열어 보세요.`); }
   };
   // 앨범 사진 위치를 지도에서 옮기면 그 자리 날씨로 다시 계산
   useEffect(() => {
@@ -1165,9 +1176,10 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
             </div>
             <p class="text-[12px] text-mist mt-1.5 text-center">저장하면 이 프레임 그대로 사진첩·영상에 남아요.</p>`
           : html`<div class="grid grid-cols-2 gap-2">
-              <button type="button" class="drop" onClick=${() => camRef.current.click()}><${Icon} name="Camera" size=${24} />촬영</button>
-              <button type="button" class="drop" onClick=${() => galRef.current.click()}><${Icon} name="ImagePlus" size=${24} />앨범에서 선택</button>
-            </div>`}
+              <button type="button" class="drop" onClick=${() => camRef.current.click()} disabled=${reading}><${Icon} name="Camera" size=${24} />촬영</button>
+              <button type="button" class="drop" onClick=${() => galRef.current.click()} disabled=${reading}><${Icon} name=${reading ? "Loader2" : "ImagePlus"} size=${24} className=${reading ? "animate-spin" : ""} />${reading ? "사진 읽는 중…" : "앨범에서 선택"}</button>
+            </div>
+            ${photoErr && html`<div class="err mt-2">${photoErr}</div>`}`}
           <input ref=${camRef} id="camIn" type="file" accept="image/*" capture="environment" class="hidden" onChange=${(e) => onFile(e, false)} />
           <input ref=${galRef} id="galIn" type="file" accept="image/*" class="hidden" onChange=${(e) => onFile(e, true)} />
           ${album && html`<div class="album-note">
