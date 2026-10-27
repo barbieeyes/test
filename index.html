@@ -426,6 +426,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .base-tog:active{transform:translateY(2px);box-shadow:0 1px 0 var(--grass-deep)}
 .album-note{display:flex;gap:9px;align-items:flex-start;margin-top:8px;padding:10px 12px;border-radius:14px;background:#EEF6FC;border:1.5px solid #BFDDF2;color:#1C5E86}
 .album-note svg{flex:none;margin-top:2px} .album-note b{display:block;font-size:13px} .album-note small{display:block;font-size:12px;line-height:1.55}
+
+.saver-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;max-height:46vh;overflow:auto}
+.saver-grid img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:8px;border:1.5px solid var(--line-2);-webkit-touch-callout:default;user-select:auto}
 </style>
 </head>
 <body>
@@ -1243,6 +1246,53 @@ async function shareFile(name, blob) {
   } catch (e) { if (e && e.name === "AbortError") return true; }
   return false;
 }
+/** dataURL → File (동기: 아이폰은 버튼을 누른 그 순간에 공유 창을 열어야 해서 기다림 없이 만든다) */
+function dataUrlToFile(url, name) {
+  const i = url.indexOf(","), mime = (url.slice(5, i).split(";")[0]) || "image/jpeg", b = atob(url.slice(i + 1)), a = new Uint8Array(b.length);
+  for (let k = 0; k < b.length; k++) a[k] = b.charCodeAt(k);
+  return new File([a], name, { type: mime });
+}
+const IN_APP = typeof navigator !== "undefined" && /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|BAND\//i.test(navigator.userAgent || "");
+const IS_IOS = typeof navigator !== "undefined" && (/iPad|iPhone|iPod/.test(navigator.userAgent || "") || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+/** 어디서든 사진을 앨범에 저장하는 창 열기 */
+const openSaver = (items, title) => window.dispatchEvent(new CustomEvent("eco-save", { detail: { items, title } }));
+
+/** 앨범에 저장: 공유 창(아이폰 '이미지 저장', 안드로이드 '갤러리'), 안 되면 길게 눌러 저장 */
+function PhotoSaver({ items, title, onClose }) {
+  const [msg, setMsg] = useState(""), [done, setDone] = useState({});
+  const CH = 10; // 한 번에 공유할 장수 (아이폰은 너무 많으면 실패)
+  const chunks = []; for (let i = 0; i < items.length; i += CH) chunks.push(items.slice(i, i + CH));
+  const canShareFiles = (() => { try { return !!(navigator.canShare && navigator.canShare({ files: [dataUrlToFile(items[0].url, items[0].name)] })); } catch (e) { return false; } })();
+  const shareChunk = (ci) => {
+    setMsg("");
+    try {
+      const files = chunks[ci].map((it) => dataUrlToFile(it.url, it.name));
+      navigator.share({ files }).then(() => setDone((d) => ({ ...d, [ci]: true })), (e) => {
+        if (e && e.name === "AbortError") return;
+        setMsg("저장 창을 열지 못했어요. 아래 사진을 길게 눌러 '사진 앱에 저장(이미지 저장)'을 눌러 주세요.");
+      });
+    } catch (e) { setMsg("저장 창을 열지 못했어요. 아래 사진을 길게 눌러 저장해 주세요."); }
+  };
+  const download = () => chunks.flat().forEach((it, i) => setTimeout(() => saveFile(it.name, dataUrlToFile(it.url, it.name)), i * 350));
+  return html`<div class="modal-bg" onClick=${onClose}>
+    <div class="modal max-w-md" role="dialog" aria-modal="true" aria-label="앨범에 저장" onClick=${(e) => e.stopPropagation()}>
+      <div class="flex items-center gap-2 mb-2"><${Icon} name="ImageDown" size=${20} className="text-photon" />
+        <h2 class="font-display text-[20px] text-snow">${title || "앨범에 저장"}</h2>
+        <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button></div>
+      ${IN_APP && html`<div class="err mb-3">카카오톡·네이버 같은 앱 안에서 열려 있어 저장이 막힐 수 있어요. 오른쪽 위(또는 아래) <b>⋯ 메뉴 → 다른 브라우저로 열기</b>(사파리·크롬)로 열면 바로 저장돼요.</div>`}
+      ${canShareFiles
+        ? html`<div class="grid gap-2">${chunks.map((c, ci) => html`<button key=${ci} type="button" class="btn-save" onClick=${() => shareChunk(ci)}>
+            <${Icon} name=${done[ci] ? "Check" : "ImageDown"} size=${18} />${chunks.length > 1 ? `${ci * CH + 1}~${ci * CH + c.length}번째 ` : ""}사진 ${c.length}장 앨범에 저장${done[ci] ? " ✓" : ""}</button>`)}
+            <p class="text-[12px] text-mist leading-relaxed">${IS_IOS ? "열리는 창에서 <이미지 저장> 또는 <N개의 이미지 저장>을 누르세요." : "열리는 창에서 갤러리(사진) 또는 '기기에 저장'을 고르세요."}</p></div>`
+        : html`<button type="button" class="btn-save" onClick=${download}><${Icon} name="Download" size=${18} />사진 ${items.length}장 내려받기</button>
+            <p class="text-[12px] text-mist mt-2 leading-relaxed">내려받은 사진은 '다운로드' 폴더에 들어가요. 갤러리 앱에서 '다운로드' 앨범을 보세요.</p>`}
+      ${msg && html`<div class="err mt-2">${msg}</div>`}
+      <p class="text-[12.5px] text-snow font-semibold mt-3 mb-1.5">또는 사진을 <b>길게 눌러</b> 저장</p>
+      <div class="saver-grid">${items.slice(0, 60).map((it, i) => html`<img key=${i} src=${it.url} alt=${it.name} />`)}</div>
+      ${items.length > 60 && html`<p class="text-[12px] text-mist mt-1">… 외 ${items.length - 60}장</p>`}
+    </div>
+  </div>`;
+}
 const today = () => new Date().toISOString().slice(0, 10);
 function toGeoJSON(recs) {
   return JSON.stringify({ type: "FeatureCollection", name: "에코쌤즈_따로또같이_광합성지도", features: recs.map((r) => ({
@@ -1809,7 +1859,9 @@ function VideoMaker({ records, onClose }) {
       </div>` : html`<div class="grid gap-3">
         <video src=${out.url} controls playsInline class="w-full rounded-xl border-2 border-[#2FA463] bg-black max-h-[60vh]"></video>
         <div class="grid grid-cols-2 gap-2">
-          <button type="button" class="btn-save" onClick=${() => saveFile(out.name, out.blob)}><${Icon} name="Download" size=${17} />영상 저장</button>
+          <button type="button" class="btn-save" onClick=${() => { const f = new File([out.blob], out.name, { type: out.blob.type });
+            if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f] }).catch((e) => { if (!e || e.name !== "AbortError") saveFile(out.name, out.blob); }); else saveFile(out.name, out.blob); }}>
+            <${Icon} name="Download" size=${17} />앨범에 저장</button>
           <button type="button" class="btn-primary" onClick=${async () => { if (!(await shareFile(out.name, out.blob))) saveFile(out.name, out.blob); }}><${Icon} name="Share2" size=${17} />공유</button>
         </div>
         <p class="text-[12px] text-mist">${out.ext === "webm" ? "WebM 형식이에요. 카카오톡·유튜브에는 그대로 올라가요. 한글·PPT에 넣으려면 MP4로 변환하세요." : "MP4 형식이라 휴대폰·PPT에서 바로 열려요."} · ${out.seconds}초</p>
@@ -1862,6 +1914,9 @@ function ArchiveView({ records, acts, meetings, onOpen, onOpenAct, onOpenMeeting
           <small>사진 ${nPhotos}장(선생님별·같이·활동·협의회 폴더) + 메모·AI 조언 기록표 + 한글 협의록 + 지도 데이터 + 백업</small></span>
       </button>
       ${zipErr && html`<div class="err">${zipErr}</div>`}
+      <button type="button" class="exp" disabled=${!photos.length} onClick=${() => openSaver(photos.map((r) => ({ url: r.photo,
+          name: `에코쌤즈_${ymd(r.ts)}_${hm(r.ts)}_${safeName(r.kind === "meeting" ? "협의회" : r.kind === "activity" ? (r.title || "활동") : (r.koreanName || "식물"))}.jpg` })), "사진 전체 앨범에 저장")}>
+        <${Icon} name="ImageDown" size=${20} className="text-photon" /><span><b>사진 ${photos.length}장 휴대폰 앨범에 저장</b><small>프레임·날짜 도장 그대로 · 10장씩 나눠 저장</small></span></button>
       <p class="text-[12px] text-mist leading-relaxed">이 휴대폰에 있는 자료만 묶여요. 다른 선생님 자료까지 받으려면 각자 아래 <b>내 기록 보내기</b>로 파일을 보내 주고, 받은 파일을 <b>팀원 기록 합치기</b>로 불러온 다음 눌러 주세요.</p>
       <div class="grid sm:grid-cols-2 gap-2">
         <button type="button" class="exp" disabled=${!real.length} onClick=${() => saveFile(`에코쌤즈_광합성지도_${today()}.csv`, toCSV(real), "text/csv;charset=utf-8")}>
@@ -2113,9 +2168,8 @@ function DetailModal({ rec, me, onClose, onDelete }) {
         <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>
       </div>
       ${rec.photo && html`<img src=${rec.photo} alt=${rec.koreanName || "식물 사진"} class="detail-photo" />`}
-      ${rec.photo && html`<div class="flex justify-end -mt-1 mb-3"><button type="button" class="link-btn" onClick=${async () => {
-        const b = await (await fetch(rec.photo)).blob(); const n = `에코쌤즈_${rec.koreanName || "식물"}_${today()}.jpg`; if (!(await shareFile(n, b))) saveFile(n, b); }}>
-        <${Icon} name="Download" size=${14} />프레임 사진 저장</button></div>`}
+      ${rec.photo && html`<div class="flex justify-end -mt-1 mb-3"><button type="button" class="link-btn" onClick=${() => openSaver([{ url: rec.photo, name: `에코쌤즈_${rec.koreanName || "식물"}_${ymd(rec.ts)}.jpg` }], "프레임 사진 앨범에 저장")}>
+        <${Icon} name="ImageDown" size=${14} />앨범에 저장</button></div>`}
       <${AnalysisCard} rec=${rec} />
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 text-[12px]">
         ${[["기온", fix(rec.weather.temp) + "℃"], ["습도", fix(rec.weather.rh, 0) + "%"], ["운량", fix(rec.weather.cloud, 0) + "%"], ["일사량", fix(rec.weather.sw, 0) + " W/m²"]]
@@ -2275,8 +2329,8 @@ function ActivityModal({ me, item, onClose, onSave, onDelete }) {
           style=${{ background: MODES.activity.color, borderColor: MODES.activity.deep, boxShadow: `0 4px 0 ${MODES.activity.deep}` }}>
           <${Icon} name="Save" size=${18} />${busy && (files.length || !isNew) ? "날짜 도장 찍는 중…" : isNew ? `활동 사진 ${files.length || ""}장 저장` : "고친 내용 저장"}</button>
         ${!isNew && html`<div class="flex gap-2 flex-wrap">
-          <button type="button" class="btn-ghost" onClick=${async () => { const b = await (await fetch(item.photo)).blob(); const n = `에코쌤즈_활동_${fmtDay(item.ts).replace(/\s/g, "")}.jpg`; if (!(await shareFile(n, b))) saveFile(n, b); }}>
-            <${Icon} name="Download" size=${15} />사진 저장</button>
+          <button type="button" class="btn-ghost" onClick=${() => openSaver([{ url: item.photo, name: `에코쌤즈_활동_${ymd(item.ts)}.jpg` }], "활동 사진 앨범에 저장")}>
+            <${Icon} name="ImageDown" size=${15} />앨범에 저장</button>
           ${!ask ? html`<button type="button" class="btn-ghost ml-auto text-rose-600" onClick=${() => setAsk(true)}><${Icon} name="Trash2" size=${15} />삭제</button>`
             : html`<div class="ml-auto flex items-center gap-2"><span class="text-[13px] text-rose-700">지울까요?</span>
               <button type="button" class="btn-ghost" onClick=${() => setAsk(false)}>취소</button><button type="button" class="btn-danger" onClick=${() => onDelete(item.id)}>삭제</button></div>`}
@@ -2564,6 +2618,8 @@ function App() {
   const [meetEdit, setMeetEdit] = useState(null);
   const [teamSub, setTeamSub] = useState("plants");
   const [showSwitch, setShowSwitch] = useState(false);
+  const [saver, setSaver] = useState(null);
+  useEffect(() => { const fn = (e) => setSaver(e.detail); window.addEventListener("eco-save", fn); return () => window.removeEventListener("eco-save", fn); }, []);
   const depth = useRef(0);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTabS] = useState(() => { const hsh = (location.hash || "").slice(1); return TABS.some((t) => t.id === hsh) ? hsh : "today"; });
@@ -2641,6 +2697,8 @@ function App() {
     const ok = await db.put(rec);
     setRecords((rs) => [rec, ...rs]); setDraft(null);
     say(ok ? `${MODES[rec.mode].label} 기록 저장 · ${rec.koreanName || "식물"}` : "저장 공간이 부족해요. 아카이브에서 백업 후 정리하세요.");
+    // 앱 카메라로 찍은 사진은 휴대폰 앨범에 자동으로 남지 않아서, 바로 저장할 수 있게 물어본다
+    if (rec.photo && !rec.fromAlbum) setSaver({ items: [{ url: rec.photo, name: `에코쌤즈_${rec.koreanName || "식물"}_${ymd(rec.ts)}_${hm(rec.ts)}.jpg` }], title: "방금 찍은 사진, 앨범에도 남길까요?" });
     setTab(rec.mode === "solo" ? "solo" : "team");
   };
   const saveActs = async (list) => {
@@ -2694,6 +2752,7 @@ function App() {
       onClose=${() => setDraft(null)} onSave=${saveRecord} onOpenSettings=${() => setShowSettings(true)} />`}
     ${meetEdit && html`<${MeetingModal} me=${me} item=${meetEdit.isNew ? null : meetEdit} settings=${settings} onClose=${() => setMeetEdit(null)} onSave=${saveMeeting} onDelete=${deleteMeeting}
       onExport=${exportMinutes} onOpenSettings=${() => setShowSettings(true)} />`}
+    ${saver && html`<${PhotoSaver} items=${saver.items} title=${saver.title} onClose=${() => setSaver(null)} />`}
     ${showSwitch && html`<${SwitchModal} me=${me} onPick=${switchTo} onClose=${() => setShowSwitch(false)} />`}
     ${actEdit && html`<${ActivityModal} me=${me} item=${actEdit.isNew ? null : actEdit} onClose=${() => setActEdit(null)} onSave=${saveActs} onDelete=${deleteAct} />`}
     ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} />`}
