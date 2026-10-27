@@ -417,6 +417,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .meet-bar-ic{width:46px;height:46px;border-radius:999px;display:grid;place-items:center;background:#DC4B31;border:2px solid rgba(255,255,255,.6);flex:none}
 .meet-bar-list{display:grid;place-items:center;align-content:center;min-width:74px;padding:8px 10px;border-radius:18px;background:#FBF4E8;border:2.5px solid #E4D3B8;color:#6E4A1E}
 .meet-bar-list b{font-size:22px;line-height:1} .meet-bar-list small{font-size:11px;font-weight:700}
+
+.sat-tiles{filter:saturate(1.15) contrast(1.05) brightness(1.04)}
 </style>
 </head>
 <body>
@@ -1550,16 +1552,15 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
 
 /* ---------- 지도 바탕: 위성사진(기본) · 지명 · 일반 지도 ---------- */
 const ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-const CARTO_LABELS = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png";
-const CARTO_ROAD = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>';
-const MAX_Z = 22;
+const OSM_STD = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> 기여자';
+const MAX_Z = 21;      // 21단계: 1칸 ≈ 0.06m (위성 원본은 19단계까지, 그 위는 확대만)
+const PICK_Z = 17;     // 위치 고를 때 처음 보이는 단계: 동네 블록 몇 개가 한눈에
 function addBaseLayers(map) {
-  const sat = L.tileLayer(ESRI_SAT, { maxNativeZoom: 19, maxZoom: MAX_Z, attribution: "위성사진 &copy; Esri, Maxar, Earthstar Geographics" });
-  const labels = L.tileLayer(CARTO_LABELS, { subdomains: "abcd", maxNativeZoom: 20, maxZoom: MAX_Z, attribution: OSM_ATTR, pane: "overlayPane" });
-  const road = L.tileLayer(CARTO_ROAD, { subdomains: "abcd", maxNativeZoom: 20, maxZoom: MAX_Z, attribution: OSM_ATTR });
-  sat.addTo(map); labels.addTo(map);
-  L.control.layers({ "위성사진": sat, "일반 지도": road }, { "지명·도로 이름": labels }, { position: "topleft", collapsed: true }).addTo(map);
+  const sat = L.tileLayer(ESRI_SAT, { maxNativeZoom: 19, maxZoom: MAX_Z, className: "sat-tiles", attribution: "위성사진 &copy; Esri, Maxar, Earthstar Geographics" });
+  const road = L.tileLayer(OSM_STD, { maxNativeZoom: 19, maxZoom: MAX_Z, attribution: OSM_ATTR });
+  sat.addTo(map);
+  L.control.layers({ "위성사진": sat, "일반 지도 (한글 지명)": road }, {}, { position: "topleft", collapsed: true }).addTo(map);
   L.control.scale({ metric: true, imperial: false, maxWidth: 110 }).addTo(map);
 }
 const mPerPx = (lat, z) => 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z);
@@ -1567,12 +1568,12 @@ const mPerPx = (lat, z) => 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.p
 /** 지도 위에 콕 찍어 위치 정하기 (핀 끌기·지도 누르기) */
 function LocPicker({ pos, onPick, color }) {
   const elRef = useRef(null), mapRef = useRef(null), pinRef = useRef(null), accRef = useRef(null), cbRef = useRef(onPick);
-  const [z, setZ] = useState(19);
+  const [z, setZ] = useState(PICK_Z);
   cbRef.current = onPick;
   const start = pos || { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] };
   useEffect(() => {
     if (!window.L || !elRef.current) return;
-    const map = L.map(elRef.current, { zoomControl: true, maxZoom: MAX_Z, tap: true }).setView([start.lat, start.lng], pos ? 19 : 16);
+    const map = L.map(elRef.current, { zoomControl: true, maxZoom: MAX_Z, tap: true }).setView([start.lat, start.lng], pos ? PICK_Z : 16);
     addBaseLayers(map);
     const icon = L.divIcon({ className: "", iconSize: [34, 44], iconAnchor: [17, 42], html: `<span class="pick-pin" style="--c:${color || "#DC4B31"}"><i></i></span>` });
     const pin = L.marker([start.lat, start.lng], { draggable: true, icon, autoPan: true }).addTo(map);
@@ -1587,14 +1588,14 @@ function LocPicker({ pos, onPick, color }) {
   useEffect(() => {
     const map = mapRef.current, pin = pinRef.current; if (!map || !pin || !pos) return;
     const cur = pin.getLatLng();
-    if (Math.abs(cur.lat - pos.lat) > 1e-8 || Math.abs(cur.lng - pos.lng) > 1e-8) { pin.setLatLng([pos.lat, pos.lng]); map.setView([pos.lat, pos.lng], Math.max(map.getZoom(), 19)); }
+    if (Math.abs(cur.lat - pos.lat) > 1e-8 || Math.abs(cur.lng - pos.lng) > 1e-8) { pin.setLatLng([pos.lat, pos.lng]); map.setView([pos.lat, pos.lng], Math.max(map.getZoom(), PICK_Z)); }
     if (accRef.current) { accRef.current.remove(); accRef.current = null; }
     if (pos.source === "gps" && pos.accuracy) accRef.current = L.circle([pos.lat, pos.lng], { radius: pos.accuracy, color: "#2B9BD6", weight: 1.5, fillOpacity: 0.12, interactive: false }).addTo(map);
   }, [pos && pos.lat, pos && pos.lng, pos && pos.source]);
   const res = mPerPx(start.lat, z);
   return html`<div class="pickwrap">
     <div ref=${elRef} class="pickmap" role="application" aria-label="위치 고르기 지도. 지도를 누르거나 핀을 끌어 위치를 정해요."></div>
-    <div class="pick-read mono">확대 ${z} · 1칸 ≈ ${res < 1 ? (res * 100).toFixed(0) + "cm" : res.toFixed(1) + "m"}</div>
+    <div class="pick-read mono">확대 ${z} · 1칸 ≈ ${res < 1 ? (res * 100).toFixed(0) + "cm" : res.toFixed(1) + "m"}${z < 19 ? " · 정확히: 두 손가락으로 확대" : ""}</div>
   </div>`;
 }
 
@@ -1641,7 +1642,7 @@ function MapPanel({ records, homes, selectedId, onSelect, onMapPick, gpsPos, fol
     else meRef.current.setLatLng(ll);
     if (follow) map.panTo(ll, { animate: true });
   }, [gpsPos, follow]);
-  const goMe = () => { const map = mapRef.current; if (map && gpsPos) map.setView([gpsPos.lat, gpsPos.lng], 19); setFollow(!follow); };
+  const goMe = () => { const map = mapRef.current; if (map && gpsPos) map.setView([gpsPos.lat, gpsPos.lng], 18); setFollow(!follow); };
   return html`<div class="relative">
     <div ref=${elRef} class="mapbox" role="application" aria-label="광합성 지도. 지도를 누르면 그 자리에 새 기록을 만들어요."></div>
     ${!ok && html`<div class="absolute inset-0 grid place-items-center text-mist text-sm p-6 text-center">지도를 불러오지 못했어요. 인터넷 연결을 확인하세요.</div>`}
@@ -2583,7 +2584,7 @@ function App() {
         : tab === "activity" ? html`<${ActivityView} me=${me} acts=${acts} onAdd=${() => setActEdit({ isNew: true })} onOpen=${(a) => setActEdit(a)} />`
         : tab === "map" ? html`<${MapView} records=${records} gps=${gps} follow=${follow} setFollow=${setFollow} onMapPick=${onMapPick} onOpen=${setOpenId} openId=${openId} />`
         : html`<${ArchiveView} records=${records} acts=${acts} meetings=${meetings} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onOpenMeeting=${(m) => setMeetEdit(m)} onClearSamples=${clearSamples} onImport=${importJSON} />`}
-      <footer class="text-center text-[11px] text-mist leading-relaxed mt-6">기후행동 실천모임 에코쌤즈 · 이정연 · 신민화 · 이귀리 · 정종화<br/>기상 Open-Meteo · 지도 © OpenStreetMap, CARTO · 탄소 고정 값은 대표 계수 기반 추정치</footer>
+      <footer class="text-center text-[11px] text-mist leading-relaxed mt-6">기후행동 실천모임 에코쌤즈 · 이정연 · 신민화 · 이귀리 · 정종화<br/>기상 Open-Meteo · 지도 © Esri 위성사진, OpenStreetMap · 탄소 고정 값은 대표 계수 기반 추정치</footer>
     </main>
     <${TabBar} tab=${tab} setTab=${setTab} counts=${counts} />
     ${draft && html`<${RecordModal} draft=${draft} researcher=${me} weather=${weather} settings=${settings} gps=${gps}
