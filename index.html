@@ -469,6 +469,8 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 .sync-card.s-error,.sync-card.s-offline{background:#FFF4E5;border-color:#F3C98B;color:#8A5300}
 .sync-card.s-syncing,.sync-card.s-idle{background:#EEF6FC;border-color:#BFDDF2;color:#1C5E86}
 .sync-warn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:7px 12px;background:#FFF4E5;color:#8A5300;font-size:12.5px;font-weight:700;border-bottom:1.5px solid #F3C98B}
+
+.grid-edit{display:grid;gap:10px}
 </style>
 </head>
 <body>
@@ -480,7 +482,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>window.__BUILD__ = "20261028174545";</script>
+<script>window.__BUILD__ = "20261028205022";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -2346,8 +2348,38 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
 }
 
 /* ---------- 상세 ---------- */
-function DetailModal({ rec, me, onClose, onDelete, onUpdate }) {
+function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSettings }) {
   const [ask, setAsk] = useState(false);
+  // 이름·생활형 고치기 + 저장된 사진으로 AI 다시 찾기 (팀원 누구나)
+  const [ed, setEd] = useState(null); // {koreanName, scientificName, growthForm, psType, place, notes}
+  const [ai, setAi] = useState(null), [aiState, setAiState] = useState("idle"), [aiErr, setAiErr] = useState("");
+  const openEdit = () => { setEd({ koreanName: rec.koreanName || "", scientificName: rec.scientificName || "", growthForm: rec.growthForm || "초본", psType: rec.psType || "C3",
+    place: rec.place || "", notes: rec.notes || "" }); setAi(null); setAiState("idle"); };
+  const runAI = async () => {
+    if (!aiReady(settings)) { onOpenSettings && onOpenSettings(); return; }
+    const src = rec.raw || rec.photo; if (!src) { setAiErr("사진이 없어 AI로 찾을 수 없어요."); setAiState("error"); return; }
+    setAiState("loading"); setAiErr("");
+    try {
+      const dataUrl = await photoDataUrl(src);
+      const o = await analyzePlant({ settings, dataUrl, weather: rec.weather, lat: rec.lat, lng: rec.lng, mode: rec.mode });
+      setAi(o); setAiState("ok");
+      setEd((q) => ({ ...q, koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType }));
+    } catch (e) { setAiState("error"); setAiErr(e.message || String(e)); }
+  };
+  const saveEdit = async () => {
+    setBusy(true); setErr("");
+    try {
+      const lai = ai && ai.carbonFixationEst && Number(ai.carbonFixationEst.laiEstimate) > 0 ? M.clamp(Number(ai.carbonFixationEst.laiEstimate), 0.1, 10) : rec.lai;
+      const model = M.estimate({ sw: rec.weather.sw, temp: rec.weather.temp, rh: rec.weather.rh, psType: ed.psType, growthForm: ed.growthForm, lai });
+      let photo = rec.photo;
+      if (rec.raw) { try { photo = await EM.composeFrame(rec.raw, { mode: rec.mode, researcher: rec.researcher, ts: rec.ts, name: ed.koreanName.trim(), sci: ed.scientificName.trim(), place: ed.place.trim() || MODES[rec.mode].place }); } catch (e) {} }
+      await onUpdate({ ...rec, koreanName: ed.koreanName.trim(), scientificName: ed.scientificName.trim(), growthForm: ed.growthForm, psType: ed.psType,
+        place: ed.place.trim(), notes: ed.notes.trim(), lai, model, photo, ...(ai ? { ai, confidence: ai.confidence } : {}), editedBy: me, editedAt: Date.now() },
+        `${ed.koreanName.trim() || "식물"}(으)로 고쳤어요${rec.raw ? "" : " · 사진 속 이름은 예전 그대로예요"}`);
+      setEd(null);
+    } catch (e) { setErr("저장하지 못했어요."); }
+    setBusy(false);
+  };
   const [editWhen, setEditWhen] = useState(null), [busy, setBusy] = useState(false), [err, setErr] = useState("");
   const mine = rec.researcher === me || rec.sample;
   const saveWhen = async () => {
@@ -2371,6 +2403,7 @@ function DetailModal({ rec, me, onClose, onDelete, onUpdate }) {
     <div class="modal" role="dialog" aria-modal="true" aria-label="기록 상세" onClick=${(e) => e.stopPropagation()}>
       <div class="flex items-center gap-2 mb-3 text-[12px] text-mist flex-wrap">
         <${ModeTag} mode=${rec.mode} /><${Dot} color=${rColor(rec.researcher)} size=${8} /><span>${rec.researcher}</span><span>· ${fmtDate(rec.ts)}</span>
+        ${!ed && html`<button type="button" class="link-btn" onClick=${openEdit}><${Icon} name="PencilLine" size=${13} />이름·종 고치기</button>`}
         ${mine && editWhen == null && html`<button type="button" class="link-btn" onClick=${() => setEditWhen(toLocalInput(rec.ts))}><${Icon} name="CalendarClock" size=${13} />날짜 고치기</button>`}<span>· ${rec.place || MODES[rec.mode].place}</span>
         <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>
       </div>
@@ -2379,6 +2412,31 @@ function DetailModal({ rec, me, onClose, onDelete, onUpdate }) {
         <div class="flex gap-2 items-end"><button type="button" class="btn-ghost" onClick=${() => { setEditWhen(null); setErr(""); }} disabled=${busy}>취소</button>
           <button type="button" class="btn-save" onClick=${saveWhen} disabled=${busy}><${Icon} name=${busy ? "Loader2" : "Check"} size=${16} className=${busy ? "animate-spin" : ""} />${busy ? "다시 계산 중…" : "저장"}</button></div>
         <p class="text-[12px] text-mist w-full">저장하면 그 시각 날씨로 빛·탄소 고정을 다시 계산하고, 사진 날짜 도장도 새로 찍어요.</p>
+        ${err && html`<div class="err w-full">${err}</div>`}
+      </div>`}
+      ${ed && html`<div class="when-edit grid-edit">
+        <button type="button" class="btn-primary w-full" onClick=${runAI} disabled=${aiState === "loading" || busy}>
+          <${Icon} name=${aiState === "loading" ? "Loader2" : "ScanSearch"} size=${18} className=${aiState === "loading" ? "animate-spin" : ""} />
+          ${aiState === "loading" ? "사진 속 식물 찾는 중…" : aiReady(settings) ? "저장된 사진으로 AI 종 찾기" : "AI 쓰려면 설정"}</button>
+        ${aiState === "error" && html`<div class="err w-full">${aiErr}</div>`}
+        ${ai && aiState === "ok" && html`<div class="ai-pick w-full">
+          <div class="flex items-center gap-2 flex-wrap"><${Icon} name="Sparkles" size=${15} /><b>${ai.koreanName || "?"}</b>
+            <span class="mono text-[12px]">${ai.confidence}%</span>${ai.family && html`<span class="text-[12px]">· ${ai.family}</span>`}
+            ${ai.pnScore != null && html`<span class="pn-badge">사진 비교 ${ai.pnScore}%</span>`}</div>
+          ${ai.note && html`<p class="text-[12.5px] leading-relaxed mt-1">${ai.note}</p>`}
+          ${ai.candidates && ai.candidates.length ? html`<div class="mt-2 flex flex-wrap gap-1.5 items-center"><span class="text-[12px]">다른 후보:</span>
+            ${ai.candidates.map((c) => html`<button key=${c.koreanName} type="button" class="cand" onClick=${() => setEd((q) => ({ ...q, koreanName: c.koreanName, scientificName: c.scientificName || "" }))}>${c.koreanName}</button>`)}</div>` : null}
+        </div>`}
+        <div class="grid grid-cols-2 gap-2 w-full">
+          <label class="fld"><span>국명</span><input id="eKor" value=${ed.koreanName} onInput=${(e) => setEd({ ...ed, koreanName: e.target.value })} placeholder="예: 마름" /></label>
+          <label class="fld"><span>학명</span><input id="eSci" class="italic" value=${ed.scientificName} onInput=${(e) => setEd({ ...ed, scientificName: e.target.value })} placeholder="예: Trapa japonica" /></label>
+        </div>
+        <div class="w-full"><${Label}>생활형</${Label}><div class="flex flex-wrap gap-1.5">${FORM_LIST.map((g) => html`<${Chip} key=${g} on=${ed.growthForm === g} onClick=${() => setEd({ ...ed, growthForm: g })}>${g}</${Chip}>`)}</div></div>
+        <div class="w-full"><${Label}>광합성 유형</${Label}><div class="flex flex-wrap gap-1.5">${PS_LIST.map((g) => html`<${Chip} key=${g} on=${ed.psType === g} onClick=${() => setEd({ ...ed, psType: g })}>${M.PS_TYPES[g].label}</${Chip}>`)}</div></div>
+        <label class="fld w-full"><span>장소 이름</span><input id="ePlace" value=${ed.place} onInput=${(e) => setEd({ ...ed, place: e.target.value })} /></label>
+        <label class="fld w-full"><span>메모</span><textarea id="eNote" rows="2" value=${ed.notes} onInput=${(e) => setEd({ ...ed, notes: e.target.value })}></textarea></label>
+        <div class="flex gap-2 w-full justify-end"><button type="button" class="btn-ghost" onClick=${() => setEd(null)} disabled=${busy}>취소</button>
+          <button type="button" class="btn-save" onClick=${saveEdit} disabled=${busy || aiState === "loading"}><${Icon} name=${busy ? "Loader2" : "Check"} size=${16} className=${busy ? "animate-spin" : ""} />${busy ? "저장 중…" : "고친 내용 저장"}</button></div>
         ${err && html`<div class="err w-full">${err}</div>`}
       </div>`}
       ${rec.photo && html`<img src=${rec.photo} alt=${rec.koreanName || "식물 사진"} class="detail-photo" />`}
@@ -3037,7 +3095,7 @@ function App() {
     ${saver && html`<${PhotoSaver} items=${saver.items} title=${saver.title} onClose=${() => setSaver(null)} />`}
     ${showSwitch && html`<${SwitchModal} me=${me} onPick=${switchTo} onClose=${() => setShowSwitch(false)} />`}
     ${actEdit && html`<${ActivityModal} me=${me} item=${actEdit.isNew ? null : actEdit} onClose=${() => setActEdit(null)} onSave=${saveActs} onDelete=${deleteAct} />`}
-    ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} onUpdate=${updateRecord} />`}
+    ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} settings=${settings} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} onUpdate=${updateRecord} onOpenSettings=${() => setShowSettings(true)} />`}
     ${showSettings && html`<${SettingsModal} settings=${settings} onClose=${() => setShowSettings(false)}
       onSave=${(s) => { setSettings(s); store.set(LS_SET, { ...store.get(LS_SET, {}), apiKey: s.apiKey, model: s.model }); setShowSettings(false); say(s.apiKey ? "AI 설정을 저장했어요" : "API 키를 지웠어요"); }} />`}
     ${toast && html`<div class="toast" role="status">${toast}</div>`}
