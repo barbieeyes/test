@@ -39,6 +39,26 @@ const HOME_DEFAULT = {
   "이귀리": { label: "둔촌동", lat: 37.5270, lng: 127.1390 },
   "정종화": { label: "일원동", lat: 37.4835, lng: 127.0830 },
 };
+/** 따로: 네 동네의 탐구 주제 — 동네마다 다른 도시 생태를 비교한다 */
+const THEMES = {
+  "이정연": { tag: "신도시 × 습지", place: "위례 신도시", icon: "Building2",
+    q: "새로 만든 도시에는 어떤 식물이 자리 잡을까?",
+    about: "남한산성 자락과 습지, 새로 조성된 신도시 조경이 맞닿은 곳. 심은 조경수와 저절로 들어온 습지·산자락 식물을 비교해요.",
+    habitats: ["신도시 조경", "습지·수변", "남한산성 자락", "공원·산책로", "빈터·공사장 가장자리"] },
+  "신민화": { tag: "강남 도심 한복판", place: "대치동", icon: "Landmark",
+    q: "빌딩 숲 사이에서 살아남는 식물은?",
+    about: "아스팔트와 빌딩이 가득한 강남 한복판. 가로수·화단·보도블록 틈처럼 좁고 뜨거운 자리에서 버티는 식물을 찾아요.",
+    habitats: ["가로수", "아파트·상가 화단", "보도 틈새", "학원가 옥상·화분", "근린공원"] },
+  "이귀리": { tag: "텃밭 작물", place: "둔촌동 텃밭", icon: "Sprout",
+    q: "우리가 심고 가꾸는 작물은 얼마나 광합성할까?",
+    about: "사람이 심고 가꾸는 텃밭. 채소·허브 같은 작물과 그 사이에 저절로 나는 잡초를 함께 기록해요.",
+    habitats: ["잎채소", "뿌리·줄기채소", "열매채소", "허브·향신", "텃밭 잡초"] },
+  "정종화": { tag: "도심 속 산", place: "대모산", icon: "Mountain",
+    q: "서울 한가운데 산에는 어떤 식물이 살까?",
+    about: "큰 도시에 둘러싸인 대모산. 숲 바닥·등산로·계곡에서 도시 숲만의 식물과 그 변화를 살펴요.",
+    habitats: ["숲 바닥", "등산로 가장자리", "계곡·물가", "능선·바위", "숲 가장자리"] },
+};
+const TEAM_HABITATS = ["화단", "운동장 가장자리", "담장·울타리", "텃밭·생태정원", "교정 나무", "틈새"];
 const TEAM_PIN = "2144"; // 팀 공용 입장 비밀번호 (화면 잠금용이며 보안 장치는 아님)
 const MODES = EM.MODE_INFO; // solo = 따로(우리 동네), team = 같이(학교)
 const FORM_LIST = ["목본", "초본", "양치식물", "이끼류"];
@@ -253,13 +273,15 @@ async function fetchWeatherAt(lat, lng, ts) {
 }
 
 /* ---------- Claude 비전 분석 ---------- */
-function buildPrompt(w, lat, lng, mode, pn) {
+function buildPrompt(w, lat, lng, mode, pn, ctx) {
   const pnText = pn && pn.length ? `
 [사진 비교 데이터베이스 Pl@ntNet이 비슷한 사진들과 비교해 뽑은 후보 (점수 = 사진 유사도)]
 ${pn.map((c, i) => `${i + 1}. ${c.sci}${c.family ? ` (${c.family})` : ""} ${c.score}%${c.common.length ? ` · 영어 이름 ${c.common.join(", ")}` : ""}`).join("\n")}
 이 후보들과 사진을 함께 보고 가장 맞는 종을 고르세요. 점수가 낮거나 사진과 안 맞으면 후보 밖에서 직접 판단해도 됩니다.
 candidates에는 위 후보들 중 고른 것을 뺀 나머지를 (국명을 붙여) 넣고, confidence는 Pl@ntNet 점수를 참고해 정하세요.` : "";
-  return `한국 ${mode === "solo" ? "주택가·동네" : "학교 교정"}(위도 ${lat.toFixed(3)}, 경도 ${lng.toFixed(3)})에서 찍은 식물 사진입니다. 사진 속 식물의 종을 알려 주세요.${pnText}
+  const where = ctx && ctx.theme ? `${ctx.theme.place}(${ctx.theme.tag})${ctx.habitat ? ` · ${ctx.habitat}` : ""}` : mode === "solo" ? "주택가·동네" : `학교 교정${ctx && ctx.habitat ? ` · ${ctx.habitat}` : ""}`;
+  const crop = ctx && ctx.theme && ctx.theme.tag === "텃밭 작물" ? "\n- 텃밭에서 기르는 작물일 가능성이 높아요. 채소는 품종(예: 적상추, 청경채)까지 알 수 있으면 국명에 쓰세요." : "";
+  return `한국 ${where}(위도 ${lat.toFixed(3)}, 경도 ${lng.toFixed(3)})에서 찍은 식물 사진입니다. 사진 속 식물의 종을 알려 주세요.${crop}${pnText}
 - 한국에서 실제로 볼 수 있는 종 기준. 원예 품종이면 대표 종명을 쓰세요.
 - 사진에 이름표·안내판 글씨가 보이면 참고하되, 실제 모습과 맞는지 확인하세요.
 - 확실하지 않으면 신뢰도를 낮추고, 비슷한 후보를 함께 주세요.
@@ -340,12 +362,12 @@ async function plantnetIdentify(key, dataUrl) {
       common: (x.species.commonNames || []).slice(0, 2), score: Math.round((x.score || 0) * 100) })), left: j.remainingIdentificationRequests };
   } finally { clearTimeout(t); }
 }
-async function analyzePlant({ settings, dataUrl, weather, lat, lng, mode }) {
+async function analyzePlant({ settings, dataUrl, weather, lat, lng, mode, ctx }) {
   const b64 = dataUrl.split(",")[1];
   let pn = null, pnErr = "";
   if (settings && settings.plantnet) { try { pn = await plantnetIdentify(settings.plantnet, dataUrl); } catch (e) { pnErr = e.message || String(e); } }
   const text = await callClaude(settings, { max_tokens: 6000, system: "당신은 한국 식물 동정 도우미입니다. 응답은 반드시 유효한 JSON 객체 하나여야 합니다.",
-    content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: buildPrompt(weather, lat, lng, mode, pn && pn.list) }] });
+    content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: buildPrompt(weather, lat, lng, mode, pn && pn.list, ctx) }] });
   let o;
   try { o = parseAI(text); } catch (e) { try { console.warn("AI 응답", text); } catch (x) {} throw new Error("AI 응답을 해석하지 못했어요. 한 번 더 눌러 주세요."); }
   // Pl@ntNet 점수를 후보·답에 붙이기
@@ -470,11 +492,12 @@ function toGeoJSON(recs) {
       a_leaf_umol: r.model.aLeaf, lai: r.model.lai, gco2_h_m2: r.model.gco2, gps_accuracy_m: r.accuracy, location_source: r.source || "", sample: !!r.sample, notes: r.notes || "" } })) }, null, 2);
 }
 function toCSV(recs) {
-  const head = ["일시", "따로/같이", "장소", "연구원", "위도", "경도", "위치 기준", "GPS정확도(m)", "국명", "학명", "신뢰도(%)", "과", "생활형", "광합성유형",
+  const head = ["일시", "따로/같이", "탐구 주제", "서식지", "장소", "연구원", "위도", "경도", "위치 기준", "GPS정확도(m)", "국명", "학명", "신뢰도(%)", "과", "생활형", "광합성유형",
     "기온(℃)", "습도(%)", "운량(%)", "일사량(W/m²)", "PPFD(µmol/m²/s)", "PAR지수", "광합성활성", "잎 순광합성(µmol/m²/s)",
     "LAI", "탄소고정(gCO₂/h·m²)", "기후지표종", "메모", "AI 광합성 해설", "AI 기후지표 근거", "AI 수업 연계 조언", "예시"];
   const src = { gps: "GPS", map: "지도 지정", home: "우리 동네 기본 위치", photo: "사진 위치정보", default: "임시 위치" };
-  const rows = recs.map((r) => [new Date(r.ts).toLocaleString("ko-KR"), MODES[r.mode] ? MODES[r.mode].label : "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
+  const rows = recs.map((r) => [new Date(r.ts).toLocaleString("ko-KR"), MODES[r.mode] ? MODES[r.mode].label : "",
+    r.mode === "solo" && THEMES[r.researcher] ? THEMES[r.researcher].tag : "학교", r.habitat || "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
     r.koreanName, r.scientificName, r.confidence ?? "", r.ai && r.ai.taxonomy ? r.ai.taxonomy.family : "", r.growthForm, r.psType,
     r.weather.temp, r.weather.rh, r.weather.cloud, r.weather.sw, r.weather.ppfd, r.weather.par, M.activity(r.weather.ppfd).label,
     r.model.aLeaf, r.model.lai, r.model.gco2, r.ai && r.ai.ecologicalInsight && r.ai.ecologicalInsight.climateIndicator ? "O" : "",
@@ -748,7 +771,8 @@ function SoloView({ me, records, gps, onAdd, onOpen, say }) {
       ${RESEARCHERS.map((r) => { const list = solo.filter((x) => x.researcher === r.name);
         return html`<button key=${r.name} type="button" class=${"lane" + (who === r.name ? " lane-on" : "")} style=${{ "--c": r.color }} onClick=${() => setWho(r.name)}>
           <span class="lane-top"><${Dot} color=${r.color} size=${9} /><b>${r.name}</b>${r.name === me ? html`<em>나</em>` : null}</span>
-          <span class="lane-home"><${Icon} name="MapPin" size=${11} />${getHome(r.name).label}</span>
+          <span class="lane-home"><${Icon} name="MapPin" size=${11} />${THEMES[r.name] ? THEMES[r.name].place : getHome(r.name).label}</span>
+          ${THEMES[r.name] && html`<span class="lane-tag"><${Icon} name=${THEMES[r.name].icon} size=${12} />${THEMES[r.name].tag}</span>`}
           <span class="lane-n mono">${list.length}<small>건 · ${new Set(list.map(speciesKey).filter(Boolean)).size}종</small></span>
           <span class="lane-thumbs">${list.slice(0, 3).map((x) => x.photo ? html`<img key=${x.id} src=${x.photo} alt="" />` : html`<i key=${x.id}><${Icon} name="Leaf" size=${12} /></i>`)}</span>
         </button>`; })}
@@ -759,6 +783,11 @@ function SoloView({ me, records, gps, onAdd, onOpen, say }) {
         <span class="text-[12px] text-mist">${mine.length}건</span>
         ${who === me && html`<button type="button" class="btn-add ml-auto" style=${{ "--c": MODES.solo.color }} onClick=${() => onAdd("solo")}><${Icon} name="Plus" size=${17} />따로 기록</button>`}
       </div>
+      ${THEMES[who] && html`<div class="theme-card" style=${{ "--c": rColor(who) }}>
+        <span class="theme-ic"><${Icon} name=${THEMES[who].icon} size=${22} /></span>
+        <span class="flex-1 min-w-0"><small>${THEMES[who].place} · ${THEMES[who].tag}</small><b>${THEMES[who].q}</b><em>${THEMES[who].about}</em>
+          ${mine.length ? html`<span class="theme-hab">${THEMES[who].habitats.map((h) => { const n = mine.filter((r) => r.habitat === h).length; return html`<i key=${h} class=${n ? "on" : ""}>${h}${n ? ` ${n}` : ""}</i>`; })}</span>` : null}</span>
+      </div>`}
       <div class="home-line"><${Icon} name="MapPin" size=${14} /><span>탐구 기본 위치 <b>${home.label}</b>${who === me ? html` <span class="text-mist">${home.custom ? "· 내가 정한 정확한 위치 (이 휴대폰에만 저장)" : "· 동 중심"}</span>` : null}</span>
         ${who === me && html`<button type="button" class="link-btn ml-auto" onClick=${useGpsAsHome}><${Icon} name="LocateFixed" size=${13} />지금 위치로 바꾸기</button>`}</div>
       ${mine.length ? html`<div class="prints">${mine.map((r, i) => html`<${Print} key=${r.id} rec=${r} onOpen=${onOpen} tilt=${[-2, 1.5, -1, 2][i % 4]} />`)}</div>`
@@ -773,13 +802,13 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
     <button type="button" role="tab" aria-selected=${sub === "plants"} class=${"seg3-b" + (sub === "plants" ? " on" : "")} onClick=${() => setSub("plants")}>학교 식물 표본함</button>
     <button type="button" role="tab" aria-selected=${sub === "meetings"} class=${"seg3-b" + (sub === "meetings" ? " on s-meeting" : "")} onClick=${() => setSub("meetings")}>협의회 기록 ${meetings.length}</button>
   </div>`;
-  if (sub === "meetings") return html`<div class="grid gap-4">${seg}<${MeetingList} meetings=${meetings} onAdd=${onAddMeeting} onOpen=${onOpenMeeting} onExport=${onExportMinutes} /></div>`;
   const total = records.filter((r) => r.mode === "team");
   const groups = useMemo(() => {
     const m = new Map();
     total.slice().sort((a, b) => a.ts - b.ts).forEach((r) => { const k = speciesKey(r) || "미동정-" + r.id; if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
     return [...m.values()];
   }, [records]);
+  if (sub === "meetings") return html`<div class="grid gap-4">${seg}<${MeetingList} meetings=${meetings} onAdd=${onAddMeeting} onOpen=${onOpenMeeting} onExport=${onExportMinutes} /></div>`;
   return html`<div class="grid gap-4">
     ${seg}
     <${MeetBar} meetings=${meetings} onAdd=${onAddMeeting} onList=${() => setSub("meetings")} />
@@ -1188,7 +1217,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   const [ai, setAi] = useState(null), [aiState, setAiState] = useState("idle"), [aiErr, setAiErr] = useState("");
   const [saving, setSaving] = useState(false);
   const home = getHome(researcher);
-  const [f, setF] = useState({ koreanName: "", scientificName: "", growthForm: "초본", psType: "C3", lai: "", notes: "", place: (draft.mode === "solo") ? home.label : "" });
+  const [f, setF] = useState({ habitat: "", koreanName: "", scientificName: "", growthForm: "초본", psType: "C3", lai: "", notes: "", place: (draft.mode === "solo") ? home.label : "" });
   const camRef = useRef(null), galRef = useRef(null);
   const [shotTs, setShotTs] = useState(Date.now());
   const [pastWx, setPastWx] = useState(null), [album, setAlbum] = useState(null);
@@ -1242,7 +1271,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     if (!aiReady(settings)) { onOpenSettings(); return; }
     setAiState("loading"); setAiErr("");
     try {
-      const o = await analyzePlant({ settings, dataUrl: raw, weather: w, lat: p.lat, lng: p.lng, mode });
+      const o = await analyzePlant({ settings, dataUrl: raw, weather: w, lat: p.lat, lng: p.lng, mode, ctx: { theme: mode === "solo" ? THEMES[researcher] : null, habitat: f.habitat } });
       setAi(o); setAiState("ok");
       setF((q) => ({ ...q, koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType,
         lai: o.carbonFixationEst && Number(o.carbonFixationEst.laiEstimate) > 0 ? String(M.clamp(Number(o.carbonFixationEst.laiEstimate), 0.1, 10)) : q.lai }));
@@ -1255,7 +1284,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     setSaving(true);
     let photo = null;
     if (raw) { try { photo = await EM.composeFrame(raw, meta); } catch (e) { photo = raw; } }
-    onSave({ ...preview, id: uid(), photo, raw: raw || undefined, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
+    onSave({ ...preview, id: uid(), photo, raw: raw || undefined, habitat: f.habitat || undefined, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
       weather: { temp: w.temp, rh: w.rh, cloud: w.cloud, sw: w.sw, ppfd: w.ppfd, par: w.par, ...(pastWx ? { past: true } : {}) }, ...(album ? { fromAlbum: true } : {}) });
   };
   const srcLabel = { gps: `내 위치(GPS) ±${Math.round(p.accuracy || 0)}m`, map: "지도에서 콕 찍은 자리", photo: "사진에 담긴 촬영 위치", home: `우리 동네 기본 위치 · ${home.label}`, default: "지도를 눌러 위치를 찍어 주세요" }[p.source];
@@ -1329,6 +1358,9 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
         <div class="grid sm:grid-cols-2 gap-3">
           <label class="fld"><span>국명</span><input id="fKor" value=${f.koreanName} onInput=${(e) => setF({ ...f, koreanName: e.target.value })} placeholder="예: 강아지풀" /></label>
           <label class="fld"><span>학명</span><input id="fSci" class="italic" value=${f.scientificName} onInput=${(e) => setF({ ...f, scientificName: e.target.value })} placeholder="예: Setaria viridis" /></label>
+          <div class="sm:col-span-2"><${Label}>${mode === "solo" && THEMES[researcher] ? `서식지 · ${THEMES[researcher].tag}` : "교정 어디에서"}</${Label}>
+            <div class="flex flex-wrap gap-1.5">${(mode === "solo" && THEMES[researcher] ? THEMES[researcher].habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${f.habitat === h} color=${m.color}
+              onClick=${() => setF({ ...f, habitat: f.habitat === h ? "" : h })}>${h}</${Chip}>`)}</div></div>
           <label class="fld sm:col-span-2"><span>장소 이름</span><input id="fPlace" value=${f.place} onInput=${(e) => setF({ ...f, place: e.target.value })}
             placeholder=${mode === "solo" ? `예: ${home.label} 앞 화단` : "예: 학교 정문 화단, 운동장 가장자리"} /></label>
         </div>
@@ -1354,7 +1386,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
   // 이름·생활형 고치기 + 저장된 사진으로 AI 다시 찾기 (팀원 누구나)
   const [ed, setEd] = useState(null); // {koreanName, scientificName, growthForm, psType, place, notes}
   const [ai, setAi] = useState(null), [aiState, setAiState] = useState("idle"), [aiErr, setAiErr] = useState("");
-  const openEdit = () => { setEd({ koreanName: rec.koreanName || "", scientificName: rec.scientificName || "", growthForm: rec.growthForm || "초본", psType: rec.psType || "C3",
+  const openEdit = () => { setEd({ habitat: rec.habitat || "", koreanName: rec.koreanName || "", scientificName: rec.scientificName || "", growthForm: rec.growthForm || "초본", psType: rec.psType || "C3",
     place: rec.place || "", notes: rec.notes || "" }); setAi(null); setAiState("idle"); };
   const runAI = async () => {
     if (!aiReady(settings)) { onOpenSettings && onOpenSettings(); return; }
@@ -1362,7 +1394,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
     setAiState("loading"); setAiErr("");
     try {
       const dataUrl = await photoDataUrl(src);
-      const o = await analyzePlant({ settings, dataUrl, weather: rec.weather, lat: rec.lat, lng: rec.lng, mode: rec.mode });
+      const o = await analyzePlant({ settings, dataUrl, weather: rec.weather, lat: rec.lat, lng: rec.lng, mode: rec.mode, ctx: { theme: rec.mode === "solo" ? THEMES[rec.researcher] : null, habitat: ed && ed.habitat } });
       setAi(o); setAiState("ok");
       setEd((q) => ({ ...q, koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType }));
     } catch (e) { setAiState("error"); setAiErr(e.message || String(e)); }
@@ -1374,7 +1406,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
       const model = M.estimate({ sw: rec.weather.sw, temp: rec.weather.temp, rh: rec.weather.rh, psType: ed.psType, growthForm: ed.growthForm, lai });
       let photo = rec.photo;
       if (rec.raw) { try { photo = await EM.composeFrame(rec.raw, { mode: rec.mode, researcher: rec.researcher, ts: rec.ts, name: ed.koreanName.trim(), sci: ed.scientificName.trim(), place: ed.place.trim() || MODES[rec.mode].place }); } catch (e) {} }
-      await onUpdate({ ...rec, koreanName: ed.koreanName.trim(), scientificName: ed.scientificName.trim(), growthForm: ed.growthForm, psType: ed.psType,
+      await onUpdate({ ...rec, habitat: ed.habitat || undefined, koreanName: ed.koreanName.trim(), scientificName: ed.scientificName.trim(), growthForm: ed.growthForm, psType: ed.psType,
         place: ed.place.trim(), notes: ed.notes.trim(), lai, model, photo, ...(ai ? { ai, confidence: ai.confidence } : {}), editedBy: me, editedAt: Date.now() },
         `${ed.koreanName.trim() || "식물"}(으)로 고쳤어요${rec.raw ? "" : " · 사진 속 이름은 예전 그대로예요"}`);
       setEd(null);
@@ -1403,7 +1435,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
   return html`<div class="modal-bg" onClick=${onClose}>
     <div class="modal" role="dialog" aria-modal="true" aria-label="기록 상세" onClick=${(e) => e.stopPropagation()}>
       <div class="flex items-center gap-2 mb-3 text-[12px] text-mist flex-wrap">
-        <${ModeTag} mode=${rec.mode} /><${Dot} color=${rColor(rec.researcher)} size=${8} /><span>${rec.researcher}</span><span>· ${fmtDate(rec.ts)}</span>
+        <${ModeTag} mode=${rec.mode} /><${Dot} color=${rColor(rec.researcher)} size=${8} /><span>${rec.researcher}</span><span>· ${fmtDate(rec.ts)}</span>${rec.habitat ? html`<span class="hab-chip">${rec.habitat}</span>` : null}
         ${!ed && html`<button type="button" class="link-btn" onClick=${openEdit}><${Icon} name="PencilLine" size=${13} />이름·종 고치기</button>`}
         ${mine && editWhen == null && html`<button type="button" class="link-btn" onClick=${() => setEditWhen(toLocalInput(rec.ts))}><${Icon} name="CalendarClock" size=${13} />날짜 고치기</button>`}<span>· ${rec.place || MODES[rec.mode].place}</span>
         <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>
@@ -1432,6 +1464,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
           <label class="fld"><span>국명</span><input id="eKor" value=${ed.koreanName} onInput=${(e) => setEd({ ...ed, koreanName: e.target.value })} placeholder="예: 마름" /></label>
           <label class="fld"><span>학명</span><input id="eSci" class="italic" value=${ed.scientificName} onInput=${(e) => setEd({ ...ed, scientificName: e.target.value })} placeholder="예: Trapa japonica" /></label>
         </div>
+        <div class="w-full"><${Label}>서식지</${Label}><div class="flex flex-wrap gap-1.5">${(rec.mode === "solo" && THEMES[rec.researcher] ? THEMES[rec.researcher].habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${ed.habitat === h} onClick=${() => setEd({ ...ed, habitat: ed.habitat === h ? "" : h })}>${h}</${Chip}>`)}</div></div>
         <div class="w-full"><${Label}>생활형</${Label}><div class="flex flex-wrap gap-1.5">${FORM_LIST.map((g) => html`<${Chip} key=${g} on=${ed.growthForm === g} onClick=${() => setEd({ ...ed, growthForm: g })}>${g}</${Chip}>`)}</div></div>
         <div class="w-full"><${Label}>광합성 유형</${Label}><div class="flex flex-wrap gap-1.5">${PS_LIST.map((g) => html`<${Chip} key=${g} on=${ed.psType === g} onClick=${() => setEd({ ...ed, psType: g })}>${M.PS_TYPES[g].label}</${Chip}>`)}</div></div>
         <label class="fld w-full"><span>장소 이름</span><input id="ePlace" value=${ed.place} onInput=${(e) => setEd({ ...ed, place: e.target.value })} /></label>
