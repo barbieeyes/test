@@ -463,6 +463,12 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
   .strip-title{font-size:18px}
 }
 @media (max-width:350px){.nav-me span{display:none}.nav-logo .strip-team{display:none}}
+
+.sync-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:#EEF8E8;border:1.5px solid #BFE3C6;color:#1E7A43}
+.sync-card b{display:block;font-size:13.5px} .sync-card small{display:block;font-size:11.5px;opacity:.85;overflow-wrap:anywhere}
+.sync-card.s-error,.sync-card.s-offline{background:#FFF4E5;border-color:#F3C98B;color:#8A5300}
+.sync-card.s-syncing,.sync-card.s-idle{background:#EEF6FC;border-color:#BFDDF2;color:#1C5E86}
+.sync-warn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:7px 12px;background:#FFF4E5;color:#8A5300;font-size:12.5px;font-weight:700;border-bottom:1.5px solid #F3C98B}
 </style>
 </head>
 <body>
@@ -474,7 +480,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>window.__BUILD__ = "20261027205143";</script>
+<script>window.__BUILD__ = "20261028174545";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -561,7 +567,8 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
   const FONT_STAMP = '"Share Tech Mono", "JetBrains Mono", ui-monospace, monospace';
 
   function loadImg(src) {
-    return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+    // 팀 공용 저장소(Supabase) 사진도 캔버스에 그릴 수 있게 CORS로 불러온다
+    return new Promise((res, rej) => { const i = new Image(); if (/^https?:/.test(src)) i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = src; });
   }
   async function fontsReady() {
     try {
@@ -1146,6 +1153,61 @@ async function resizeImage(file, maxDim, q) {
   return decodeScaled(Array.isArray(out) ? out[0] : out, maxDim, q);
 }
 
+/* ---------- 팀 공용 저장소 (Supabase) ----------
+ * 기록은 이 휴대폰(IndexedDB)에 먼저 저장 → 서버(eco_items 표)로 올리고, 다른 선생님 기록을 내려받아 합친다.
+ * 사진은 eco-photos 보관함에 올리고 주소만 기록에 남긴다(보관함이 안 되면 사진을 기록 안에 그대로 넣는다). */
+const SB_URL = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmFheHh3cXFyYnBubG95anpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMjI1MTgsImV4cCI6MjEwMTU5ODUxOH0.8TKT8aExXiyazDY313G9BHTvZCSu2yrTdxlgwxpNCB8";
+const LS_SINCE = "ecossam.v3.sync.since", LS_DELQ = "ecossam.v3.sync.deletes";
+const sbH = (extra) => ({ apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "x-team-pin": TEAM_PIN, ...(extra || {}) });
+const PHOTO_KEYS = ["photo", "raw"];
+const isData = (v) => typeof v === "string" && v.startsWith("data:");
+const cloud = {
+  storageOk: true,
+  async pull(since) {
+    const q = `${SB_URL}/rest/v1/eco_items?select=id,kind,data,deleted,updated_at&order=updated_at.asc&limit=500` + (since ? `&updated_at=gt.${encodeURIComponent(since)}` : "");
+    const r = await fetch(q, { headers: sbH(), cache: "no-store" });
+    if (!r.ok) throw new Error("pull " + r.status + " " + (await r.text()).slice(0, 120));
+    return r.json();
+  },
+  async upsert(rows) {
+    if (!rows.length) return;
+    const r = await fetch(`${SB_URL}/rest/v1/eco_items?on_conflict=id`, { method: "POST",
+      headers: sbH({ "content-type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify(rows) });
+    if (!r.ok) throw new Error("push " + r.status + " " + (await r.text()).slice(0, 160));
+  },
+  async upload(path, dataUrl) {
+    if (!this.storageOk) return null;
+    const f = dataUrlToFile(dataUrl, path.split("/").pop());
+    const r = await fetch(`${SB_URL}/storage/v1/object/eco-photos/${path}`, { method: "POST", headers: sbH({ "content-type": f.type || "image/jpeg" }), body: f });
+    if (!r.ok) { if (r.status === 400 || r.status === 403 || r.status === 404) this.storageOk = false; return null; }
+    return `${SB_URL}/storage/v1/object/public/eco-photos/${path}`;
+  },
+};
+const rnd = () => Math.random().toString(36).slice(2, 8);
+/** 기록 속 사진(dataURL)을 보관함에 올리고 주소로 바꾼 사본 */
+async function toCloudItem(it) {
+  const o = { ...it }; delete o._dirty; delete o._synced;
+  const kind = o.kind || "plant";
+  for (const k of PHOTO_KEYS) if (isData(o[k])) { const u = await cloud.upload(`${kind}/${o.id}/${k}-${rnd()}.jpg`, o[k]).catch(() => null); if (u) o[k] = u; }
+  if (Array.isArray(o.photos)) {
+    o.photos = await Promise.all(o.photos.map(async (ph, i) => { const q = { ...ph };
+      for (const k of PHOTO_KEYS) if (isData(q[k])) { const u = await cloud.upload(`${kind}/${o.id}/${i}-${k}-${rnd()}.jpg`, q[k]).catch(() => null); if (u) q[k] = u; }
+      return q; }));
+  }
+  return o;
+}
+/** 사진 주소든 dataURL이든 바이트로 */
+async function photoBytes(u) {
+  if (isData(u)) return dataUrlBytes(u);
+  const r = await fetch(u); return new Uint8Array(await r.arrayBuffer());
+}
+async function photoDataUrl(u) {
+  if (!u || isData(u)) return u;
+  const b = await (await fetch(u)).blob();
+  return new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(b); });
+}
+
 /* ---------- 기상 (Open-Meteo) ---------- */
 async function fetchWeather(lat, lng) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}` +
@@ -1352,8 +1414,15 @@ const IS_IOS = typeof navigator !== "undefined" && (/iPad|iPhone|iPod/.test(navi
 const openSaver = (items, title) => window.dispatchEvent(new CustomEvent("eco-save", { detail: { items, title } }));
 
 /** 앨범에 저장: 공유 창(아이폰 '이미지 저장', 안드로이드 '갤러리'), 안 되면 길게 눌러 저장 */
-function PhotoSaver({ items, title, onClose }) {
+function PhotoSaver({ items: given, title, onClose }) {
   const [msg, setMsg] = useState(""), [done, setDone] = useState({});
+  // 서버에 있는 사진은 미리 받아 둔다 (아이폰은 버튼을 누른 순간 바로 공유 창을 열어야 해서)
+  const [items, setItems] = useState(() => (given.every((it) => isData(it.url)) ? given : null));
+  useEffect(() => { if (items) return; let live = true;
+    Promise.all(given.map(async (it) => ({ ...it, url: await photoDataUrl(it.url).catch(() => it.url) }))).then((x) => { if (live) setItems(x); });
+    return () => { live = false; }; }, []);
+  if (!items) return html`<div class="modal-bg" onClick=${onClose}><div class="modal max-w-md text-center py-8" onClick=${(e) => e.stopPropagation()}>
+    <${Icon} name="Loader2" size=${24} className="animate-spin text-photon" /><p class="mt-2 text-[14px]">사진 ${given.length}장 준비하는 중…</p></div></div>`;
   const CH = 10; // 한 번에 공유할 장수 (아이폰은 너무 많으면 실패)
   const chunks = []; for (let i = 0; i < items.length; i += CH) chunks.push(items.slice(i, i + CH));
   const canShareFiles = (() => { try { return !!(navigator.canShare && navigator.canShare({ files: [dataUrlToFile(items[0].url, items[0].name)] })); } catch (e) { return false; } })();
@@ -1965,7 +2034,16 @@ function VideoMaker({ records, onClose }) {
   </div>`;
 }
 
-function ArchiveView({ records, acts, meetings, onOpen, onOpenAct, onOpenMeeting, onClearSamples, onImport }) {
+function SyncCard({ sync, onSync }) {
+  const st = sync.state;
+  const label = st === "ok" ? "팀 공용 저장소와 맞춰졌어요" : st === "syncing" ? "맞추는 중…" : st === "offline" ? "인터넷이 끊겨 있어요 · 이 휴대폰에 먼저 저장돼요" : st === "error" ? "저장소 연결이 잠시 안 돼요 · 이 휴대폰에 먼저 저장돼요" : "준비 중";
+  return html`<div class=${"sync-card s-" + st}>
+    <${Icon} name=${st === "ok" ? "Cloud" : st === "syncing" ? "RefreshCw" : "CloudOff"} size=${18} className=${st === "syncing" ? "animate-spin" : ""} />
+    <span class="flex-1 min-w-0"><b>${label}</b><small>${sync.at ? `마지막 확인 ${fmtDate(sync.at)}` : ""}${st === "ok" && (sync.up || sync.got) ? ` · 올림 ${sync.up || 0} · 받음 ${sync.got || 0}` : ""}${sync.msg ? ` · ${sync.msg}` : ""}</small></span>
+    <button type="button" class="mini-btn" onClick=${onSync} disabled=${st === "syncing"}><${Icon} name="RefreshCw" size=${13} />지금 맞추기</button>
+  </div>`;
+}
+function ArchiveView({ records, acts, meetings, onOpen, onOpenAct, onOpenMeeting, onClearSamples, onImport, sync, onSync }) {
   const [video, setVideo] = useState(false);
   const [zipState, setZipState] = useState(""), [zipErr, setZipErr] = useState("");
   const fileRef = useRef(null);
@@ -2002,6 +2080,7 @@ function ArchiveView({ records, acts, meetings, onOpen, onOpenAct, onOpenMeeting
     </section>
     <section class="glass p-4 grid gap-3">
       <h2 class="pill-h justify-self-start"><${Icon} name="Download" size=${17} />보고서용 데이터</h2>
+      ${sync && html`<${SyncCard} sync=${sync} onSync=${onSync} />`}
       <button type="button" class="all-in-one" onClick=${getAll} disabled=${!!zipState || (!real.length && !acts.length && !meetings.length)}>
         <span class="aio-ic"><${Icon} name=${zipState ? "Loader2" : "PackageOpen"} size=${28} className=${zipState ? "animate-spin" : ""} /></span>
         <span class="flex-1 min-w-0"><b>${zipState || "자료 한 번에 받기 (ZIP)"}</b>
@@ -2011,7 +2090,7 @@ function ArchiveView({ records, acts, meetings, onOpen, onOpenAct, onOpenMeeting
       <button type="button" class="exp" disabled=${!photos.length} onClick=${() => openSaver(photos.map((r) => ({ url: r.photo,
           name: `에코쌤즈_${ymd(r.ts)}_${hm(r.ts)}_${safeName(r.kind === "meeting" ? "협의회" : r.kind === "activity" ? (r.title || "활동") : (r.koreanName || "식물"))}.jpg` })), "사진 전체 앨범에 저장")}>
         <${Icon} name="ImageDown" size=${20} className="text-photon" /><span><b>사진 ${photos.length}장 휴대폰 앨범에 저장</b><small>프레임·날짜 도장 그대로 · 10장씩 나눠 저장</small></span></button>
-      <p class="text-[12px] text-mist leading-relaxed">이 휴대폰에 있는 자료만 묶여요. 다른 선생님 자료까지 받으려면 각자 아래 <b>내 기록 보내기</b>로 파일을 보내 주고, 받은 파일을 <b>팀원 기록 합치기</b>로 불러온 다음 눌러 주세요.</p>
+      <p class="text-[12px] text-mist leading-relaxed">네 선생님 기록이 팀 공용 저장소로 모여 있어서, 누구 휴대폰에서 눌러도 팀 전체 자료가 묶여요.</p>
       <div class="grid sm:grid-cols-2 gap-2">
         <button type="button" class="exp" disabled=${!real.length} onClick=${() => saveFile(`에코쌤즈_광합성지도_${today()}.csv`, toCSV(real), "text/csv;charset=utf-8")}>
           <${Icon} name="FileSpreadsheet" size=${20} className="text-photon" /><span><b>CSV</b><small>엑셀 분석 · 실천모임 결과 보고서</small></span></button>
@@ -2704,7 +2783,7 @@ const safeName = (s) => String(s || "").replace(/[\\/:*?"<>|\n\r\t]+/g, " ").rep
 async function minutesHwpx(ms) {
   if (!window.JSZip || !EH) throw new Error("한글 파일 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.");
   return EH.build(ms, { photos: async (m) => {
-    const out = []; for (const ph of (m.photos || [])) { const u = ph.photo || ph.raw; if (u) { try { out.push(await EH.photoFromDataURL(u)); } catch (e) {} } } return out; } });
+    const out = []; for (const ph of (m.photos || [])) { const u = ph.photo || ph.raw; if (u) { try { out.push(await EH.photoFromDataURL(await photoDataUrl(u))); } catch (e) {} } } return out; } });
 }
 const minutesFileName = (ms) => ms.length === 1 ? `에코쌤즈_협의록_${ymd(ms[0].ts)}_${safeName(ms[0].title)}.hwpx` : `에코쌤즈_협의록_전체_${ms.length}건_${today()}.hwpx`;
 const dataUrlBytes = (u) => { const b = atob(u.slice(u.indexOf(",") + 1)), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };
@@ -2719,10 +2798,10 @@ async function buildAllZip({ records, acts, meetings }, onStep) {
   for (const r of real) {
     if (!r.photo) continue;
     const dir = r.mode === "solo" ? `01_따로_우리동네/${r.researcher}` : `02_같이_학교`;
-    z.file(uniq(`${dir}/${ymd(r.ts)}_${hm(r.ts)}_${safeName(r.koreanName || "미확인")}${r.mode === "team" ? `_${r.researcher}` : ""}.jpg`), dataUrlBytes(r.photo)); n++;
+    z.file(uniq(`${dir}/${ymd(r.ts)}_${hm(r.ts)}_${safeName(r.koreanName || "미확인")}${r.mode === "team" ? `_${r.researcher}` : ""}.jpg`), await photoBytes(r.photo)); n++;
   }
-  for (const a of acts) { if (a.photo) { z.file(uniq(`03_활동사진/${ymd(a.ts)}_${hm(a.ts)}_${safeName(a.title || "활동")}.jpg`), dataUrlBytes(a.photo)); n++; } }
-  for (const m of meetings) (m.photos || []).forEach((ph, i) => { if (ph.photo) { z.file(uniq(`04_협의회/${ymd(m.ts)}_${safeName(m.title || "협의회")}/사진${i + 1}.jpg`), dataUrlBytes(ph.photo)); n++; } });
+  for (const a of acts) { if (a.photo) { z.file(uniq(`03_활동사진/${ymd(a.ts)}_${hm(a.ts)}_${safeName(a.title || "활동")}.jpg`), await photoBytes(a.photo)); n++; } }
+  for (const m of meetings) { let i = 0; for (const ph of (m.photos || [])) { i++; if (ph.photo) { z.file(uniq(`04_협의회/${ymd(m.ts)}_${safeName(m.title || "협의회")}/사진${i}.jpg`), await photoBytes(ph.photo)); n++; } } }
   onStep && onStep("기록표 만드는 중…");
   z.file("05_식물기록표_메모_AI조언.csv", toCSV(real));
   if (meetings.length) {
@@ -2801,7 +2880,55 @@ function App() {
     if (!all.length && !store.get("ecossam.v2.seeded", false)) { for (const r of sampleRecords()) await db.put(r); store.set("ecossam.v2.seeded", true); all = await db.all(); }
     all.sort((a, b) => b.ts - a.ts);
     setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting")); setLoaded(true);
+    syncNow();
   })(); }, []);
+
+  // ---- 팀 공용 저장소와 맞추기 ----
+  const [sync, setSync] = useState({ state: "idle", at: 0, msg: "" });
+  const syncing = useRef(false), syncAgain = useRef(false);
+  const reloadFromDb = async () => {
+    const all = (await db.all()).sort((a, b) => b.ts - a.ts);
+    setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting"));
+  };
+  const syncNow = async () => {
+    if (syncing.current) { syncAgain.current = true; return; }
+    syncing.current = true; setSync((x) => ({ ...x, state: "syncing" }));
+    try {
+      const dq = store.get(LS_DELQ, []);
+      if (dq.length) { await cloud.upsert(dq.map((d) => ({ id: d.id, kind: d.kind || "plant", deleted: true, data: {} }))); store.set(LS_DELQ, []); }
+      const up = (await db.all()).filter((r) => !r.sample && (r._dirty || !r._synced));
+      for (let i = 0; i < up.length; i += 2) {
+        const cl = await Promise.all(up.slice(i, i + 2).map(toCloudItem));
+        await cloud.upsert(cl.map((o) => ({ id: o.id, kind: o.kind || "plant", author: o.researcher || null, ts: o.ts || null, data: o, deleted: false })));
+        for (const o of cl) await db.put({ ...o, _synced: true });
+      }
+      let since = store.get(LS_SINCE, ""), got = 0;
+      for (let guard = 0; guard < 40; guard++) {
+        const rows = await cloud.pull(since);
+        for (const row of rows) {
+          if (row.deleted) await db.del(row.id); else if (row.data && row.data.id) await db.put({ ...row.data, _synced: true });
+          since = row.updated_at; got++;
+        }
+        store.set(LS_SINCE, since);
+        if (rows.length < 500) break;
+      }
+      await reloadFromDb();
+      setSync({ state: "ok", at: Date.now(), msg: "", up: up.length, got });
+    } catch (e) {
+      setSync({ state: navigator.onLine === false ? "offline" : "error", at: Date.now(), msg: String((e && e.message) || e).slice(0, 160) });
+    } finally {
+      syncing.current = false;
+      if (syncAgain.current) { syncAgain.current = false; setTimeout(syncNow, 400); }
+    }
+  };
+  useEffect(() => {
+    const vis = () => { if (document.visibilityState === "visible") syncNow(); };
+    const iv = setInterval(() => { if (document.visibilityState === "visible") syncNow(); }, 25000);
+    document.addEventListener("visibilitychange", vis); window.addEventListener("online", syncNow);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", vis); window.removeEventListener("online", syncNow); };
+  }, []);
+  const putLocal = (item) => db.put({ ...item, _dirty: true });
+  const delCloud = (id, kind) => { const q = store.get(LS_DELQ, []); q.push({ id, kind }); store.set(LS_DELQ, q); };
 
   const loadWx = useCallback(async (lat, lng, fromGps) => {
     setWState("loading");
@@ -2827,7 +2954,7 @@ function App() {
   const logout = () => { store.del(LS_AUTH); setAuth(null); setDraft(null); setOpenId(null); setActEdit(null); setMeetEdit(null); window.scrollTo(0, 0); };
   const switchTo = (name) => { const a = { name, at: Date.now() }; store.set(LS_AUTH, a); setAuth(a); setShowSwitch(false); say(`${name} 님으로 바꿨어요`); };
   const saveMeeting = async (m) => {
-    await db.put(m);
+    await putLocal(m); setTimeout(syncNow, 200);
     setMeetings((ms) => [m, ...ms.filter((x) => x.id !== m.id)].sort((a, b) => b.ts - a.ts)); setMeetEdit(null);
     say("협의회 기록을 저장했어요"); setTeamSub("meetings"); setTab("team");
   };
@@ -2839,11 +2966,11 @@ function App() {
   useEffect(() => { let live = true;
     fetch(TEAM_AI, { method: "GET" }).then((r) => r.ok ? r.json() : null).then((j) => { if (live && j) setSettings((st) => ({ ...st, team: !!j.configured, plantnet: j.plantnet || "" })); }).catch(() => {});
     return () => { live = false; }; }, []);
-  const deleteMeeting = async (id) => { await db.del(id); setMeetings((ms) => ms.filter((m) => m.id !== id)); setMeetEdit(null); say("협의회 기록을 지웠어요"); };
+  const deleteMeeting = async (id) => { await db.del(id); delCloud(id, "meeting"); setTimeout(syncNow, 200); setMeetings((ms) => ms.filter((m) => m.id !== id)); setMeetEdit(null); say("협의회 기록을 지웠어요"); };
   const addRecord = (mode) => setDraft({ mode, pos: null });
   const onMapPick = useCallback((lat, lng) => { setOpenId(null); setDraft({ mode: "team", pos: { lat, lng, source: "map", accuracy: null } }); }, []);
   const saveRecord = async (rec) => {
-    const ok = await db.put(rec);
+    const ok = await putLocal(rec); setTimeout(syncNow, 200);
     setRecords((rs) => [rec, ...rs]); setDraft(null);
     say(ok ? `${MODES[rec.mode].label} 기록 저장 · ${rec.koreanName || "식물"}` : "저장 공간이 부족해요. 아카이브에서 백업 후 정리하세요.");
     // 앱 카메라로 찍은 사진은 휴대폰 앨범에 자동으로 남지 않아서, 바로 저장할 수 있게 물어본다
@@ -2851,16 +2978,16 @@ function App() {
     setTab(rec.mode === "solo" ? "solo" : "team");
   };
   const saveActs = async (list) => {
-    for (const a of list) await db.put(a);
+    for (const a of list) await putLocal(a); setTimeout(syncNow, 200);
     setActs((as) => { const mm = new Map(as.map((x) => [x.id, x])); list.forEach((a) => mm.set(a.id, a)); return [...mm.values()].sort((a, b) => b.ts - a.ts); });
     setActEdit(null); say(list.length > 1 ? `활동 사진 ${list.length}장을 올렸어요` : "활동 사진을 저장했어요");
   };
-  const deleteAct = async (id) => { await db.del(id); setActs((as) => as.filter((a) => a.id !== id)); setActEdit(null); say("활동 사진을 지웠어요"); };
+  const deleteAct = async (id) => { await db.del(id); delCloud(id, "activity"); setTimeout(syncNow, 200); setActs((as) => as.filter((a) => a.id !== id)); setActEdit(null); say("활동 사진을 지웠어요"); };
   const updateRecord = async (rec, msg) => {
-    await db.put(rec);
+    await putLocal(rec); setTimeout(syncNow, 200);
     setRecords((rs) => rs.map((r) => (r.id === rec.id ? rec : r)).sort((a, b) => b.ts - a.ts)); say(msg || "고쳤어요");
   };
-  const deleteRecord = async (id) => { await db.del(id); setRecords((rs) => rs.filter((r) => r.id !== id)); setOpenId(null); say("기록을 지웠어요"); };
+  const deleteRecord = async (id) => { await db.del(id); delCloud(id, "plant"); setTimeout(syncNow, 200); setRecords((rs) => rs.filter((r) => r.id !== id)); setOpenId(null); say("기록을 지웠어요"); };
   const clearSamples = async () => { for (const r of records.filter((x) => x.sample)) await db.del(r.id); setRecords((rs) => rs.filter((r) => !r.sample)); say("예시를 지웠어요"); };
   const importJSON = (file) => {
     const rd = new FileReader();
@@ -2870,7 +2997,7 @@ function App() {
         const ok = arr.filter((o) => o && o.id && !o.kind && typeof o.lat === "number" && o.weather && o.model).map((o) => ({ mode: "team", ...o }));
         const okA = arr.filter((o) => o && o.id && o.kind === "activity" && o.photo);
         const okM = arr.filter((o) => o && o.id && o.kind === "meeting");
-        for (const o of ok.concat(okA, okM)) await db.put(o);
+        for (const o of ok.concat(okA, okM)) await putLocal(o); setTimeout(syncNow, 200);
         const merge = (rs, add) => { const mm = new Map(rs.map((r) => [r.id, r])); add.forEach((o) => mm.set(o.id, o)); return [...mm.values()].sort((a, b) => b.ts - a.ts); };
         setRecords((rs) => merge(rs, ok)); setActs((as) => merge(as, okA)); setMeetings((ms) => merge(ms, okM));
         say(`식물 ${ok.length}건 · 활동 사진 ${okA.length}장 · 협의록 ${okM.length}건을 합쳤어요`);
@@ -2886,6 +3013,7 @@ function App() {
   return html`<div class=${"app tab-is-" + tab}>
     <${NavBar} tab=${tab} name=${me} canBack=${depth.current > 0 || tab !== "today"} onBack=${goBack} onHome=${goHome}
       onSwitch=${() => setShowSwitch(true)} onSettings=${() => setShowSettings(true)} onLogout=${logout} hasKey=${aiReady(settings)} />
+    ${(sync.state === "error" || sync.state === "offline") && html`<button type="button" class="sync-warn" onClick=${syncNow}><${Icon} name="CloudOff" size=${14} />${sync.state === "offline" ? "인터넷 끊김 · 기록은 이 휴대폰에 먼저 저장돼요" : "팀 저장소 연결 안 됨 · 눌러서 다시 맞추기"}</button>`}
     ${tab === "today" && html`<${Hero} />`}
     <main class="wrap pb-28">
       ${!loaded ? html`<div class="boot" style=${{ minHeight: "30vh" }}>기록을 불러오는 중…</div>`
@@ -2897,7 +3025,7 @@ function App() {
             onAddMeeting=${() => setMeetEdit({ isNew: true })} onOpenMeeting=${(m) => setMeetEdit(m)} onExportMinutes=${exportMinutes} />`
         : tab === "activity" ? html`<${ActivityView} me=${me} acts=${acts} onAdd=${() => setActEdit({ isNew: true })} onOpen=${(a) => setActEdit(a)} />`
         : tab === "map" ? html`<${MapView} records=${records} gps=${gps} follow=${follow} setFollow=${setFollow} onMapPick=${onMapPick} onOpen=${setOpenId} openId=${openId} />`
-        : html`<${ArchiveView} records=${records} acts=${acts} meetings=${meetings} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onOpenMeeting=${(m) => setMeetEdit(m)} onClearSamples=${clearSamples} onImport=${importJSON} />`}
+        : html`<${ArchiveView} records=${records} acts=${acts} meetings=${meetings} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onOpenMeeting=${(m) => setMeetEdit(m)} onClearSamples=${clearSamples} onImport=${importJSON} sync=${sync} onSync=${syncNow} />`}
       <footer class="text-center text-[11px] text-mist leading-relaxed mt-6">기후행동 실천모임 에코쌤즈 · 이정연 · 신민화 · 이귀리 · 정종화<br/>기상 Open-Meteo · 지도 © Esri 위성사진, OpenStreetMap · 탄소 고정 값은 대표 계수 기반 추정치</footer>
     </main>
     <${TabBar} tab=${tab} setTab=${setTab} counts=${counts} />

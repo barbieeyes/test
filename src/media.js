@@ -12,7 +12,8 @@
   const FONT_STAMP = '"Share Tech Mono", "JetBrains Mono", ui-monospace, monospace';
 
   function loadImg(src) {
-    return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+    // 팀 공용 저장소(Supabase) 사진도 캔버스에 그릴 수 있게 CORS로 불러온다
+    return new Promise((res, rej) => { const i = new Image(); if (/^https?:/.test(src)) i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = src; });
   }
   async function fontsReady() {
     try {
