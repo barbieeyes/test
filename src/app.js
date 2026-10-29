@@ -59,6 +59,8 @@ const THEMES = {
     habitats: ["숲 바닥", "등산로 가장자리", "계곡·물가", "능선·바위", "숲 가장자리"] },
 };
 const TEAM_HABITATS = ["화단", "운동장 가장자리", "담장·울타리", "텃밭·생태정원", "교정 나무", "틈새"];
+/** 목록 정렬: 나중에 올린(저장한) 기록이 위로. 예전 기록은 찍은 시각으로 */
+const upKey = (r) => r.savedAt || r.ts || 0;
 const TEAM_PIN = "2144"; // 팀 공용 입장 비밀번호 (화면 잠금용이며 보안 장치는 아님)
 const MODES = EM.MODE_INFO; // solo = 따로(우리 동네), team = 같이(학교)
 const FORM_LIST = ["목본", "초본", "양치식물", "이끼류"];
@@ -806,7 +808,10 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
   const groups = useMemo(() => {
     const m = new Map();
     total.slice().sort((a, b) => a.ts - b.ts).forEach((r) => { const k = speciesKey(r) || "미동정-" + r.id; if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
-    return [...m.values()];
+    // 표본 번호는 처음 모은 순서대로, 화면에는 가장 최근에 올린 표본이 맨 위
+    const g = [...m.values()].map((list, i) => { list.no = i + 1; return list; });
+    const latest = (list) => Math.max(...list.map(upKey));
+    return g.sort((a, b) => latest(b) - latest(a));
   }, [records]);
   if (sub === "meetings") return html`<div class="grid gap-4">${seg}<${MeetingList} meetings=${meetings} onAdd=${onAddMeeting} onOpen=${onOpenMeeting} onExport=${onExportMinutes} /></div>`;
   return html`<div class="grid gap-4">
@@ -828,7 +833,7 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
         <button type="button" class="herb-photo" onClick=${() => onOpen(last.id)} aria-label=${`${r.koreanName || "식물"} 열기`}>
           ${last.photo ? html`<img src=${last.photo} alt="" loading="lazy" />` : html`<span><${Icon} name="Leaf" size=${34} /></span>`}</button>
         <div class="herb-label">
-          <div class="herb-no mono">에코쌤즈 학교표본 No.${String(i + 1).padStart(3, "0")}</div>
+          <div class="herb-no mono">에코쌤즈 학교표본 No.${String(g.no || i + 1).padStart(3, "0")}</div>
           <div class="herb-name">${r.koreanName || "미동정"}${r.sample ? html` <span class="badge text-amber">예시</span>` : null}</div>
           <div class="herb-sci">${r.scientificName || "학명 미상"}</div>
           <dl>
@@ -1284,7 +1289,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     setSaving(true);
     let photo = null;
     if (raw) { try { photo = await EM.composeFrame(raw, meta); } catch (e) { photo = raw; } }
-    onSave({ ...preview, id: uid(), photo, raw: raw || undefined, habitat: f.habitat || undefined, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
+    onSave({ ...preview, id: uid(), savedAt: Date.now(), photo, raw: raw || undefined, habitat: f.habitat || undefined, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
       weather: { temp: w.temp, rh: w.rh, cloud: w.cloud, sw: w.sw, ppfd: w.ppfd, par: w.par, ...(pastWx ? { past: true } : {}) }, ...(album ? { fromAlbum: true } : {}) });
   };
   const srcLabel = { gps: `내 위치(GPS) ±${Math.round(p.accuracy || 0)}m`, map: "지도에서 콕 찍은 자리", photo: "사진에 담긴 촬영 위치", home: `우리 동네 기본 위치 · ${home.label}`, default: "지도를 눌러 위치를 찍어 주세요" }[p.source];
@@ -1970,7 +1975,7 @@ function App() {
     const old = store.get(LS_OLD, null);
     if (old && Array.isArray(old)) { for (const r of old) { if (!r.sample) await db.put({ mode: "team", ...r }); } store.del(LS_OLD); all = await db.all(); }
     if (!all.length && !store.get("ecossam.v2.seeded", false)) { for (const r of sampleRecords()) await db.put(r); store.set("ecossam.v2.seeded", true); all = await db.all(); }
-    all.sort((a, b) => b.ts - a.ts);
+    all.sort((a, b) => upKey(b) - upKey(a));
     setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting")); setLoaded(true);
     syncNow();
   })(); }, []);
@@ -1979,7 +1984,7 @@ function App() {
   const [sync, setSync] = useState({ state: "idle", at: 0, msg: "" });
   const syncing = useRef(false), syncAgain = useRef(false);
   const reloadFromDb = async () => {
-    const all = (await db.all()).sort((a, b) => b.ts - a.ts);
+    const all = (await db.all()).sort((a, b) => upKey(b) - upKey(a));
     setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting"));
   };
   const syncNow = async () => {
@@ -2077,7 +2082,7 @@ function App() {
   const deleteAct = async (id) => { await db.del(id); delCloud(id, "activity"); setTimeout(syncNow, 200); setActs((as) => as.filter((a) => a.id !== id)); setActEdit(null); say("활동 사진을 지웠어요"); };
   const updateRecord = async (rec, msg) => {
     await putLocal(rec); setTimeout(syncNow, 200);
-    setRecords((rs) => rs.map((r) => (r.id === rec.id ? rec : r)).sort((a, b) => b.ts - a.ts)); say(msg || "고쳤어요");
+    setRecords((rs) => rs.map((r) => (r.id === rec.id ? rec : r)).sort((a, b) => upKey(b) - upKey(a))); say(msg || "고쳤어요");
   };
   const deleteRecord = async (id) => { await db.del(id); delCloud(id, "plant"); setTimeout(syncNow, 200); setRecords((rs) => rs.filter((r) => r.id !== id)); setOpenId(null); say("기록을 지웠어요"); };
   const clearSamples = async () => { for (const r of records.filter((x) => x.sample)) await db.del(r.id); setRecords((rs) => rs.filter((r) => !r.sample)); say("예시를 지웠어요"); };
