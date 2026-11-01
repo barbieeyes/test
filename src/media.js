@@ -1,6 +1,11 @@
 /* ===== 사진 프레임 & 아카이브 영상 (캔버스) ===== */
 (function (root) {
   const TEAM = "기후행동 실천모임 에코쌤즈";
+  /** 식재(사람이 심은) / 자생(저절로 자란) — 프레임 테두리 색 */
+  const ORIGIN_INFO = {
+    planted: { label: "식재", long: "심은 식물", color: "#C8743A" },
+    wild: { label: "자생", long: "저절로 자란 식물", color: "#2E8B57" },
+  };
   const MODE_INFO = {
     solo: { label: "따로", place: "우리 동네", color: "#2B9BD6", deep: "#1C6E9C" },
     team: { label: "같이", place: "학교", color: "#1E9E57", deep: "#16713E" },
@@ -51,15 +56,28 @@
     const img = await loadImg(rawDataUrl);
     const W = 900, H = 1125, P = 36, PH = 828;
     const M = MODE_INFO[meta.mode] || MODE_INFO.team;
+    const O = ORIGIN_INFO[meta.origin] || null;
     const c = document.createElement("canvas"); c.width = W; c.height = H;
     const g = c.getContext("2d");
-    g.fillStyle = "#FFFBEF"; g.fillRect(0, 0, W, H);
+    // 식재/자생이면 사진 테두리 전체를 그 색으로 두른다
+    if (O) { g.fillStyle = O.color; g.fillRect(0, 0, W, H); g.fillStyle = "#FFFBEF"; g.fillRect(22, 22, W - 44, H - 44); }
+    else { g.fillStyle = "#FFFBEF"; g.fillRect(0, 0, W, H); }
     // 종이 결
     g.globalAlpha = 0.05; g.fillStyle = "#7A6A3A";
     for (let i = 0; i < 260; i++) g.fillRect((i * 97) % W, (i * 53) % H, 2, 2);
     g.globalAlpha = 1;
     cover(g, img, P, P, PH, PH);
     g.strokeStyle = "rgba(0,0,0,.12)"; g.lineWidth = 2; g.strokeRect(P, P, PH, PH);
+    // 식재/자생 꼬리표 (사진 왼쪽 위)
+    if (O) {
+      g.save(); g.font = `30px ${FONT_DISPLAY}`; const tw = g.measureText(O.label).width;
+      const tx = P + 18, ty = P + 18, th = 50, tW = tw + 64;
+      g.fillStyle = O.color; g.beginPath();
+      if (g.roundRect) g.roundRect(tx, ty, tW, th, 25); else g.rect(tx, ty, tW, th);
+      g.fill(); g.lineWidth = 3; g.strokeStyle = "#FFFBEF"; g.stroke();
+      g.fillStyle = "#fff"; g.beginPath(); g.arc(tx + 25, ty + th / 2, 7, 0, Math.PI * 2); g.fill();
+      g.textBaseline = "middle"; g.fillText(O.label, tx + 42, ty + th / 2 + 2); g.restore();
+    }
     // 필름 카메라 날짜 도장
     g.save(); g.font = `52px ${FONT_STAMP}`; g.textAlign = "right"; g.textBaseline = "alphabetic";
     g.shadowColor = "rgba(255,110,0,.85)"; g.shadowBlur = 12; g.fillStyle = "#FF8A1E";
@@ -92,7 +110,7 @@
     g.font = `17px ${FONT_BODY}`; g.fillText("에코쌤즈", 0, -30); g.fillText(group ? "기후행동" : (meta.researcher || ""), 0, 42);
     g.restore();
     // 맨 아래 색띠
-    g.fillStyle = M.color; g.fillRect(0, H - 14, W, 14);
+    g.fillStyle = M.color; g.fillRect(O ? 22 : 0, H - (O ? 36 : 14), O ? W - 44 : W, 14);
     return c.toDataURL("image/jpeg", 0.84);
   }
 
@@ -266,5 +284,5 @@
   }
   async function exifDate(file) { return (await exifInfo(file)).ts; }
 
-  root.EcoMedia = { exifDate, exifInfo, MODE_INFO, TEAM, composeFrame, makeVideo, drawVideoFrame, buildPlan, loadImg, fontsReady, stampDate, pickMime };
+  root.EcoMedia = { ORIGIN_INFO, exifDate, exifInfo, MODE_INFO, TEAM, composeFrame, makeVideo, drawVideoFrame, buildPlan, loadImg, fontsReady, stampDate, pickMime };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -58,6 +58,15 @@ const THEMES = {
     about: "큰 도시에 둘러싸인 대모산. 숲 바닥·등산로·계곡에서 도시 숲만의 식물과 그 변화를 살펴요.",
     habitats: ["숲 바닥", "등산로 가장자리", "계곡·물가", "능선·바위", "숲 가장자리"] },
 };
+/** 식재·자생 처음 분류 (2026-11-02 당시 기록, 사진·장소로 판단 — 고치기에서 바꿀 수 있음) */
+const ORIGIN_SEED = { mvqlrnqlwrnos: "planted", mvqmcp3swc0a8: "planted", mvqmdzhf40whs: "wild", mvruy87e3j2aw: "planted", mvrv2tikitm97: "planted",
+  mvrviz6fdn00f: "planted", mvrvnzinlwo03: "planted", mvrvs2akxmrrp: "wild", mvs246wvmsch1: "wild", mvs2a16v61l41: "planted", mvt14b5vgymu8: "planted",
+  mvw31jvp0ukln: "planted", mvw32ayvohn0y: "planted", mvw337o8pl4az: "wild", mvw33tegnkshz: "planted", mvw37qme7yyxe: "planted", mvw3agd9brj23: "planted",
+  mvw3d19w7he19: "planted", mvw3i724v15t4: "planted", mvw3jd9m5oqhi: "planted", mvw3k4jpxc3ms: "wild", mvw3ks85izjq5: "planted", mvw3ng069xvf3: "wild",
+  mvw3owljhmmej: "wild", mvw3q2azt124h: "wild", mvw3rdf1t8swl: "wild", mvw3ucbnjgcmc: "planted", mvw3wem8oz0wd: "planted", mvw515vquhjsm: "planted",
+  mvw521hlvqpt0: "planted", mvw55qur5gmav: "planted" };
+const ORIGINS = [["planted", "식재 · 심은 식물"], ["wild", "자생 · 저절로 자란"], ["", "잘 모르겠음"]];
+const FRAME_V = 2; // 프레임 디자인 판 (바뀌면 예전 사진을 새 테두리로 다시 찍는다)
 const TEAM_HABITATS = ["화단", "운동장 가장자리", "담장·울타리", "텃밭·생태정원", "교정 나무", "틈새"];
 /** 목록 정렬: 나중에 올린(저장한) 기록이 위로. 예전 기록은 찍은 시각으로 */
 const upKey = (r) => r.savedAt || r.ts || 0;
@@ -291,7 +300,9 @@ candidates에는 위 후보들 중 고른 것을 뺀 나머지를 (국명을 붙
 {"koreanName":"국명","scientificName":"학명(속명 종소명)","family":"과 이름(예: 국화과)","confidence":0~100 정수,
  "candidates":[{"koreanName":"다른 후보 국명","scientificName":"학명","confidence":정수}],
  "growthForm":"목본|초본|양치식물|이끼류","photosynthesisType":"C3|C4|CAM","laiEstimate":0.5~8 숫자,
- "climateIndicator":true 또는 false,"note":"알아본 근거나 더 정확히 찍을 부위를 한 문장으로"}
+ "climateIndicator":true 또는 false,
+ "origin":"식재|자생|모름 (사진 속 화분·화단 테두리·줄 맞춘 배치·원예 품종이면 식재, 틈새·빈터·풀숲에 저절로 난 것이면 자생)",
+ "note":"알아본 근거나 더 정확히 찍을 부위를 한 문장으로"}
 candidates는 최대 3개, 없으면 [].`;
 }
 /** AI 답에서 JSON 꺼내기 (코드펜스·앞뒤 말·끝 쉼표 정도는 고쳐서 읽는다) */
@@ -316,6 +327,7 @@ function parseAI(text) {
   if (!FORM_LIST.includes(o.growthForm)) o.growthForm = "초본";
   o.confidence = M.clamp(Math.round(Number(String(o.confidence).replace(/[^\d.]/g, "")) || 0), 0, 100);
   o.candidates = Array.isArray(o.candidates) ? o.candidates.filter((c) => c && c.koreanName).slice(0, 3) : [];
+  o.origin = /식재|planted|심은/.test(String(o.origin || "")) ? "planted" : /자생|wild|저절로/.test(String(o.origin || "")) ? "wild" : "";
   // 예전 화면과 맞추기
   if (!o.taxonomy) o.taxonomy = { family: o.family || "" };
   if (!o.carbonFixationEst) o.carbonFixationEst = { laiEstimate: o.laiEstimate, comment: "" };
@@ -494,12 +506,12 @@ function toGeoJSON(recs) {
       a_leaf_umol: r.model.aLeaf, lai: r.model.lai, gco2_h_m2: r.model.gco2, gps_accuracy_m: r.accuracy, location_source: r.source || "", sample: !!r.sample, notes: r.notes || "" } })) }, null, 2);
 }
 function toCSV(recs) {
-  const head = ["일시", "따로/같이", "탐구 주제", "서식지", "장소", "연구원", "위도", "경도", "위치 기준", "GPS정확도(m)", "국명", "학명", "신뢰도(%)", "과", "생활형", "광합성유형",
+  const head = ["일시", "따로/같이", "탐구 주제", "식재/자생", "서식지", "장소", "연구원", "위도", "경도", "위치 기준", "GPS정확도(m)", "국명", "학명", "신뢰도(%)", "과", "생활형", "광합성유형",
     "기온(℃)", "습도(%)", "운량(%)", "일사량(W/m²)", "PPFD(µmol/m²/s)", "PAR지수", "광합성활성", "잎 순광합성(µmol/m²/s)",
     "LAI", "탄소고정(gCO₂/h·m²)", "기후지표종", "메모", "AI 광합성 해설", "AI 기후지표 근거", "AI 수업 연계 조언", "예시"];
   const src = { gps: "GPS", map: "지도 지정", home: "우리 동네 기본 위치", photo: "사진 위치정보", default: "임시 위치" };
   const rows = recs.map((r) => [new Date(r.ts).toLocaleString("ko-KR"), MODES[r.mode] ? MODES[r.mode].label : "",
-    r.mode === "solo" && THEMES[r.researcher] ? THEMES[r.researcher].tag : "학교", r.habitat || "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
+    r.mode === "solo" && THEMES[r.researcher] ? THEMES[r.researcher].tag : "학교", r.origin === "planted" ? "식재" : r.origin === "wild" ? "자생" : "", r.habitat || "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
     r.koreanName, r.scientificName, r.confidence ?? "", r.ai && r.ai.taxonomy ? r.ai.taxonomy.family : "", r.growthForm, r.psType,
     r.weather.temp, r.weather.rh, r.weather.cloud, r.weather.sw, r.weather.ppfd, r.weather.par, M.activity(r.weather.ppfd).label,
     r.model.aLeaf, r.model.lai, r.model.gco2, r.ai && r.ai.ecologicalInsight && r.ai.ecologicalInsight.climateIndicator ? "O" : "",
@@ -788,6 +800,7 @@ function SoloView({ me, records, gps, onAdd, onOpen, say }) {
       ${THEMES[who] && html`<div class="theme-card" style=${{ "--c": rColor(who) }}>
         <span class="theme-ic"><${Icon} name=${THEMES[who].icon} size=${22} /></span>
         <span class="flex-1 min-w-0"><small>${THEMES[who].place} · ${THEMES[who].tag}</small><b>${THEMES[who].q}</b><em>${THEMES[who].about}</em>
+          ${mine.length ? html`<span class="theme-origin"><i style=${{ background: EM.ORIGIN_INFO.planted.color }}>식재 ${mine.filter((r) => r.origin === "planted").length}</i><i style=${{ background: EM.ORIGIN_INFO.wild.color }}>자생 ${mine.filter((r) => r.origin === "wild").length}</i>${mine.some((r) => !r.origin) ? html`<i class="u">모름 ${mine.filter((r) => !r.origin).length}</i>` : null}</span>` : null}
           ${mine.length ? html`<span class="theme-hab">${THEMES[who].habitats.map((h) => { const n = mine.filter((r) => r.habitat === h).length; return html`<i key=${h} class=${n ? "on" : ""}>${h}${n ? ` ${n}` : ""}</i>`; })}</span>` : null}</span>
       </div>`}
       <div class="home-line"><${Icon} name="MapPin" size=${14} /><span>탐구 기본 위치 <b>${home.label}</b>${who === me ? html` <span class="text-mist">${home.custom ? "· 내가 정한 정확한 위치 (이 휴대폰에만 저장)" : "· 동 중심"}</span>` : null}</span>
@@ -839,6 +852,7 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
           <dl>
             <dt>과</dt><dd>${(r.ai && r.ai.taxonomy && r.ai.taxonomy.family) || "–"}</dd>
             <dt>유형</dt><dd>${M.PS_TYPES[r.psType].label} · ${r.growthForm}</dd>
+            ${r.origin && EM.ORIGIN_INFO[r.origin] ? html`<dt>식재</dt><dd style=${{ color: EM.ORIGIN_INFO[r.origin].color, fontWeight: 700 }}>${EM.ORIGIN_INFO[r.origin].label} · ${EM.ORIGIN_INFO[r.origin].long}</dd>` : null}
             <dt>채집</dt><dd>${fmtDay(r.ts)}${g.length > 1 ? ` 외 ${g.length - 1}회` : ""}</dd>
             <dt>채집자</dt><dd>${who.map((n) => html`<span key=${n} class="inline-flex items-center gap-1 mr-1.5"><${Dot} color=${rColor(n)} size=${7} />${n}</span>`)}</dd>
             <dt>탄소</dt><dd class="mono">${fix(r.model.gco2, 2)} g/h·m²</dd>
@@ -1222,7 +1236,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   const [ai, setAi] = useState(null), [aiState, setAiState] = useState("idle"), [aiErr, setAiErr] = useState("");
   const [saving, setSaving] = useState(false);
   const home = getHome(researcher);
-  const [f, setF] = useState({ habitat: "", koreanName: "", scientificName: "", growthForm: "초본", psType: "C3", lai: "", notes: "", place: (draft.mode === "solo") ? home.label : "" });
+  const [f, setF] = useState({ origin: "", habitat: "", koreanName: "", scientificName: "", growthForm: "초본", psType: "C3", lai: "", notes: "", place: (draft.mode === "solo") ? home.label : "" });
   const camRef = useRef(null), galRef = useRef(null);
   const [shotTs, setShotTs] = useState(Date.now());
   const [pastWx, setPastWx] = useState(null), [album, setAlbum] = useState(null);
@@ -1231,7 +1245,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   const m = MODES[mode];
   const est = useMemo(() => M.estimate({ sw: w.sw, temp: w.temp, rh: w.rh, psType: f.psType, growthForm: f.growthForm,
     lai: f.lai === "" ? undefined : Number(f.lai) }), [w, f.psType, f.growthForm, f.lai]);
-  const meta = { mode, researcher, ts: shotTs, name: f.koreanName.trim(), sci: f.scientificName.trim(), place: f.place.trim() || m.place };
+  const meta = { origin: f.origin, mode, researcher, ts: shotTs, name: f.koreanName.trim(), sci: f.scientificName.trim(), place: f.place.trim() || m.place };
   const setMode = (k) => {
     setModeS(k);
     if (!draft.pos) setPos(startPos(k, researcher, gps, null));
@@ -1242,7 +1256,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     if (!raw) { setFramed(null); return; }
     let live = true; const t = setTimeout(() => { EM.composeFrame(raw, meta).then((d) => { if (live) setFramed(d); }, () => {}); }, 250);
     return () => { live = false; clearTimeout(t); };
-  }, [raw, mode, meta.name, meta.sci, meta.place, shotTs]);
+  }, [raw, mode, meta.name, meta.sci, meta.place, shotTs, f.origin]);
 
   const onFile = async (e, fromAlbum) => {
     const file = e.target.files && e.target.files[0]; e.target.value = ""; if (!file) return;
@@ -1278,7 +1292,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     try {
       const o = await analyzePlant({ settings, dataUrl: raw, weather: w, lat: p.lat, lng: p.lng, mode, ctx: { theme: mode === "solo" ? THEMES[researcher] : null, habitat: f.habitat } });
       setAi(o); setAiState("ok");
-      setF((q) => ({ ...q, koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType,
+      setF((q) => ({ ...q, origin: q.origin || o.origin || "", koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType,
         lai: o.carbonFixationEst && Number(o.carbonFixationEst.laiEstimate) > 0 ? String(M.clamp(Number(o.carbonFixationEst.laiEstimate), 0.1, 10)) : q.lai }));
     } catch (er) { setAiState("error"); setAiErr(er.message || String(er)); }
   };
@@ -1289,7 +1303,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     setSaving(true);
     let photo = null;
     if (raw) { try { photo = await EM.composeFrame(raw, meta); } catch (e) { photo = raw; } }
-    onSave({ ...preview, id: uid(), savedAt: Date.now(), photo, raw: raw || undefined, habitat: f.habitat || undefined, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
+    onSave({ ...preview, id: uid(), savedAt: Date.now(), origin: f.origin || "", frameV: FRAME_V, photo, raw: raw || undefined, habitat: f.habitat || undefined, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
       weather: { temp: w.temp, rh: w.rh, cloud: w.cloud, sw: w.sw, ppfd: w.ppfd, par: w.par, ...(pastWx ? { past: true } : {}) }, ...(album ? { fromAlbum: true } : {}) });
   };
   const srcLabel = { gps: `내 위치(GPS) ±${Math.round(p.accuracy || 0)}m`, map: "지도에서 콕 찍은 자리", photo: "사진에 담긴 촬영 위치", home: `우리 동네 기본 위치 · ${home.label}`, default: "지도를 눌러 위치를 찍어 주세요" }[p.source];
@@ -1363,6 +1377,9 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
         <div class="grid sm:grid-cols-2 gap-3">
           <label class="fld"><span>국명</span><input id="fKor" value=${f.koreanName} onInput=${(e) => setF({ ...f, koreanName: e.target.value })} placeholder="예: 강아지풀" /></label>
           <label class="fld"><span>학명</span><input id="fSci" class="italic" value=${f.scientificName} onInput=${(e) => setF({ ...f, scientificName: e.target.value })} placeholder="예: Setaria viridis" /></label>
+          <div class="sm:col-span-2"><${Label}>심은 식물? 저절로 자란 식물? · 사진 테두리 색이 달라져요</${Label}>
+            <div class="flex flex-wrap gap-1.5">${ORIGINS.map(([k, l]) => html`<${Chip} key=${k || "none"} on=${f.origin === k} color=${k ? EM.ORIGIN_INFO[k].color : "#5F7A68"}
+              onClick=${() => setF({ ...f, origin: k })}>${l}</${Chip}>`)}</div></div>
           <div class="sm:col-span-2"><${Label}>${mode === "solo" && THEMES[researcher] ? `서식지 · ${THEMES[researcher].tag}` : "교정 어디에서"}</${Label}>
             <div class="flex flex-wrap gap-1.5">${(mode === "solo" && THEMES[researcher] ? THEMES[researcher].habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${f.habitat === h} color=${m.color}
               onClick=${() => setF({ ...f, habitat: f.habitat === h ? "" : h })}>${h}</${Chip}>`)}</div></div>
@@ -1391,7 +1408,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
   // 이름·생활형 고치기 + 저장된 사진으로 AI 다시 찾기 (팀원 누구나)
   const [ed, setEd] = useState(null); // {koreanName, scientificName, growthForm, psType, place, notes}
   const [ai, setAi] = useState(null), [aiState, setAiState] = useState("idle"), [aiErr, setAiErr] = useState("");
-  const openEdit = () => { setEd({ habitat: rec.habitat || "", koreanName: rec.koreanName || "", scientificName: rec.scientificName || "", growthForm: rec.growthForm || "초본", psType: rec.psType || "C3",
+  const openEdit = () => { setEd({ origin: rec.origin || "", habitat: rec.habitat || "", koreanName: rec.koreanName || "", scientificName: rec.scientificName || "", growthForm: rec.growthForm || "초본", psType: rec.psType || "C3",
     place: rec.place || "", notes: rec.notes || "" }); setAi(null); setAiState("idle"); };
   const runAI = async () => {
     if (!aiReady(settings)) { onOpenSettings && onOpenSettings(); return; }
@@ -1401,7 +1418,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
       const dataUrl = await photoDataUrl(src);
       const o = await analyzePlant({ settings, dataUrl, weather: rec.weather, lat: rec.lat, lng: rec.lng, mode: rec.mode, ctx: { theme: rec.mode === "solo" ? THEMES[rec.researcher] : null, habitat: ed && ed.habitat } });
       setAi(o); setAiState("ok");
-      setEd((q) => ({ ...q, koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType }));
+      setEd((q) => ({ ...q, origin: q.origin || o.origin || "", koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType }));
     } catch (e) { setAiState("error"); setAiErr(e.message || String(e)); }
   };
   const saveEdit = async () => {
@@ -1410,8 +1427,8 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
       const lai = ai && ai.carbonFixationEst && Number(ai.carbonFixationEst.laiEstimate) > 0 ? M.clamp(Number(ai.carbonFixationEst.laiEstimate), 0.1, 10) : rec.lai;
       const model = M.estimate({ sw: rec.weather.sw, temp: rec.weather.temp, rh: rec.weather.rh, psType: ed.psType, growthForm: ed.growthForm, lai });
       let photo = rec.photo;
-      if (rec.raw) { try { photo = await EM.composeFrame(rec.raw, { mode: rec.mode, researcher: rec.researcher, ts: rec.ts, name: ed.koreanName.trim(), sci: ed.scientificName.trim(), place: ed.place.trim() || MODES[rec.mode].place }); } catch (e) {} }
-      await onUpdate({ ...rec, habitat: ed.habitat || undefined, koreanName: ed.koreanName.trim(), scientificName: ed.scientificName.trim(), growthForm: ed.growthForm, psType: ed.psType,
+      if (rec.raw) { try { photo = await EM.composeFrame(rec.raw, { origin: ed.origin, mode: rec.mode, researcher: rec.researcher, ts: rec.ts, name: ed.koreanName.trim(), sci: ed.scientificName.trim(), place: ed.place.trim() || MODES[rec.mode].place }); } catch (e) {} }
+      await onUpdate({ ...rec, origin: ed.origin || "", frameV: rec.raw ? FRAME_V : rec.frameV, habitat: ed.habitat || undefined, koreanName: ed.koreanName.trim(), scientificName: ed.scientificName.trim(), growthForm: ed.growthForm, psType: ed.psType,
         place: ed.place.trim(), notes: ed.notes.trim(), lai, model, photo, ...(ai ? { ai, confidence: ai.confidence } : {}), editedBy: me, editedAt: Date.now() },
         `${ed.koreanName.trim() || "식물"}(으)로 고쳤어요${rec.raw ? "" : " · 사진 속 이름은 예전 그대로예요"}`);
       setEd(null);
@@ -1431,7 +1448,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
         model = M.estimate({ sw: x.sw, temp: x.temp, rh: x.rh, psType: rec.psType, growthForm: rec.growthForm, lai: rec.lai });
       } catch (e) { note = " (그 시각 날씨 기록이 없어 빛·기온은 그대로)"; }
       let photo = rec.photo;
-      if (rec.raw) { try { photo = await EM.composeFrame(rec.raw, { mode: rec.mode, researcher: rec.researcher, ts, name: rec.koreanName || "", sci: rec.scientificName || "", place: rec.place || MODES[rec.mode].place }); } catch (e) {} }
+      if (rec.raw) { try { photo = await EM.composeFrame(rec.raw, { origin: rec.origin, mode: rec.mode, researcher: rec.researcher, ts, name: rec.koreanName || "", sci: rec.scientificName || "", place: rec.place || MODES[rec.mode].place }); } catch (e) {} }
       await onUpdate({ ...rec, ts, weather, model, photo }, `날짜를 고쳤어요${note}${rec.raw || !rec.photo ? "" : " · 사진 속 날짜 도장은 예전 그대로예요"}`);
       setEditWhen(null);
     } catch (e) { setErr("저장하지 못했어요."); }
@@ -1440,7 +1457,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
   return html`<div class="modal-bg" onClick=${onClose}>
     <div class="modal" role="dialog" aria-modal="true" aria-label="기록 상세" onClick=${(e) => e.stopPropagation()}>
       <div class="flex items-center gap-2 mb-3 text-[12px] text-mist flex-wrap">
-        <${ModeTag} mode=${rec.mode} /><${Dot} color=${rColor(rec.researcher)} size=${8} /><span>${rec.researcher}</span><span>· ${fmtDate(rec.ts)}</span>${rec.habitat ? html`<span class="hab-chip">${rec.habitat}</span>` : null}
+        <${ModeTag} mode=${rec.mode} /><${Dot} color=${rColor(rec.researcher)} size=${8} /><span>${rec.researcher}</span><span>· ${fmtDate(rec.ts)}</span>${rec.origin && EM.ORIGIN_INFO[rec.origin] ? html`<span class="hab-chip" style=${{ background: EM.ORIGIN_INFO[rec.origin].color, color: "#fff" }}>${EM.ORIGIN_INFO[rec.origin].label}</span>` : null}${rec.habitat ? html`<span class="hab-chip">${rec.habitat}</span>` : null}
         ${!ed && html`<button type="button" class="link-btn" onClick=${openEdit}><${Icon} name="PencilLine" size=${13} />이름·종 고치기</button>`}
         ${mine && editWhen == null && html`<button type="button" class="link-btn" onClick=${() => setEditWhen(toLocalInput(rec.ts))}><${Icon} name="CalendarClock" size=${13} />날짜 고치기</button>`}<span>· ${rec.place || MODES[rec.mode].place}</span>
         <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>
@@ -1469,6 +1486,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
           <label class="fld"><span>국명</span><input id="eKor" value=${ed.koreanName} onInput=${(e) => setEd({ ...ed, koreanName: e.target.value })} placeholder="예: 마름" /></label>
           <label class="fld"><span>학명</span><input id="eSci" class="italic" value=${ed.scientificName} onInput=${(e) => setEd({ ...ed, scientificName: e.target.value })} placeholder="예: Trapa japonica" /></label>
         </div>
+        <div class="w-full"><${Label}>식재 · 자생</${Label}><div class="flex flex-wrap gap-1.5">${ORIGINS.map(([k, l]) => html`<${Chip} key=${k || "none"} on=${ed.origin === k} color=${k ? EM.ORIGIN_INFO[k].color : "#5F7A68"} onClick=${() => setEd({ ...ed, origin: k })}>${l}</${Chip}>`)}</div></div>
         <div class="w-full"><${Label}>서식지</${Label}><div class="flex flex-wrap gap-1.5">${(rec.mode === "solo" && THEMES[rec.researcher] ? THEMES[rec.researcher].habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${ed.habitat === h} onClick=${() => setEd({ ...ed, habitat: ed.habitat === h ? "" : h })}>${h}</${Chip}>`)}</div></div>
         <div class="w-full"><${Label}>생활형</${Label}><div class="flex flex-wrap gap-1.5">${FORM_LIST.map((g) => html`<${Chip} key=${g} on=${ed.growthForm === g} onClick=${() => setEd({ ...ed, growthForm: g })}>${g}</${Chip}>`)}</div></div>
         <div class="w-full"><${Label}>광합성 유형</${Label}><div class="flex flex-wrap gap-1.5">${PS_LIST.map((g) => html`<${Chip} key=${g} on=${ed.psType === g} onClick=${() => setEd({ ...ed, psType: g })}>${M.PS_TYPES[g].label}</${Chip}>`)}</div></div>
@@ -2011,6 +2029,7 @@ function App() {
       }
       await reloadFromDb();
       setSync({ state: "ok", at: Date.now(), msg: "", up: up.length, got });
+      migrateFrames();
     } catch (e) {
       setSync({ state: navigator.onLine === false ? "offline" : "error", at: Date.now(), msg: String((e && e.message) || e).slice(0, 160) });
     } finally {
@@ -2025,6 +2044,23 @@ function App() {
     return () => { clearInterval(iv); document.removeEventListener("visibilitychange", vis); window.removeEventListener("online", syncNow); };
   }, []);
   const putLocal = (item) => db.put({ ...item, _dirty: true });
+  // 예전 사진을 새 프레임(식재·자생 테두리)으로 다시 찍기 — 원본(raw)이 있는 식물 기록만, 한 번에 하나씩
+  const migrating = useRef(false);
+  const migrateFrames = async () => {
+    if (migrating.current) return; migrating.current = true;
+    try {
+      const todo = (await db.all()).filter((r) => !r.kind && !r.sample && r.raw && (r.frameV || 0) < FRAME_V);
+      let n = 0;
+      for (const r of todo) {
+        const origin = r.origin != null && r.origin !== "" ? r.origin : (ORIGIN_SEED[r.id] || "");
+        try {
+          const photo = await EM.composeFrame(r.raw, { origin, mode: r.mode, researcher: r.researcher, ts: r.ts, name: r.koreanName || "", sci: r.scientificName || "", place: r.place || MODES[r.mode].place });
+          await db.put({ ...r, origin, photo, frameV: FRAME_V, _dirty: true }); n++;
+        } catch (e) {}
+      }
+      if (n) { await reloadFromDb(); say(`사진 ${n}장에 식재·자생 테두리를 새로 입혔어요`); setTimeout(syncNow, 300); }
+    } finally { migrating.current = false; }
+  };
   const delCloud = (id, kind) => { const q = store.get(LS_DELQ, []); q.push({ id, kind }); store.set(LS_DELQ, q); };
 
   const loadWx = useCallback(async (lat, lng, fromGps) => {
