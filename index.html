@@ -339,6 +339,22 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .lerr{color:#c2261b;font-size:12.5px;min-height:18px;margin-top:6px;text-align:center}
 .llink{all:unset;cursor:pointer;display:block;margin:12px auto 0;font-size:12.5px;color:#3f4a38;text-decoration:underline;text-underline-offset:2px;text-align:center}
 .lnote{font-size:11.5px;color:#3f4a38;text-align:center;margin-top:10px}
+.ldday{margin:-6px 0 16px;text-align:center;background:linear-gradient(135deg,#17215c,#2d3d92);color:#fff;border-radius:16px;padding:12px 10px 11px;box-shadow:0 6px 18px #17215c44;position:relative;overflow:hidden}
+.ldday::after{content:"";position:absolute;inset:0;background:radial-gradient(60% 80% at 80% 0%,#ffd76033,transparent 70%);pointer-events:none}
+.ldday .k{font-size:11.5px;letter-spacing:.14em;color:#ffd760;font-weight:700}
+.ldday .d{font-family:var(--f-head);font-size:46px;line-height:1.05;margin:2px 0;background:linear-gradient(180deg,#fff7cf,#ffd25a 60%,#f2a21b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ldday .c{font-size:13px;color:#dfe4ff;font-variant-numeric:tabular-nums}
+.ldday .c b{color:#fff}
+.lclosed{text-align:center}
+.lclosed p{font-size:13.5px;line-height:1.6;color:#2f3a2a;margin:0 0 12px;word-break:keep-all}
+.lclosed p b{color:#17215c}
+.lbtn.look{background:#17215c}
+.lbtn.look small{display:block;font-family:inherit;font-size:12px;opacity:.85;margin-top:2px}
+#app[data-role="guest"] #compose,#app[data-role="guest"] #cbar,#app[data-role="guest"] #btsend,#app[data-role="guest"] [data-rp]{display:none!important}
+.gonly{display:none}
+#app[data-role="guest"] .gonly{display:block}
+.gnote{font-size:12.5px;color:var(--muted);background:var(--bg2);border:1px dashed var(--line);border-radius:12px;padding:9px 12px;margin:0 0 12px;word-break:keep-all}
+
 .tpane-tabs{margin-bottom:12px}
 .tpane-tabs button{white-space:nowrap;flex:none;font-size:15px;padding:6px 12px}
 .tm-l{display:grid;gap:8px;margin-bottom:10px}
@@ -732,6 +748,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
       <div id="feedView">
       <div class="progs" id="progs" role="group" aria-label="프로그램"></div>
       <div id="dash"></div>
+      <div class="gnote gonly">👀 둘러보기 중이에요. 탐구 기록 올리기는 캠프 날 입장하면 할 수 있어요.</div>
       <div class="compose" id="compose">
         <label for="ptext" class="hint" id="plabel" style="display:block;margin:0 0 6px">무엇을 발견했나요?</label>
         <textarea id="ptext" placeholder="예) 암석 단면에서 반짝이는 결정을 봤다. 석영일까?"></textarea>
@@ -753,6 +770,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 
     <!-- 채팅 -->
     <section class="screen" id="s-chat" hidden>
+      <div class="gnote gonly" style="margin-top:4px">👀 둘러보기 중이에요. 채팅은 캠프 날 입장하면 할 수 있어요.</div>
       <h2>캠프 채팅</h2>
       <div class="daytabs chans" id="chans" role="group" aria-label="채팅방"></div>
       <div class="chat" id="chat" aria-live="polite"></div>
@@ -861,6 +879,11 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
         <div class="lword"><span class="a">Grow</span><span class="m">&amp;</span><span class="b">Glow</span></div>
         <div class="lsub">생태전환캠프</div>
         <div class="lmeta">2026. 11. 13–14 · 제천 별새꽃돌과학관</div>
+        <div class="ldday" id="ldday" hidden><div class="k" id="lddk">CAMP COUNTDOWN</div><div class="d" id="lddd">D-10</div><div class="c" id="lddc"></div></div>
+        <div class="lclosed" id="lclosed" hidden>
+          <p>학생 입장은 <b>캠프 날(11월 13일)</b>에 열려요.<br>그 전까지는 둘러보기로 일정·생물 사전·게임을 미리 볼 수 있어요.</p>
+          <button class="lbtn look" type="button" id="llook">👀 둘러보기<small>입장 없이 미리 구경하기</small></button>
+        </div>
         <div id="lstu">
           <div class="lf"><span>학년</span><div class="seg" id="lg"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button></div></div>
           <div class="lf"><label for="lc">반</label><select id="lc"><option value="">반 선택</option></select></div>
@@ -868,11 +891,11 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
         <div id="ltea" hidden>
           <div class="lf"><label for="lcode">교사 입장 코드</label><input id="lcode" inputmode="numeric" autocomplete="off" placeholder="교사 입장 코드"></div>
         </div>
-        <div class="lf"><label for="lname">이름</label><input id="lname" autocomplete="name" maxlength="10" placeholder="이름"><span class="hint" id="lnamehint" style="display:block;margin-top:5px;font-weight:400;line-height:1.45">같은 반에 이름이 같은 친구가 있으면 이름 뒤에 A, B를 붙여요</span></div>
+        <div class="lf" id="lnamef"><label for="lname">이름</label><input id="lname" autocomplete="name" maxlength="10" placeholder="이름"><span class="hint" id="lnamehint" style="display:block;margin-top:5px;font-weight:400;line-height:1.45">같은 반에 이름이 같은 친구가 있으면 이름 뒤에 A, B를 붙여요</span></div>
         <button class="lbtn" type="submit" id="lgo">캠프 입장하기</button>
         <div class="lerr" id="lerr" role="alert"></div>
         <button class="llink" type="button" id="lswap">선생님이신가요?</button>
-        <p class="lnote">한 번 입장하면 다음부터는 자동으로 들어가요.</p>
+        <p class="lnote" id="lnote">한 번 입장하면 다음부터는 자동으로 들어가요.</p>
       </form>
     </div>
   </div>
@@ -907,11 +930,13 @@ function campDay(){const d=today0();if(d<CAMP1)return 0;if(+d===+CAMP1)return 1;
 function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes()}
 function dDay(){return Math.round((CAMP1-today0())/864e5)}
 function hm(ts){const d=new Date(ts);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
-async function rpc(fn,args){if(!sb)throw new Error('offline');const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data}
+async function rpc(fn,args){if(me&&me.role==='guest')throw new Error('guest_only');if(!sb)throw new Error('offline');const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data}
 function who(){return me&&me.role==='stu'?{p_sid:me.id,p_key:me.key}:{p_sid:null,p_key:null}}
 function tcode(){return me&&me.role==='tea'?me.code:null}
 function tname(){return me&&me.role==='tea'?me.name+' 선생님':null}
 function fail(e){console.warn(e);const m=String(e&&(e.message||e.details)||e);
+  if(m.includes('guest_only')){toast('둘러보기에서는 볼 수만 있어요. 캠프 날 입장하면 할 수 있어요 🌟');return}
+  if(m.includes('not_open')){toast('학생 입장은 캠프 날(11월 13일)에 열려요');return}
   if(m.includes('not_student')){toast('다른 기기에서 같은 이름으로 입장했어요. 다시 입장해 주세요');setTimeout(()=>{try{localStorage.removeItem('gg-user')}catch(x){}me=null;openLogin()},1200);return}
   if(m.includes('no_tokens')){toast('인화권이 없어요');return}
   if(m.includes('not_your_channel')){toast('우리 조 채팅방에만 쓸 수 있어요');return}
@@ -1247,18 +1272,19 @@ $('#mx').onclick=closeModal;$('#mok').onclick=closeModal;
 /* ---------- 탭·역할·세계 ---------- */
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.s));
 function show(s){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.s===s));document.querySelectorAll('.screen').forEach(x=>x.hidden=x.id!=='s-'+s);$('#cbar').hidden=s!=='chat';if(s!=='quiz'&&typeof mPause==='function')mPause();window.scrollTo(0,0);if(s==='chat'){$('#cdot').hidden=true;renderChat()}}
-async function enter(u){me=u;role=u.role;starLast=null;
-  $('#login').hidden=true;$('#who').textContent=role==='tea'?u.name+' 선생님':`${u.grade}학년 ${u.cls}반${u.num?' '+u.num+'번':''} ${u.name}`;$('#teaPane').hidden=role!=='tea';
+async function enter(u){me=u;role=u.role;starLast=null;app.dataset.role=role;
+  $('#login').hidden=true;$('#who').textContent=role==='tea'?u.name+' 선생님':role==='guest'?'캠프 날 입장할 수 있어요':`${u.grade}학년 ${u.cls}반${u.num?' '+u.num+'번':''} ${u.name}`;$('#logout').textContent=role==='guest'?'입장 화면':'나가기';$('#teaPane').hidden=role!=='tea';
   try{await loadAll()}catch(e){console.warn(e)}subscribe();
   enterLabels();if(role==='tea'){tpane('n');updPcnt()}chan='all';qedit=null;gshow('hub');renderChans();renderPlan();renderLog();renderBoard();renderQAdmin();renderNotices();quizStart();show(role==='tea'?'news':'plan');
   if(role==='stu'){checkGifts();setTimeout(checkPopups,800)}
 }
 async function resume(saved){
+  if(saved.role!=='tea'&&!isOpen())return openLogin();
   if(saved.role==='tea'){try{const r=await rpc('gg_teacher_auth',{p_code:saved.code});if(r==='ok')return enter(saved)}catch(e){if(!sb)return enter(saved)}return openLogin()}
   try{const s=await rpc('gg_touch',{p_sid:saved.id,p_key:saved.key});enter({...saved,name:s.name,team:s.team,tokens:s.tokens,grade:s.grade,cls:s.cls,num:s.num})}
   catch(e){const m=String(e&&e.message||e);if(m.includes('not_student')){try{localStorage.removeItem('gg-user')}catch(x){}openLogin();lerr('같은 이름으로 다른 기기에서 입장했어요. 다시 입장해 주세요.')}else enter(saved)}
 }
-$('#logout').onclick=()=>{try{localStorage.removeItem('gg-user')}catch(e){}me=null;updStar();mPause&&mPause();openLogin()};
+$('#logout').onclick=()=>{if(!(me&&me.role==='guest')){try{localStorage.removeItem('gg-user')}catch(e){}}me=null;app.dataset.role='';updStar();mPause&&mPause();openLogin()};
 /* ---------- 조 관리 (선생님) ---------- */
 function tpane(w){$('#tpN').setAttribute('aria-pressed',w==='n');$('#tpT').setAttribute('aria-pressed',w==='t');$('#tpP').setAttribute('aria-pressed',w==='p');$('#tpK').setAttribute('aria-pressed',w==='k');$('#tpNotice').hidden=w!=='n';$('#tpTeams').hidden=w!=='t';$('#tpPhotos').hidden=w!=='p';$('#tpTk').hidden=w!=='k';$('#tpS').setAttribute('aria-pressed',w==='s');$('#tpStar').hidden=w!=='s';if(w==='s')renderSP();if(w==='t')renderTeams();if(w==='p')renderInbox();if(w==='k')renderTk()}
 $('#tpP').onclick=()=>tpane('p');$('#tpK').onclick=()=>tpane('k');$('#tpS').onclick=()=>tpane('s');
@@ -1271,7 +1297,7 @@ const tsave={};$('#tml').addEventListener('input',e=>{const i=e.target.closest('
 $('#tml').onclick=e=>{const d=e.target.closest('[data-tdel]');if(d&&arm(d)){const id=+d.dataset.tdel;rpc('gg_team_hide',{p_code:tcode(),p_id:id,p_hide:true}).then(async()=>{await loadTeams();renderTeams();teamsChanged('삭제됨 · 이 조의 기록은 남아 있어요')}).catch(fail)}};
 $('#tadd').onclick=()=>{const id=teams.reduce((m,t)=>Math.max(m,t.id),0)+1;rpc('gg_team_save',{p_code:tcode(),p_id:id,p_name:''}).then(async()=>{await loadTeams();renderTeams();teamsChanged('추가됨');const el=$('#tname-'+id);if(el)el.focus()}).catch(fail)};
 function fillTeamSelect(){}
-function enterLabels(){if(me)$('#badge').textContent=role==='tea'?'선생님':tlabel(me.team);updStar()}
+function enterLabels(){if(me)$('#badge').textContent=role==='tea'?'선생님':role==='guest'?'👀 둘러보기':tlabel(me.team);updStar()}
 
 /* 학생 조 배정 */
 var taf='none';
@@ -1283,6 +1309,20 @@ function renderAssign(){const el=$('#taList');if(!el||!me||me.role!=='tea')retur
 $('#taFilter').onclick=e=>{const b=e.target.closest('[data-taf]');if(!b)return;taf=b.dataset.taf;$('#taFilter').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===b));renderAssign()};
 $('#taList').addEventListener('change',async e=>{const sel=e.target.closest('[data-ta]');if(!sel)return;const id=sel.dataset.ta,t=+sel.value;sel.disabled=true;
   try{await rpc('gg_set_team',{p_code:tcode(),p_ids:[id],p_team:t});if(students[id])students[id].team=t;toast(`${students[id]?students[id].name:'학생'} → ${t>0?tlabel(t):'조 미정'}`)}catch(x){fail(x)}sel.disabled=false;setTimeout(renderAssign,taf==='none'&&t>0?500:0)});
+
+/* ---------- 캠프 전: D-day + 둘러보기 ---------- */
+const OPEN_AT=new Date('2026-11-13T00:00:00+09:00'),DEPART=new Date('2026-11-13T15:10:00+09:00'),CAMP_END=new Date('2026-11-14T15:30:00+09:00');
+function isOpen(){return Date.now()>=OPEN_AT.getTime()}
+function lmodeUI(){const closed=!isOpen()&&lmode==='stu';
+  $('#lstu').hidden=lmode!=='stu'||closed;$('#ltea').hidden=lmode!=='tea';$('#lnamef').hidden=closed;$('#lnamehint').hidden=lmode!=='stu';
+  $('#lgo').hidden=closed;$('#lnote').hidden=closed;$('#lclosed').hidden=!closed;$('#lgo').textContent=lmode==='tea'?'선생님 입장하기':'캠프 입장하기';ddayUI()}
+function ddayUI(){const el=$('#ldday');if(!el)return;const now=Date.now();if(now>=CAMP_END.getTime()){el.hidden=true;return}el.hidden=false;
+  const k=new Date(),t0=new Date(k.getFullYear(),k.getMonth(),k.getDate()),d=Math.round((new Date(2026,10,13)-t0)/864e5);
+  if(now<DEPART.getTime()){const ms=DEPART-now,dd=Math.floor(ms/864e5),hh=Math.floor(ms%864e5/36e5),mm=Math.floor(ms%36e5/6e4);
+    $('#lddk').textContent='CAMP COUNTDOWN';$('#lddd').textContent=d>0?'D-'+d:'D-DAY';$('#lddc').innerHTML=d>0?`출발까지 <b>${dd}일 ${hh}시간 ${mm}분</b><br>11월 13일(금) 15:10 학교 출발`:`오늘 <b>15:10</b> 출발! ${hh}시간 ${mm}분 남았어요`}
+  else{$('#lddk').textContent='GROW & GLOW';$('#lddd').textContent='캠프 중 ✨';$('#lddc').innerHTML='지금 별새꽃돌과학관에 있어요'}}
+setInterval(()=>{if(!$('#login').hidden){const was=$('#lclosed').hidden;lmodeUI();if(was===false&&isOpen())toast('학생 입장이 열렸어요! 🎉')}},30000);
+$('#llook').onclick=()=>enter({role:'guest',name:'둘러보기'});
 /* ---------- 로그인 ---------- */
 let lmode='stu',lg='';
 fillTeamSelect();
@@ -1290,21 +1330,21 @@ for(let i=1;i<=14;i++)$('#lc').insertAdjacentHTML('beforeend',`<option value="${
 
 function segPick(el,v){el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v))}
 $('#lg').onclick=e=>{const b=e.target.closest('button');if(b){lg=b.dataset.v;segPick($('#lg'),lg)}};
-$('#lswap').onclick=()=>{lmode=lmode==='stu'?'tea':'stu';$('#lstu').hidden=lmode!=='stu';$('#ltea').hidden=lmode!=='tea';$('#lswap').textContent=lmode==='stu'?'선생님이신가요?':'학생으로 입장하기';$('#lnamehint').hidden=lmode!=='stu';$('#lerr').textContent=''};
+$('#lswap').onclick=()=>{lmode=lmode==='stu'?'tea':'stu';$('#lswap').textContent=lmode==='stu'?'선생님이신가요?':'학생으로 입장하기';$('#lerr').textContent='';lmodeUI()};
 $('#lform').onsubmit=async e=>{e.preventDefault();const name=lmode==='stu'?$('#lname').value.replace(/\s+/g,''):$('#lname').value.trim(),go=$('#lgo');if(go.dataset.busy)return;
   if(!sb)return lerr('서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.');
   let u;
   if(lmode==='stu'){const cls=$('#lc').value;if(!lg)return lerr('학년을 골라 주세요.');if(!cls)return lerr('반을 골라 주세요.');if(!name)return lerr('이름을 적어 주세요.');
     go.dataset.busy='1';go.textContent='입장하는 중…';
     try{const key=newKey();const id=await rpc('gg_join',{p_grade:+lg,p_cls:+cls,p_num:null,p_name:name,p_team:0,p_key:key});u={role:'stu',id,key,grade:+lg,cls:+cls,num:null,team:0,name,tokens:1}}
-    catch(x){console.warn(x);lerr('입장하지 못했어요. 잠시 뒤 다시 해 주세요.');return}finally{delete go.dataset.busy;go.textContent='캠프 입장하기'}}
+    catch(x){console.warn(x);lerr(String(x&&x.message||x).includes('not_open')?'학생 입장은 캠프 날(11월 13일)에 열려요.':'입장하지 못했어요. 잠시 뒤 다시 해 주세요.');return}finally{delete go.dataset.busy;go.textContent='캠프 입장하기'}}
   else{const code=$('#lcode').value.trim();if(!code)return lerr('교사 입장 코드를 적어 주세요.');if(!name)return lerr('이름을 적어 주세요.');
     go.dataset.busy='1';try{const r=await rpc('gg_teacher_auth',{p_code:code});if(r==='locked')return lerr('잘못된 코드가 여러 번 입력돼서 10분 동안 잠겼어요.');if(r!=='ok')return lerr('입장 코드가 맞지 않아요. 인솔 교사에게 확인해 주세요.');u={role:'tea',team:0,name,code}}
     catch(x){return lerr('연결이 불안정해요. 잠시 뒤 다시 해 주세요.')}finally{delete go.dataset.busy}}
   try{localStorage.setItem('gg-user',JSON.stringify(u))}catch(e){}
   enter(u)};
 function lerr(m){$('#lerr').textContent=m}
-function openLogin(){fillTeamSelect();if(lmode!=='stu')$('#lswap').click();$('#login').hidden=false;$('#lerr').textContent='';drawLogin()}
+function openLogin(){fillTeamSelect();if(lmode!=='stu')$('#lswap').click();lmodeUI();$('#login').hidden=false;$('#lerr').textContent='';drawLogin()}
 const lv=$('#lcv'),lx=lv.getContext('2d');
 function drawLogin(){
   if($('#login').hidden)return;const d=devicePixelRatio||1;lv.width=innerWidth*d;lv.height=innerHeight*d;const W=lv.width,H=lv.height;
