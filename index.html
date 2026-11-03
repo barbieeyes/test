@@ -342,6 +342,8 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .tpane-tabs{margin-bottom:12px}
 .tpane-tabs button{white-space:nowrap;flex:none;font-size:15px;padding:6px 12px}
 .tm-l{display:grid;gap:8px;margin-bottom:10px}
+.ta-row{grid-template-columns:auto minmax(0,1fr) auto}
+.ta-sel{font:inherit;font-size:13px;color:var(--fg);background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:6px 6px;max-width:130px}
 .tm-r{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center}
 .tm-r .tn{font-family:var(--f-head);font-size:16px;text-align:center;color:#fff;border-radius:8px;padding:6px 0}
 .tm-r input{min-width:0;font:inherit;color:var(--fg);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
@@ -824,9 +826,13 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
           <div id="spList" class="tk-list"></div>
         </div>
         <div id="tpTeams" hidden>
-          <p class="lede" style="margin-top:0">조 이름을 정하면 학생 입장 화면, 기록, 채팅, 대시보드에 바로 반영돼요.</p>
+          <p class="lede" style="margin-top:0">조 이름을 정하면 기록, 채팅, 대시보드에 바로 반영돼요.</p>
           <div class="tm-l" id="tml"></div>
           <div style="display:flex;gap:8px;align-items:center"><button class="btn ghost" id="tadd">조 추가</button><span class="saved" id="tsaved"></span></div>
+          <h3 class="sth" style="margin-top:18px">학생 조 배정</h3>
+          <p class="hint" style="margin-top:0">학생은 조 없이 입장해요. 여기서 조를 고르면 그 학생 화면에 바로 "○조가 되었어요!"가 떠요.</p>
+          <div class="chips" role="group" aria-label="배정 보기" id="taFilter" style="margin:6px 0 8px"><button class="chip" data-taf="none" aria-pressed="true">조 미정</button><button class="chip" data-taf="all" aria-pressed="false">전체</button></div>
+          <div id="taList" class="tk-list"></div>
         </div>
       </div>
       <h2 style="margin-top:18px">공지·안내</h2>
@@ -858,7 +864,6 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
         <div id="lstu">
           <div class="lf"><span>학년</span><div class="seg" id="lg"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button></div></div>
           <div class="lf"><label for="lc">반</label><select id="lc"><option value="">반 선택</option></select></div>
-          <div class="lf"><label for="lt">조</label><select id="lt"></select></div>
         </div>
         <div id="ltea" hidden>
           <div class="lf"><label for="lcode">교사 입장 코드</label><input id="lcode" inputmode="numeric" autocomplete="off" placeholder="교사 입장 코드"></div>
@@ -916,9 +921,9 @@ function newKey(){const a=new Uint8Array(24);crypto.getRandomValues(a);return Ar
 let students={},rx={},myRx=new Set(),acks={},myAcks=new Set(),bell={},meteorRows=[],chatRows=[];
 async function q(builder){const {data,error}=await builder;if(error)throw error;return data||[]}
 async function loadTeams(){const d=await q(sb.from('gg_teams').select('id,name,hidden').order('id'));teams=d.filter(t=>!t.hidden).map(t=>({id:t.id,n:t.name}))}
-async function loadStudents(){const d=await q(sb.from('gg_students').select('id,grade,cls,num,name,team,tokens,stars'));students={};d.forEach(s=>students[s.id]=s);if(me&&me.role==='stu'&&students[me.id]){me.tokens=students[me.id].tokens;setStars(students[me.id].stars,true)}}
+async function loadStudents(){const d=await q(sb.from('gg_students').select('id,grade,cls,num,name,team,tokens,stars'));students={};d.forEach(s=>students[s.id]=s);if(me&&me.role==='stu'&&students[me.id]){me.tokens=students[me.id].tokens;{const nt=students[me.id].team;if(nt!==me.team){const was=me.team;me.team=nt;try{const sv=JSON.parse(localStorage.getItem('gg-user')||'null');if(sv){sv.team=nt;localStorage.setItem('gg-user',JSON.stringify(sv))}}catch(x){}enterLabels();if(!chans().includes(chan))chan='all';renderChans();if(nt>0&&was!==undefined)toast('🎉 '+tlabel(nt)+'가 되었어요!')}}setStars(students[me.id].stars,true)}}
 async function loadPosts(){const d=await q(sb.from('gg_posts').select('id,program,kind,student_id,author,team,is_teacher,body,img_url,exhibit,created_at').eq('hidden',false).order('created_at',{ascending:false}).limit(600));
-  posts.length=0;d.forEach(p=>posts.push({id:p.id,pg:p.program,k:p.kind,sid:p.student_id,n:p.author,tm:p.is_teacher?0:p.team,x:p.body,img:p.img_url,dk:p.exhibit,t:hm(p.created_at)}))}
+  posts.length=0;d.forEach(p=>posts.push({id:p.id,pg:p.program,k:p.kind,sid:p.student_id,n:p.author,tm:p.is_teacher?0:(p.team>0?p.team:-1),x:p.body,img:p.img_url,dk:p.exhibit,t:hm(p.created_at)}))}
 async function loadRx(){const d=await q(sb.from('gg_reactions').select('post_id,student_id,kind').eq('active',true));rx={};myRx=new Set();d.forEach(r=>{const o=rx[r.post_id]||(rx[r.post_id]={});o[r.kind]=(o[r.kind]||0)+1;if(me&&me.role==='stu'&&r.student_id===me.id)myRx.add(r.post_id+'|'+r.kind)})}
 async function loadChat(){const d=await q(sb.from('gg_chat').select('id,channel,student_id,author,team,is_teacher,body,deleted,created_at').order('created_at',{ascending:false}).limit(400));const before=chatRows.length?chatRows[chatRows.length-1].id:0;chatRows=d.reverse();const last=chatRows.length?chatRows[chatRows.length-1]:null;
   if(last&&last.id!==before&&before&&$('#s-chat').hidden&&!(me&&me.role==='stu'&&last.student_id===me.id))$('#cdot').hidden=false}
@@ -931,7 +936,7 @@ async function loadMeteor(){meteorRows=await q(sb.from('gg_meteor').select('stud
 
 const TB={
  gg_teams:[loadTeams,()=>{fillTeamSelect();if(me){enterLabels();renderChans();renderLog();renderBoard();if(!$('#tpTeams').hidden&&document.activeElement&&!document.activeElement.closest('#tml'))renderTeams()}}],
- gg_students:[loadStudents,()=>{if(me){updTkUI();updStar();if(!$('#tpStar').hidden)renderSP();renderNotices();if(!$('#gMeteor').hidden)mRankRender(mg&&mg.run?mg.score:null)}}],
+ gg_students:[loadStudents,()=>{if(me){updTkUI();if(!$('#tpTeams').hidden&&!(document.activeElement&&document.activeElement.closest('#taList')))renderAssign();updStar();if(!$('#tpStar').hidden)renderSP();renderNotices();if(!$('#gMeteor').hidden)mRankRender(mg&&mg.run?mg.score:null)}}],
  gg_posts:[loadPosts,()=>{if(me)renderLog()}],
  gg_reactions:[loadRx,()=>{if(me){renderFeed();renderDash()}}],
  gg_chat:[loadChat,()=>{if(me&&!$('#s-chat').hidden)renderChat()}],
@@ -1012,8 +1017,8 @@ setInterval(()=>{if(me)renderPlan()},60000);
 /* ---------- 기록: 프로그램별 대시보드 ---------- */
 let teams=[1,2,3,4,5,6].map(id=>({id,n:''}));
 function team(id){return teams.find(t=>t.id===id)}
-function tlabel(id){const t=team(id);return t&&t.n?`${id}조 ${t.n}`:`${id}조`}
-function tc(id){return tcol[(id-1)%tcol.length]}
+function tlabel(id){if(!(id>0))return '조 미정';const t=team(id);return t&&t.n?`${id}조 ${t.n}`:`${id}조`}
+function tc(id){return id>0?tcol[(id-1)%tcol.length]:'#9aa0b8'}
 
 const tcol=['#d4507a','#3b8a45','#3a6fb5','#d48a1a','#7a4fb5','#2a8f8a'];
 const programs=[
@@ -1070,7 +1075,7 @@ $('#pchips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;pick=b.d
 const RK=['발견!','신기해','나도 궁금'];
 function renderFeed(){
   const list=posts.filter(p=>cur==='all'||p.pg===cur);
-  $('#feed').innerHTML=list.length?list.map(p=>{const tea=p.tm===0,own=me&&me.role==='stu'&&p.sid===me.id;return `<article class="post" id="post-${p.id}"><div class="ph"><span class="av" style="background:${tea?'var(--petal)':tc(p.tm)}">${tea?'샘':p.tm}</span><span style="min-width:0"><span class="nm">${tea?'선생님':esc(tlabel(p.tm))} · ${esc(p.n)}</span><br><span style="color:var(--muted);font-size:12px">${cur==='all'?(P[p.pg]?P[p.pg].n:''):esc(p.k)}</span></span><span class="tt">${p.t}</span>${role==='tea'?`<button class="mini danger" data-delpost="${p.id}">삭제</button>`:''}</div>${p.dk?'<div class="dkb">탐구 도감 전시 중</div>':''}${p.img?`<img src="${esc(p.img)}" alt="" loading="lazy">`:''}${p.x?`<p>${esc(p.x)}</p>`:''}<div class="reacts">${RK.map(k=>`<button data-rp="${p.id}" data-k="${k}" aria-pressed="${myRx.has(p.id+'|'+k)}">${k} ${(rx[p.id]||{})[k]||0}</button>`).join('')}${own||role==='tea'?`<button data-dk="${p.id}">${p.dk?'도감에서 빼기':'도감에 전시'}</button>`:''}</div></article>`}).join('')
+  $('#feed').innerHTML=list.length?list.map(p=>{const tea=p.tm===0,own=me&&me.role==='stu'&&p.sid===me.id;return `<article class="post" id="post-${p.id}"><div class="ph"><span class="av" style="background:${tea?'var(--petal)':tc(p.tm)}">${tea?'샘':p.tm>0?p.tm:'?'}</span><span style="min-width:0"><span class="nm">${tea?'선생님':esc(tlabel(p.tm))} · ${esc(p.n)}</span><br><span style="color:var(--muted);font-size:12px">${cur==='all'?(P[p.pg]?P[p.pg].n:''):esc(p.k)}</span></span><span class="tt">${p.t}</span>${role==='tea'?`<button class="mini danger" data-delpost="${p.id}">삭제</button>`:''}</div>${p.dk?'<div class="dkb">탐구 도감 전시 중</div>':''}${p.img?`<img src="${esc(p.img)}" alt="" loading="lazy">`:''}${p.x?`<p>${esc(p.x)}</p>`:''}<div class="reacts">${RK.map(k=>`<button data-rp="${p.id}" data-k="${k}" aria-pressed="${myRx.has(p.id+'|'+k)}">${k} ${(rx[p.id]||{})[k]||0}</button>`).join('')}${own||role==='tea'?`<button data-dk="${p.id}">${p.dk?'도감에서 빼기':'도감에 전시'}</button>`:''}</div></article>`}).join('')
   :`<div class="empty">아직 기록이 없어요.<br>첫 번째 발견을 남겨 보세요!</div>`;
 }
 $('#feed').onclick=async e=>{
@@ -1127,7 +1132,7 @@ $('#vFeed').onclick=()=>setView('f');$('#vDk').onclick=()=>setView('d');$('#vDic
 /* ---------- 채팅 ---------- */
 let chan='all';
 function chatOf(c){return chatRows.filter(m=>m.channel===c)}
-function chans(){return me&&me.role==='tea'?['all',...teams.map(t=>'t'+t.id)]:['all','t'+(me?me.team:1)]}
+function chans(){return me&&me.role==='tea'?['all',...teams.map(t=>'t'+t.id)]:(me&&me.team>0?['all','t'+me.team]:['all'])}
 function renderChans(){$('#chans').innerHTML=chans().map(c=>`<button data-c="${c}" aria-pressed="${c===chan}">${c==='all'?'전체':esc(tlabel(+c.slice(1)))}</button>`).join('')}
 $('#chans').onclick=e=>{const b=e.target.closest('button');if(!b)return;chan=b.dataset.c;renderChans();renderChat()};
 function renderChat(){
@@ -1146,7 +1151,7 @@ $('#csend').onclick=sendChat;$('#cin').onkeydown=e=>{if(e.key==='Enter'&&!e.isCo
 
 /* ---------- 골든벨 ---------- */
 let Q=[];
-function myRoom(){return me&&me.role==='stu'?me.team:null}
+function myRoom(){return me&&me.role==='stu'&&me.team>0?me.team:null}
 let qi=-1,score=0,timer=null,qnext=null,left=0,answered=false;
 function renderBoard(){
   const cnt={};Object.values(students).forEach(s=>cnt[s.team]=(cnt[s.team]||0)+1);
@@ -1258,15 +1263,26 @@ $('#logout').onclick=()=>{try{localStorage.removeItem('gg-user')}catch(e){}me=nu
 function tpane(w){$('#tpN').setAttribute('aria-pressed',w==='n');$('#tpT').setAttribute('aria-pressed',w==='t');$('#tpP').setAttribute('aria-pressed',w==='p');$('#tpK').setAttribute('aria-pressed',w==='k');$('#tpNotice').hidden=w!=='n';$('#tpTeams').hidden=w!=='t';$('#tpPhotos').hidden=w!=='p';$('#tpTk').hidden=w!=='k';$('#tpS').setAttribute('aria-pressed',w==='s');$('#tpStar').hidden=w!=='s';if(w==='s')renderSP();if(w==='t')renderTeams();if(w==='p')renderInbox();if(w==='k')renderTk()}
 $('#tpP').onclick=()=>tpane('p');$('#tpK').onclick=()=>tpane('k');$('#tpS').onclick=()=>tpane('s');
 $('#tpN').onclick=()=>tpane('n');$('#tpT').onclick=()=>tpane('t');
-function renderTeams(){
+function renderTeams(){renderAssign();
   $('#tml').innerHTML=teams.map(t=>`<div class="tm-r"><span class="tn" style="background:${tc(t.id)}">${t.id}조</span><input id="tname-${t.id}" data-tid="${t.id}" value="${esc(t.n)}" maxlength="12" placeholder="조 이름" aria-label="${t.id}조 이름"><button class="mini danger" data-tdel="${t.id}">삭제</button></div>`).join('')||'<div class="empty">조가 없어요. 조를 추가해 주세요.</div>';
 }
 function teamsChanged(msg){fillTeamSelect();renderChans();renderLog();renderBoard();$('#tsaved').textContent=msg;clearTimeout(teamsChanged.t);teamsChanged.t=setTimeout(()=>$('#tsaved').textContent='',2000);if(me&&me.role==='stu')enterLabels()}
 const tsave={};$('#tml').addEventListener('input',e=>{const i=e.target.closest('input[data-tid]');if(!i)return;const id=+i.dataset.tid,v=i.value.trim();team(id).n=v;$('#tsaved').textContent='저장하는 중…';clearTimeout(tsave[id]);tsave[id]=setTimeout(()=>rpc('gg_team_save',{p_code:tcode(),p_id:id,p_name:v}).then(()=>teamsChanged('저장됨')).catch(fail),600)});
 $('#tml').onclick=e=>{const d=e.target.closest('[data-tdel]');if(d&&arm(d)){const id=+d.dataset.tdel;rpc('gg_team_hide',{p_code:tcode(),p_id:id,p_hide:true}).then(async()=>{await loadTeams();renderTeams();teamsChanged('삭제됨 · 이 조의 기록은 남아 있어요')}).catch(fail)}};
 $('#tadd').onclick=()=>{const id=teams.reduce((m,t)=>Math.max(m,t.id),0)+1;rpc('gg_team_save',{p_code:tcode(),p_id:id,p_name:''}).then(async()=>{await loadTeams();renderTeams();teamsChanged('추가됨');const el=$('#tname-'+id);if(el)el.focus()}).catch(fail)};
-function fillTeamSelect(){const v=$('#lt').value;$('#lt').innerHTML='<option value="">조 선택</option>'+teams.map(t=>`<option value="${t.id}">${esc(tlabel(t.id))}</option>`).join('');$('#lt').value=v}
+function fillTeamSelect(){}
 function enterLabels(){if(me)$('#badge').textContent=role==='tea'?'선생님':tlabel(me.team);updStar()}
+
+/* 학생 조 배정 */
+var taf='none';
+function renderAssign(){const el=$('#taList');if(!el||!me||me.role!=='tea')return;
+  const arr=Object.values(students).sort((a,b)=>(a.team>0)-(b.team>0)||a.grade-b.grade||a.cls-b.cls||String(a.name).localeCompare(b.name,'ko'));
+  const none=arr.filter(s=>!(s.team>0)).length;const list=taf==='none'?arr.filter(s=>!(s.team>0)):arr;
+  const opts=t=>`<option value="0"${t>0?'':' selected'}>조 미정</option>`+teams.map(x=>`<option value="${x.id}"${x.id===t?' selected':''}>${esc(tlabel(x.id))}</option>`).join('');
+  el.innerHTML=`<div class="tk-sum">입장한 학생 ${arr.length}명 · 조 미정 <b>${none}</b>명</div>`+(list.length?list.map(s=>`<div class="tk-row ta-row"><span class="tk-team" style="background:${tc(s.team)}">${s.team>0?s.team+'조':'?'}</span><span class="tk-who"><b>${esc(s.name)}</b><span>${s.grade}학년 ${s.cls}반</span></span><select class="ta-sel" data-ta="${s.id}" aria-label="${esc(s.name)} 조">${opts(s.team)}</select></div>`).join(''):`<div class="empty">${arr.length?'모든 학생이 조를 받았어요 🎉':'아직 입장한 학생이 없어요.'}</div>`)}
+$('#taFilter').onclick=e=>{const b=e.target.closest('[data-taf]');if(!b)return;taf=b.dataset.taf;$('#taFilter').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===b));renderAssign()};
+$('#taList').addEventListener('change',async e=>{const sel=e.target.closest('[data-ta]');if(!sel)return;const id=sel.dataset.ta,t=+sel.value;sel.disabled=true;
+  try{await rpc('gg_set_team',{p_code:tcode(),p_ids:[id],p_team:t});if(students[id])students[id].team=t;toast(`${students[id]?students[id].name:'학생'} → ${t>0?tlabel(t):'조 미정'}`)}catch(x){fail(x)}sel.disabled=false;setTimeout(renderAssign,taf==='none'&&t>0?500:0)});
 /* ---------- 로그인 ---------- */
 let lmode='stu',lg='';
 fillTeamSelect();
@@ -1278,9 +1294,9 @@ $('#lswap').onclick=()=>{lmode=lmode==='stu'?'tea':'stu';$('#lstu').hidden=lmode
 $('#lform').onsubmit=async e=>{e.preventDefault();const name=lmode==='stu'?$('#lname').value.replace(/\s+/g,''):$('#lname').value.trim(),go=$('#lgo');if(go.dataset.busy)return;
   if(!sb)return lerr('서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.');
   let u;
-  if(lmode==='stu'){const cls=$('#lc').value;if(!lg)return lerr('학년을 골라 주세요.');if(!cls)return lerr('반을 골라 주세요.');const lt=$('#lt').value;if(!lt)return lerr('조를 골라 주세요.');if(!name)return lerr('이름을 적어 주세요.');
+  if(lmode==='stu'){const cls=$('#lc').value;if(!lg)return lerr('학년을 골라 주세요.');if(!cls)return lerr('반을 골라 주세요.');if(!name)return lerr('이름을 적어 주세요.');
     go.dataset.busy='1';go.textContent='입장하는 중…';
-    try{const key=newKey();const id=await rpc('gg_join',{p_grade:+lg,p_cls:+cls,p_num:null,p_name:name,p_team:+lt,p_key:key});u={role:'stu',id,key,grade:+lg,cls:+cls,num:null,team:+lt,name,tokens:1}}
+    try{const key=newKey();const id=await rpc('gg_join',{p_grade:+lg,p_cls:+cls,p_num:null,p_name:name,p_team:0,p_key:key});u={role:'stu',id,key,grade:+lg,cls:+cls,num:null,team:0,name,tokens:1}}
     catch(x){console.warn(x);lerr('입장하지 못했어요. 잠시 뒤 다시 해 주세요.');return}finally{delete go.dataset.busy;go.textContent='캠프 입장하기'}}
   else{const code=$('#lcode').value.trim();if(!code)return lerr('교사 입장 코드를 적어 주세요.');if(!name)return lerr('이름을 적어 주세요.');
     go.dataset.busy='1';try{const r=await rpc('gg_teacher_auth',{p_code:code});if(r==='locked')return lerr('잘못된 코드가 여러 번 입력돼서 10분 동안 잠겼어요.');if(r!=='ok')return lerr('입장 코드가 맞지 않아요. 인솔 교사에게 확인해 주세요.');u={role:'tea',team:0,name,code}}
@@ -2019,7 +2035,7 @@ function rankOf(list,val,key){return list.filter(x=>x[key]>val).length+1}
 async function openStars(){if(!me||me.role!=='stu'||starBusy)return;starBusy=true;let log=[];try{const r=await rpc('gg_my_stars',who());log=r.log||[];setStars(r.stars)}catch(e){fail(e)}starBusy=false;
   const {arr,tl}=starRanks(),my=me.stars||0,myR=rankOf(arr,my,'stars'),mt=tl.find(t=>t.id===me.team),tR=mt?rankOf(tl,mt.sum,'sum'):'-';
   pending=null;$('#mtitle').textContent='내 별 포인트';document.querySelector('.mbox .bell').textContent='⭐ STAR POINT';
-  $('#mbody').innerHTML=`<div class="stbox"><div class="sthero"><span style="font-size:30px">⭐</span><span class="big">${my.toLocaleString('ko-KR')}<small>개</small></span><span class="rk2">전체 <b>${myR}위</b> / ${arr.length}명<br>${esc(tlabel(me.team))} <b>${tR}위</b>${mt?` · ${mt.sum.toLocaleString('ko-KR')}개`:''}</span></div>
+  $('#mbody').innerHTML=`<div class="stbox"><div class="sthero"><span style="font-size:30px">⭐</span><span class="big">${my.toLocaleString('ko-KR')}<small>개</small></span><span class="rk2">전체 <b>${myR}위</b> / ${arr.length}명<br>${mt?`${esc(tlabel(me.team))} <b>${tR}위</b> · ${mt.sum.toLocaleString('ko-KR')}개`:'조는 곧 정해져요'}</span></div>
   <p style="font-size:12.5px;color:var(--muted);margin:0;word-break:keep-all">별을 많이 모으면 캠프가 끝날 때 선생님이 순위대로 상품을 주실 거예요. 조원 별을 합친 조 순위로도 상을 받을 수 있어요!</p>
   <h4 class="sth">조별 별 순위</h4><ol class="strank">${tl.slice(0,6).map((t,i)=>`<li class="${t.id===me.team?'me':''}"><span class="n">${i+1}</span><span>${esc(tlabel(t.id))}</span><span class="v">⭐ ${t.sum.toLocaleString('ko-KR')}</span></li>`).join('')||'<li><span></span><span>아직 조가 없어요</span><span></span></li>'}</ol>
   <h4 class="sth">별 순위 TOP 5</h4><ol class="strank">${arr.slice(0,5).filter(s=>s.stars>0).map(s=>`<li class="${s.id===me.id?'me':''}"><span class="n">${rankOf(arr,s.stars,'stars')}</span><span>${esc(s.name)} <small style="color:var(--muted)">${esc(tlabel(s.team))}</small></span><span class="v">⭐ ${s.stars}</span></li>`).join('')||'<li><span></span><span>아직 별을 모은 친구가 없어요. 첫 번째가 되어 볼까요?</span><span></span></li>'}</ol>
