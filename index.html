@@ -738,6 +738,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
           <label class="file" for="pfile"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg><span id="pfname">사진 추가</span><input type="file" id="pfile" accept="image/*"></label>
           <button class="btn shine" id="psend">올리기</button>
         </div>
+        <p class="hint" style="margin:6px 0 0">📷 사진은 식물·곤충·화석·하늘처럼 <b>사람 얼굴이 나오지 않게</b> 찍어요. 올린 사진은 캠프 친구들도 볼 수 있어요.</p>
         <label class="check" style="margin:8px 0 0"><input type="checkbox" id="pdk" checked>탐구 도감에도 전시하기</label>
         <div class="lerr" id="perr" style="text-align:left;color:var(--petal)"></div>
       </div>
@@ -768,7 +769,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
       </div>
       <div id="gConst" hidden><button class="back" data-back><span aria-hidden="true">←</span> 게임 목록으로</button><h2>별자리 맞히기</h2><p class="lede">별 모양을 보고 이름을 맞혀요. 캠프 밤하늘에서 찾을 수 있는 별자리예요.</p><div class="cbody"></div></div>
       <div id="gMeteor" hidden><button class="back" data-back><span aria-hidden="true">←</span> 게임 목록으로</button><h2>운석 피하기</h2><div class="mwrap"></div></div>
-      <div id="gBooth" hidden><button class="back" data-back><span aria-hidden="true">←</span> 게임 목록으로</button><h2>📸 네컷 사진관</h2><p class="lede">선생님이나 내가 찍은 캠프 사진을 배경으로 네컷 사진을 만들어요.</p><div class="cbody"></div></div>
+      <div id="gBooth" hidden><button class="back" data-back><span aria-hidden="true">←</span> 게임 목록으로</button><h2>📸 네컷 사진관</h2><p class="lede">선생님이나 내가 찍은 캠프 사진을 배경으로 네컷 사진을 만들어요. 네컷 사진은 <b>내 폰에 저장</b>하거나 <b>선생님께만</b> 보낼 수 있고, 피드에는 올라가지 않아요.</p><div class="cbody"></div></div>
       <div id="gSpec" hidden><button class="back" data-back><span aria-hidden="true">←</span> 게임 목록으로</button><h2>표본 퀴즈</h2><div class="cbody"></div></div>
       <div id="gGuess" hidden><button class="back" data-back><span aria-hidden="true">←</span> 게임 목록으로</button><h2>생물 스무고개</h2><p class="lede">힌트를 적게 볼수록 점수가 커요.</p><div class="cbody"></div></div>
       <div id="gMatch" hidden><button class="back" data-back><span aria-hidden="true">←</span> 게임 목록으로</button><h2>진로 짝꿍</h2><div class="cbody"></div></div>
@@ -856,13 +857,13 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
         <div class="lmeta">2026. 11. 13–14 · 제천 별새꽃돌과학관</div>
         <div id="lstu">
           <div class="lf"><span>학년</span><div class="seg" id="lg"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button></div></div>
-          <div class="lrow2"><div class="lf"><label for="lc">반</label><select id="lc"><option value="">반 선택</option></select></div><div class="lf"><label for="ln">번호</label><select id="ln"><option value="">번호 선택</option></select></div></div>
+          <div class="lf"><label for="lc">반</label><select id="lc"><option value="">반 선택</option></select></div>
           <div class="lf"><label for="lt">조</label><select id="lt"></select></div>
         </div>
         <div id="ltea" hidden>
           <div class="lf"><label for="lcode">교사 입장 코드</label><input id="lcode" inputmode="numeric" autocomplete="off" placeholder="교사 입장 코드"></div>
         </div>
-        <div class="lf"><label for="lname">이름</label><input id="lname" autocomplete="name" maxlength="10" placeholder="이름"></div>
+        <div class="lf"><label for="lname">이름</label><input id="lname" autocomplete="name" maxlength="10" placeholder="이름"><span class="hint" id="lnamehint" style="display:block;margin-top:5px;font-weight:400;line-height:1.45">같은 반에 이름이 같은 친구가 있으면 이름 뒤에 A, B를 붙여요</span></div>
         <button class="lbtn" type="submit" id="lgo">캠프 입장하기</button>
         <div class="lerr" id="lerr" role="alert"></div>
         <button class="llink" type="button" id="lswap">선생님이신가요?</button>
@@ -906,7 +907,7 @@ function who(){return me&&me.role==='stu'?{p_sid:me.id,p_key:me.key}:{p_sid:null
 function tcode(){return me&&me.role==='tea'?me.code:null}
 function tname(){return me&&me.role==='tea'?me.name+' 선생님':null}
 function fail(e){console.warn(e);const m=String(e&&(e.message||e.details)||e);
-  if(m.includes('not_student')){toast('다른 기기에서 같은 번호로 입장했어요. 다시 입장해 주세요');setTimeout(()=>{try{localStorage.removeItem('gg-user')}catch(x){}me=null;openLogin()},1200);return}
+  if(m.includes('not_student')){toast('다른 기기에서 같은 이름으로 입장했어요. 다시 입장해 주세요');setTimeout(()=>{try{localStorage.removeItem('gg-user')}catch(x){}me=null;openLogin()},1200);return}
   if(m.includes('no_tokens')){toast('인화권이 없어요');return}
   if(m.includes('not_your_channel')){toast('우리 조 채팅방에만 쓸 수 있어요');return}
   toast('연결이 불안정해요. 잠시 뒤 다시 해 주세요')}
@@ -1250,7 +1251,7 @@ async function enter(u){me=u;role=u.role;starLast=null;
 async function resume(saved){
   if(saved.role==='tea'){try{const r=await rpc('gg_teacher_auth',{p_code:saved.code});if(r==='ok')return enter(saved)}catch(e){if(!sb)return enter(saved)}return openLogin()}
   try{const s=await rpc('gg_touch',{p_sid:saved.id,p_key:saved.key});enter({...saved,name:s.name,team:s.team,tokens:s.tokens,grade:s.grade,cls:s.cls,num:s.num})}
-  catch(e){const m=String(e&&e.message||e);if(m.includes('not_student')){try{localStorage.removeItem('gg-user')}catch(x){}openLogin();lerr('같은 번호로 다른 기기에서 입장했어요. 다시 입장해 주세요.')}else enter(saved)}
+  catch(e){const m=String(e&&e.message||e);if(m.includes('not_student')){try{localStorage.removeItem('gg-user')}catch(x){}openLogin();lerr('같은 이름으로 다른 기기에서 입장했어요. 다시 입장해 주세요.')}else enter(saved)}
 }
 $('#logout').onclick=()=>{try{localStorage.removeItem('gg-user')}catch(e){}me=null;updStar();mPause&&mPause();openLogin()};
 /* ---------- 조 관리 (선생님) ---------- */
@@ -1270,16 +1271,16 @@ function enterLabels(){if(me)$('#badge').textContent=role==='tea'?'선생님':tl
 let lmode='stu',lg='';
 fillTeamSelect();
 for(let i=1;i<=14;i++)$('#lc').insertAdjacentHTML('beforeend',`<option value="${i}">${i}반</option>`);
-for(let i=1;i<=30;i++)$('#ln').insertAdjacentHTML('beforeend',`<option value="${i}">${i}번</option>`);
+
 function segPick(el,v){el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v))}
 $('#lg').onclick=e=>{const b=e.target.closest('button');if(b){lg=b.dataset.v;segPick($('#lg'),lg)}};
-$('#lswap').onclick=()=>{lmode=lmode==='stu'?'tea':'stu';$('#lstu').hidden=lmode!=='stu';$('#ltea').hidden=lmode!=='tea';$('#lswap').textContent=lmode==='stu'?'선생님이신가요?':'학생으로 입장하기';$('#lerr').textContent=''};
-$('#lform').onsubmit=async e=>{e.preventDefault();const name=$('#lname').value.trim(),go=$('#lgo');if(go.dataset.busy)return;
+$('#lswap').onclick=()=>{lmode=lmode==='stu'?'tea':'stu';$('#lstu').hidden=lmode!=='stu';$('#ltea').hidden=lmode!=='tea';$('#lswap').textContent=lmode==='stu'?'선생님이신가요?':'학생으로 입장하기';$('#lnamehint').hidden=lmode!=='stu';$('#lerr').textContent=''};
+$('#lform').onsubmit=async e=>{e.preventDefault();const name=lmode==='stu'?$('#lname').value.replace(/\s+/g,''):$('#lname').value.trim(),go=$('#lgo');if(go.dataset.busy)return;
   if(!sb)return lerr('서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.');
   let u;
-  if(lmode==='stu'){const cls=$('#lc').value;if(!lg)return lerr('학년을 골라 주세요.');if(!cls)return lerr('반을 골라 주세요.');const num=$('#ln').value;if(!num)return lerr('번호를 골라 주세요.');const lt=$('#lt').value;if(!lt)return lerr('조를 골라 주세요.');if(!name)return lerr('이름을 적어 주세요.');
+  if(lmode==='stu'){const cls=$('#lc').value;if(!lg)return lerr('학년을 골라 주세요.');if(!cls)return lerr('반을 골라 주세요.');const lt=$('#lt').value;if(!lt)return lerr('조를 골라 주세요.');if(!name)return lerr('이름을 적어 주세요.');
     go.dataset.busy='1';go.textContent='입장하는 중…';
-    try{const key=newKey();const id=await rpc('gg_join',{p_grade:+lg,p_cls:+cls,p_num:+num,p_name:name,p_team:+lt,p_key:key});u={role:'stu',id,key,grade:+lg,cls:+cls,num:+num,team:+lt,name,tokens:1}}
+    try{const key=newKey();const id=await rpc('gg_join',{p_grade:+lg,p_cls:+cls,p_num:null,p_name:name,p_team:+lt,p_key:key});u={role:'stu',id,key,grade:+lg,cls:+cls,num:null,team:+lt,name,tokens:1}}
     catch(x){console.warn(x);lerr('입장하지 못했어요. 잠시 뒤 다시 해 주세요.');return}finally{delete go.dataset.busy;go.textContent='캠프 입장하기'}}
   else{const code=$('#lcode').value.trim();if(!code)return lerr('교사 입장 코드를 적어 주세요.');if(!name)return lerr('이름을 적어 주세요.');
     go.dataset.busy='1';try{const r=await rpc('gg_teacher_auth',{p_code:code});if(r==='locked')return lerr('잘못된 코드가 여러 번 입력돼서 10분 동안 잠겼어요.');if(r!=='ok')return lerr('입장 코드가 맞지 않아요. 인솔 교사에게 확인해 주세요.');u={role:'tea',team:0,name,code}}
@@ -1869,7 +1870,7 @@ async function renderBooth(){
   c.fillStyle='#4d5747';c.font=`${Math.round(19*k)}px "Gowun Dodum",sans-serif`;
   const who=me?(me.role==='tea'?me.name+' 선생님':`${tlabel(me.team)} · ${me.name}`):'';c.fillText(`2026.11.13 · 별새꽃돌과학관${who?' · '+who:''}`,cx,y+h*.82);
   c.fillStyle='#f2c75c';starPath(c,x+28*k,y+28*k,12*k);c.fill();starPath(c,x+w-28*k,y+28*k,12*k);c.fill();
-  const n=BT.shots.filter(Boolean).length;$('#btsave').disabled=n<4;$('#btpost').disabled=n<4;$('#btsend').disabled=n<4||myTk()<1;updTkUI();$('#btcount').textContent=`${n}/4장`;paintBooth();
+  const n=BT.shots.filter(Boolean).length;$('#btsave').disabled=n<4;$('#btsend').disabled=n<4||myTk()<1;updTkUI();$('#btcount').textContent=`${n}/4장`;paintBooth();
 }
 function boothUI(){
   $('#gBooth').querySelector('.cbody').innerHTML=`
@@ -1899,7 +1900,7 @@ function boothUI(){
   <label class="bt-up ghost" for="btmulti">사진 4장 한 번에 고르기</label><input type="file" id="btmulti" accept="image/*" multiple hidden><input type="file" id="btone" accept="image/*" hidden>
   <div class="bt-step"><span class="bt-n">3</span><b>문구 쓰고 저장하기</b></div>
   <div class="field"><label for="btcap">한 줄 문구</label><input id="btcap" maxlength="18" placeholder="예) 우리 조 별 보러 왔어요" value="${esc(BT.cap)}"></div>
-  <div class="tkchip" id="tkchip"></div><div class="bt-act"><button class="btn shine bt-send" id="btsend" disabled>💌 선생님께 보내기 (인화권 1장)</button><button class="btn" id="btsave" disabled>내 폰에 저장하기</button><button class="btn ghost" id="btpost" disabled>탐구 피드에 올리기</button></div><div class="bt-sent" id="btsent" hidden></div>
+  <div class="tkchip" id="tkchip"></div><div class="bt-act"><button class="btn shine bt-send" id="btsend" disabled>💌 선생님께 보내기 (인화권 1장)</button><button class="btn" id="btsave" disabled>내 폰에 저장하기</button></div><div class="bt-sent" id="btsent" hidden></div>
   <div id="btout"></div>`;
   renderBooth();
 }
@@ -1988,9 +1989,9 @@ async function renderTk(){
   $('#tkTeam').innerHTML=teams.map(t=>`<option value="${t.id}">${esc(tlabel(t.id))}</option>`).join('');
   try{roster=await rpc('gg_roster',{p_code:tcode()})||[]}catch(e){fail(e)}
   const f=tkFilter.replace(/\s/g,'');
-  const ids=roster.filter(r=>!f||(`${r.grade}학년${r.cls}반${r.num}번${r.name}${tlabel(r.team)}`).replace(/\s/g,'').includes(f));
+  const ids=roster.filter(r=>!f||(`${r.grade}학년${r.cls}반${r.name}${tlabel(r.team)}`).replace(/\s/g,'').includes(f));
   const total=roster.reduce((s,r)=>s+r.tokens,0);
-  $('#tkList').innerHTML=roster.length?`<div class="tk-sum">학생 ${roster.length}명 · 남은 인화권 합계 ${total}장</div>`+(ids.length?ids.map(r=>`<div class="tk-row"><span class="tk-team" style="background:${tc(r.team)}">${r.team}조</span><span class="tk-who"><b>${esc(r.name)}</b><span>${r.grade}학년 ${r.cls}반 ${r.num}번${r.last_delta!=null?` · 최근 ${r.last_delta>0?'+':''}${r.last_delta} ${esc(r.last_reason||'')}`:''}</span></span><span class="tk-n">🎟️ ${r.tokens}</span><span class="tk-btns"><button class="mini" data-tk="${r.id}" data-d="-1" ${r.tokens?'':'disabled'} aria-label="한 장 빼기">−</button><button class="mini pr" data-tk="${r.id}" data-d="1" aria-label="한 장 주기">+1</button></span></div>`).join(''):'<div class="empty">찾는 학생이 없어요.</div>')
+  $('#tkList').innerHTML=roster.length?`<div class="tk-sum">학생 ${roster.length}명 · 남은 인화권 합계 ${total}장</div>`+(ids.length?ids.map(r=>`<div class="tk-row"><span class="tk-team" style="background:${tc(r.team)}">${r.team}조</span><span class="tk-who"><b>${esc(r.name)}</b><span>${r.grade}학년 ${r.cls}반${r.last_delta!=null?` · 최근 ${r.last_delta>0?'+':''}${r.last_delta} ${esc(r.last_reason||'')}`:''}</span></span><span class="tk-n">🎟️ ${r.tokens}</span><span class="tk-btns"><button class="mini" data-tk="${r.id}" data-d="-1" ${r.tokens?'':'disabled'} aria-label="한 장 빼기">−</button><button class="mini pr" data-tk="${r.id}" data-d="1" aria-label="한 장 주기">+1</button></span></div>`).join(''):'<div class="empty">찾는 학생이 없어요.</div>')
   :'<div class="empty">아직 입장한 학생이 없어요.<br>학생이 앱에 입장하면 여기에 이름이 생기고, 인화권 1장이 기본으로 들어가요.</div>';
 }
 async function give(ids,d,msg){if(!ids.length)return;try{await rpc('gg_tokens_give',{p_code:tcode(),p_ids:ids,p_delta:d,p_reason:d>0?tkWhy:''});if(msg)toast(msg);if(d>0)burst(null,null,30)}catch(e){fail(e)}renderTk()}
@@ -2032,9 +2033,9 @@ function renderSP(){if(!me||me.role!=='tea')return;
   $('#spTeam').innerHTML=teams.map(t=>`<option value="${t.id}">${esc(tlabel(t.id))}</option>`).join('');
   const {arr,tl}=starRanks();
   $('#spTeams').innerHTML=tl.length?tl.map((t,i)=>`<div><span>${i+1}. ${esc(tlabel(t.id))}</span><b>⭐ ${t.sum.toLocaleString('ko-KR')}</b></div>`).join(''):'<div>조가 아직 없어요</div>';
-  const f=spFilter.replace(/\s/g,'');const ids=arr.filter(r=>!f||(`${r.grade}학년${r.cls}반${r.num}번${r.name}${tlabel(r.team)}`).replace(/\s/g,'').includes(f));
+  const f=spFilter.replace(/\s/g,'');const ids=arr.filter(r=>!f||(`${r.grade}학년${r.cls}반${r.name}${tlabel(r.team)}`).replace(/\s/g,'').includes(f));
   const total=arr.reduce((a,r)=>a+r.stars,0);
-  $('#spList').innerHTML=arr.length?`<div class="tk-sum">학생 ${arr.length}명 · 별 합계 ${total.toLocaleString('ko-KR')}개 · 지금 선택: <b>${spAmt>0?'+':''}${spAmt}</b></div>`+(ids.length?ids.map(r=>`<div class="tk-row"><span class="tk-team" style="background:${tc(r.team)}">${rankOf(arr,r.stars,'stars')}위</span><span class="tk-who"><b>${esc(r.name)}</b><span>${r.grade}학년 ${r.cls}반 ${r.num}번 · ${esc(tlabel(r.team))}</span></span><span class="tk-n st">⭐ ${r.stars}</span><span class="tk-btns"><button class="mini pr" data-sp="${r.id}" aria-label="${esc(r.name)}에게 별 ${spAmt}개">${spAmt>0?'+':''}${spAmt}</button></span></div>`).join(''):'<div class="empty">찾는 학생이 없어요.</div>')
+  $('#spList').innerHTML=arr.length?`<div class="tk-sum">학생 ${arr.length}명 · 별 합계 ${total.toLocaleString('ko-KR')}개 · 지금 선택: <b>${spAmt>0?'+':''}${spAmt}</b></div>`+(ids.length?ids.map(r=>`<div class="tk-row"><span class="tk-team" style="background:${tc(r.team)}">${rankOf(arr,r.stars,'stars')}위</span><span class="tk-who"><b>${esc(r.name)}</b><span>${r.grade}학년 ${r.cls}반 · ${esc(tlabel(r.team))}</span></span><span class="tk-n st">⭐ ${r.stars}</span><span class="tk-btns"><button class="mini pr" data-sp="${r.id}" aria-label="${esc(r.name)}에게 별 ${spAmt}개">${spAmt>0?'+':''}${spAmt}</button></span></div>`).join(''):'<div class="empty">찾는 학생이 없어요.</div>')
   :'<div class="empty">아직 입장한 학생이 없어요.</div>'}
 async function giveSP(ids,msg){if(!ids.length)return;try{await rpc('gg_stars_give',{p_code:tcode(),p_ids:ids,p_delta:spAmt,p_reason:spWhy});if(msg)toast(msg);if(spAmt>0)burst(null,null,30);await loadStudents()}catch(e){fail(e)}renderSP()}
 async function finalAward(what,btn){if(btn.dataset.arm===undefined){btn.dataset.arm='';const h=btn.innerHTML;btn.innerHTML='한 번 더 누르면 지급해요<small>지급한 별은 되돌릴 수 없어요 · 3초 안에 다시 눌러 주세요</small>';setTimeout(()=>{if(btn.isConnected){delete btn.dataset.arm;btn.innerHTML=h}},3000);return}
