@@ -641,6 +641,29 @@ SH.taxonInfo = async function (taxonId) {
 };
 SH.leaflet = () => !!(window.L && SH.mode !== 'demo');
 SH.tiles = map => L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap © CARTO' }).addTo(map);
+/* 무료 지도(오픈스트리트맵) 위에 씨앗 점 찍기 — 키 없이 동작 */
+SH.seedMap = function (el, { points = [], mine = [], site = null, ridge = false, vault = false, zoom = null, onPick = null } = {}) {
+  if (el._map) { el._map.remove(); el._map = null; }
+  const map = L.map(el, { scrollWheelZoom: false, tap: true }); SH.tiles(map); el._map = map;
+  const b = [];
+  if (ridge) L.polyline(SH.RIDGE.map(([x, y]) => [y, x]), { color: '#D9982B', weight: 4, opacity: .75, dashArray: '8 6' }).addTo(map).bindTooltip('백두대간');
+  if (vault) { const v = L.marker([SH.VAULT.lat, SH.VAULT.lng], { icon: L.divIcon({ className: '', html: '<div class="mk-emo">🏔️</div>', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(map).bindPopup(`<b>${SH.VAULT.name}</b><br>${SH.VAULT.place}`); b.push([SH.VAULT.lat, SH.VAULT.lng]); }
+  if (site && site.lat) { L.marker([site.lat, site.lng], { icon: L.divIcon({ className: '', html: '<div class="mk-emo">🏫</div>', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(map).bindPopup(`<b>${SH.esc(site.name || '탐사지')}</b>`); b.push([site.lat, site.lng]); }
+  const dot = (p, isMine) => {
+    const dep = p.status === 'deposited';
+    const m = L.circleMarker([p.lat, p.lng], { radius: isMine ? 9 : 7, color: '#143A2E', weight: 2, fillColor: dep ? '#D9982B' : isMine ? '#6E9A5B' : '#9FD08A', fillOpacity: .95 }).addTo(map);
+    m.bindPopup(`<b>${SH.esc(p.plant || '이름 모름')}</b>${p.school ? '<br>' + SH.esc(p.school) : ''}${p.date ? '<br>' + SH.esc(p.date) : ''}<br><span style="color:#666">${SH.ST?.[p.status]?.label || ''}</span>`);
+    if (onPick) m.on('click', () => onPick(p));
+    b.push([p.lat, p.lng]);
+  };
+  points.forEach(p => dot(p, false)); mine.forEach(p => dot(p, true));
+  if (zoom) map.setView(zoom.c, zoom.z);
+  else if (b.length > 1) map.fitBounds(b, { padding: [28, 28], maxZoom: 15 });
+  else if (b.length === 1) map.setView(b[0], 14);
+  else map.setView([36.3, 127.9], 6);
+  setTimeout(() => map.invalidateSize(), 80);
+  return map;
+};
 
 /* ───────── 씨앗 친구 '톨이' (씨앗 한 톨에서 태어난 안내 친구) ───────── */
 SH.toli = (size = 72, wave = false) => `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true" class="toli">
