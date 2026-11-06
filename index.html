@@ -220,6 +220,15 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
 .subgroup:first-child { margin-top: 0; }
 .bigbtn { width: 100%; min-height: 60px; font-size: 17px; }
 .mapbox { border-radius: var(--r); overflow: hidden; background: #E3EBDF; height: 260px; position: relative; margin-bottom: 12px; }
+.locways { display: grid; gap: 8px; }
+.addr-or { font-size: 14px; color: var(--ink-2); margin-top: 4px; }
+.addrsearch { display: flex; gap: 8px; }
+.addrsearch .inp { flex: 1; min-width: 0; }
+.addrres { display: grid; gap: 6px; }
+.addritem { text-align: left; background: #fff; border: 1.5px solid var(--line); border-radius: 14px; padding: 10px 12px; display: grid; gap: 2px; cursor: pointer; font: inherit; }
+.addritem b { color: var(--spruce); }
+.addritem span { font-size: 13px; color: var(--ink-2); font-family: Pretendard, sans-serif; }
+.addritem:active { background: var(--frost); }
 .mapbox.svgmode { height: auto; background: #E3EBDF; padding: 6px; }
 .mapbox.svgmode svg { max-height: 300px; margin: 0 auto; }
 .mapbox .maphint { position: absolute; left: 8px; bottom: 8px; z-index: 500; background: rgba(255,255,255,.92); border-radius: 10px; padding: 5px 10px; font-size: 12.5px; color: var(--ink-2); }
@@ -676,7 +685,7 @@ function drawHomeMap() {
   const site = S.school.site_lat ? { lat: S.school.site_lat, lng: S.school.site_lng, name: S.school.site_name || S.school.name } : null;
   const mine = S.accs.filter(a => a.data.lat).map(a => ({ lat: +a.data.lat, lng: +a.data.lng, plant: a.data.plant, status: a.status, date: a.data.date }));
   if (!SH.leaflet()) { el.innerHTML = SH.koreaSVG({ points: [], mine: mine[0] || null, site, dark: false, id: 'homeSvg' }); el.style.height = 'auto'; return; }
-  requestAnimationFrame(() => SH.seedMap(el, { mine, site }));
+  setTimeout(() => SH.seedMap(el, { mine, site }), 30);
 }
 $('#homeMapAll').onclick = () => openNation();
 function openNation() {
@@ -693,7 +702,7 @@ function drawNatMap() {
     const mk = S.accs.filter(a => a.data.lat).map(a => `${(+a.data.lat).toFixed(3)},${(+a.data.lng).toFixed(3)}`);
     const isMine = p => mk.includes(`${(+p.lat).toFixed(3)},${(+p.lng).toFixed(3)}`);
     $('#natMap').innerHTML = '<div id="natL" class="lmap" style="height:520px;border-radius:18px"></div><div class="maplegend lg-light"><span><i style="background:#9FD08A"></i>채종한 씨앗</span><span><i style="background:#6E9A5B"></i>내 씨앗</span><span><i style="background:#D9982B"></i>시드볼트 도착</span><span>🏔️ 시드볼트 · 🏫 우리 탐사지</span></div>';
-    requestAnimationFrame(() => SH.seedMap($('#natL'), { points: pts.filter(p => !isMine(p)), mine: pts.filter(isMine), site, ridge: true, vault: true, zoom: { c: [36.4, 127.9], z: 7 } }));
+    setTimeout(() => SH.seedMap($('#natL'), { points: pts.filter(p => !isMine(p)), mine: pts.filter(isMine), site, ridge: true, vault: true, zoom: { c: [36.4, 127.9], z: 7 } }), 30);
   } else $('#natMap').innerHTML = SH.koreaSVG({ points: pts, site, dark: true, id: 'natSvg' }) + `<div class="maplegend"><span><i style="background:#9FD08A"></i>채종한 씨앗</span><span><i style="background:#D9982B"></i>시드볼트 입고</span><span><i style="background:#D9982B;border-radius:2px;width:14px;height:3px;vertical-align:3px"></i>백두대간</span></div><div class="mappop hidden" id="mapPop"></div>`;
   const pop = $('#mapPop');
   if (pop) $('#natMap').querySelectorAll('.kr-dot').forEach(c => { const f = () => { const p = pts[+c.dataset.i]; pop.innerHTML = `<b>${SH.esc(p.plant || '')}</b><br>${SH.esc(p.school || '')}${p.date ? ', ' + SH.esc(p.date) : ''}<br><span class="small muted">${SH.ST[p.status]?.label || ''}</span>`; pop.classList.remove('hidden'); }; c.onclick = f; c.onkeydown = e => { if (e.key === 'Enter') f(); }; });
@@ -719,7 +728,7 @@ function openForm() {
 /* ───── 채종 기록 (5단계) ───── */
 const STEPS = [['📍 위치', '📍 어디서, 어떤 식물인가요?'], ['🤝 약속', '🤝 채종 약속을 지켰나요?'], ['🌰 열매', '🌰 열매와 씨앗 살펴보기'], ['📸 사진', '📸 사진 찍기'], ['✅ 확인', '✅ 확인하고 보내기']];
 const SAY = [
-  '씨앗을 받은 <b>바로 그 자리</b>에서 위치를 찾았어. 주소랑 높이는 내가 적어 둘게! 식물 이름은 꼭 <b>선생님 설명을 듣고</b> 적어 줘.',
+  '씨앗을 받은 <b>그 자리</b>에서는 GPS로, 나중이라면 <b>주소</b>로 위치를 찾아. 주소랑 높이는 내가 적어 둘게! 식물 이름은 꼭 <b>선생님 설명을 듣고</b> 적어 줘.',
   '씨앗은 <b>선생님이 알려 준 식물</b>에서, 설명을 들은 다음에 받아. 숲이 아프지 않게 <b>많은 곳에서, 조금만</b>!',
   '열매가 어떻게 생겼는지 보면 씨앗을 어떻게 말려야 할지 알 수 있어.',
   '사진이 있으면 수목원 선생님들이 식물 이름을 확인할 수 있어. <b>식물 전체, 열매, 씨앗</b> 세 장이면 최고야!',
@@ -737,7 +746,7 @@ async function openAcc(id) {
   }
   $('#accHeadTitle').textContent = A.acc_no ? A.acc_no + ' 고치기' : '씨앗 채종 기록';
   show('acc'); renderStep();
-  if (!A.id && !A.data.lat) doGPS();
+  if (!A.id && !A.data.lat) SH.dialog({ title: '📍 지금 씨앗을 받은 곳에 있나요?', msg: '그 자리라면 GPS로 위치를 바로 찾아요. 집이나 교실이라면 주소·장소 이름으로 나중에 찾으면 돼요.', ok: '네, 여기예요', cancel: '아니요, 주소로 찾을게요' }).then(yes => { if (!A || A.step !== 0) return; if (yes) doGPS(); else $('#addrQ') && $('#addrQ').focus(); });
 }
 function markAcc() {
   A.dirty = true; $('#accStat').textContent = '저장 전';
@@ -782,7 +791,13 @@ function renderStep() {
     </div>
     <div class="card">
       <div class="mapbox" id="accMapBox"></div>
-      <button type="button" class="btn ${d.lat ? 'line' : ''} bigbtn" id="gpsBtn">${d.lat ? '지금 위치로 다시 찾기' : '내 위치 찾기'}</button>
+      <div class="locways">
+        <button type="button" class="btn ${d.lat ? 'line' : ''} bigbtn" id="gpsBtn">📍 ${d.lat ? '지금 위치로 다시 찾기' : '지금 여기예요 (GPS)'}</button>
+        <div class="addr-or">또는 <b>주소·장소 이름</b>으로 찾기 <span class="muted">(집에 와서 나중에 적을 때)</span></div>
+        <form class="addrsearch" id="addrForm"><input class="inp" id="addrQ" placeholder="예: 대모산, 일원동 산 1, 송례중학교" autocomplete="off"><button class="btn" type="submit">🔎 찾기</button></form>
+        <div id="addrRes" class="addrres"></div>
+        <span class="hint">찾은 다음 지도에서 핀을 끌어 씨앗 받은 곳에 딱 맞춰 줘요.</span>
+      </div>
       <dl class="gis" id="gisBox" style="margin:12px 0 0">${gisRows()}</dl>
     </div>
     <div class="card">
@@ -842,7 +857,7 @@ function renderStep() {
   const root = $('#accBody');
   bindChips(root, d, k => { markAcc(); if (st === 1) ruleGuide(); if (k === 'fruit') fruitCmp(); });
   bindInputs(root, d, f => { markAcc(); if (f === 'plant') { const p = SH.findPlant(d.plant); if (p) setPlant({ n: p.n, s: p.s, f: p.f }, true); else { $('#idLine').innerHTML = idLine(); $('#tipArea').innerHTML = plantTip(); } } });
-  if (st === 0) { $('#gpsBtn').onclick = doGPS; $('#pickBtn').onclick = pick; drawAccMap();
+  if (st === 0) { $('#gpsBtn').onclick = doGPS; $('#pickBtn').onclick = pick; drawAccMap(); $('#addrForm').onsubmit = addrSearch;
     root.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { const t = new Date(Date.now() - (+b.dataset.day) * 864e5); d.date = `${t.getFullYear()}-${SH.pad(t.getMonth() + 1)}-${SH.pad(t.getDate())}`; root.querySelector('[data-f=date]').value = d.date; markAcc(); SH.toast(`📅 채종일: ${SH.dot(d.date)}`); }); }
   if (st === 1) ruleGuide();
   if (st === 2) { fruitCmp(); const calc = () => { const f = +$('#cF').value, s = +$('#cS').value; $('#cR').textContent = f && s ? (f * s).toLocaleString() : '-'; if (f && s) { d.seedCount = String(f * s); root.querySelector('[data-f=seedCount]').value = d.seedCount; markAcc(); } }; $('#cF').oninput = calc; $('#cS').oninput = calc; }
@@ -910,6 +925,22 @@ async function setPlant(info, keepName) {
 function pick() {
   const d = A.data;
   SH.openPlantPicker({ fix: d.lat ? { lat: +d.lat, lng: +d.lng } : null, prefer: 'fruit', onNeedGPS: doGPS, onPick: p => { setPlant(p); SH.toast(`${p.n}(으)로 골랐어요. 진짜 식물과 같은지 꼭 확인해요.`); } });
+}
+async function addrSearch(e) {
+  e && e.preventDefault();
+  const q = $('#addrQ').value.trim(), box = $('#addrRes'); if (!q) { $('#addrQ').focus(); return; }
+  if (SH.mode === 'demo') { box.innerHTML = '<div class="small muted">미리보기에서는 주소 찾기가 막혀 있어요. 실제 사이트에서 돼요.</div>'; return; }
+  box.innerHTML = '<div class="small muted"><span class="spin"></span> 찾는 중…</div>';
+  let list = [];
+  try { list = await SH.geocode(q); } catch { box.innerHTML = '<div class="small muted">인터넷이 느려요. 잠시 뒤 다시 해 봐요.</div>'; return; }
+  if (!list.length) { box.innerHTML = '<div class="small muted">못 찾았어요. 동 이름이나 산 이름처럼 짧게 적어 봐요. 지도를 직접 눌러도 돼요.</div>'; return; }
+  box.innerHTML = list.map((x, i) => `<button type="button" class="addritem" data-i="${i}"><b>${SH.esc(x.name || x.label.split(' ').pop())}</b><span>${SH.esc(x.label)}</span></button>`).join('');
+  box.querySelectorAll('.addritem').forEach(b => b.onclick = async () => {
+    const x = list[+b.dataset.i]; box.innerHTML = '';
+    await Promise.race([setPos({ lat: x.lat, lng: x.lng, acc: null, manual: true }), new Promise(r => setTimeout(r, 50))]);
+    if (A && A.step === 0) { if (accMap) { accMap.remove(); accMap = null; accMarker = null; } drawAccMap(); }
+    SH.toast('📌 지도에서 핀을 끌어 정확한 곳으로 옮겨 줘요');
+  });
 }
 async function doGPS() {
   const b = $('#gpsBtn'); if (b) { b.disabled = true; b.innerHTML = '<span class="spin"></span> 위치 찾는 중'; }

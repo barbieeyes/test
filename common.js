@@ -595,6 +595,13 @@ SH.koreaSVG = function ({ points = [], mine = null, site = null, dark = true, id
 
 /* ───────── GIS: 주소·고도·도분초 ───────── */
 SH.dms = v => { v = Math.abs(+v); const d = Math.floor(v), mF = (v - d) * 60, m = Math.floor(mF), s = Math.round((mF - m) * 60); return s === 60 ? [d, m + 1, 0] : [d, m, s]; };
+/* 주소·장소 이름으로 위치 찾기 (오픈스트리트맵 Nominatim, 무료) */
+SH.geocode = async function (q) {
+  const c = new AbortController(); setTimeout(() => c.abort(), 9000);
+  const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&countrycodes=kr&limit=6&accept-language=ko`, { signal: c.signal });
+  const j = await r.json();
+  return (j || []).map(x => ({ lat: +(+x.lat).toFixed(6), lng: +(+x.lon).toFixed(6), name: x.name || '', label: (x.display_name || '').split(', ').reverse().filter(t => t !== '대한민국' && !/^\d{5}$/.test(t)).join(' ') }));
+};
 SH.gis = async function (lat, lng) {
   const out = { country: '대한민국', address: '', admin1: '', elev: null };
   const tm = ms => { const c = new AbortController(); setTimeout(() => c.abort(), ms); return c.signal; };
@@ -640,7 +647,7 @@ SH.taxonInfo = async function (taxonId) {
   } catch { return {}; }
 };
 SH.leaflet = () => !!(window.L && SH.mode !== 'demo');
-SH.tiles = map => L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap © CARTO' }).addTo(map);
+SH.tiles = map => L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>' }).addTo(map);
 /* 무료 지도(오픈스트리트맵) 위에 씨앗 점 찍기 — 키 없이 동작 */
 SH.seedMap = function (el, { points = [], mine = [], site = null, ridge = false, vault = false, zoom = null, onPick = null } = {}) {
   if (el._map) { el._map.remove(); el._map = null; }
