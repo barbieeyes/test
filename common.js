@@ -174,6 +174,23 @@ SH.print = function () {
   try { window.print(); return true; } catch { SH.toast('인쇄 창을 열지 못했어요.'); return false; }
 };
 
+/* ───────── QR 코드 ───────── */
+SH.qrSVG = function (text, { size = 220, fg = '#143A2E', bg = '#fff', quiet = 3, logo = true } = {}) {
+  if (!window.SHQR) return '';
+  const m = window.SHQR(text, logo ? 'H' : 'M'), n = m.length, N = n + quiet * 2;
+  let d = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (m[r][c]) d += `M${c + quiet} ${r + quiet}h1v1h-1z`;
+  const L = logo ? (() => { const w = Math.round(n * 0.2), x = (N - w) / 2; return `<rect x="${x - 0.8}" y="${x - 0.8}" width="${w + 1.6}" height="${w + 1.6}" rx="1.6" fill="${bg}"/>` + SH.logo(w).replace('<svg ', `<svg x="${x}" y="${x}" `).replace(/ aria-hidden="true"/, ''); })() : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${N} ${N}" width="${size}" height="${size}" shape-rendering="crispEdges" role="img" aria-label="QR 코드"><rect width="${N}" height="${N}" fill="${bg}"/><path d="${d}" fill="${fg}"/>${L}</svg>`;
+};
+SH.qrPNG = function (text, px = 1200) {
+  return new Promise((res, rej) => {
+    const svg = SH.qrSVG(text, { size: px }), img = new Image();
+    img.onload = () => { const c = document.createElement('canvas'); c.width = c.height = px; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(img, 0, 0, px, px); res(c.toDataURL('image/png')); };
+    img.onerror = rej; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+};
+
 /* ───────── 사진 줄이기 ───────── */
 SH.shrinkImage = function (file, max = 1100, q = 0.74) {
   return new Promise((res, rej) => {

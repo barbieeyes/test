@@ -132,10 +132,19 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
 
 /* 인쇄용 라벨 */
 #printArea { display: none; }
+.qr-box { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 14px 0; padding: 14px; background: #fff; border-radius: 16px; border: 1px solid var(--line, #dde3dc); }
+.qr-box svg { display: block; }
 @media print {
   @page { size: A4; margin: 10mm; }
   body > *:not(#printArea) { display: none !important; }
   #printArea { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  #printArea.poster { display: block !important; }
+  .qr-poster { text-align: center; padding: 14mm 10mm; font-family: 'Poor Story', Pretendard, sans-serif; color: #143A2E; }
+  .qr-poster .qp-kicker { font-size: 15pt; color: #2F5D7C; margin-top: 4mm; }
+  .qr-poster h1 { font-size: 34pt; line-height: 1.25; margin: 4mm 0 8mm; font-weight: 400; }
+  .qr-poster .qp-qr { display: inline-block; padding: 6mm; border: 2.5mm solid #D9982B; border-radius: 8mm; }
+  .qr-poster ol { text-align: left; display: inline-block; font-size: 17pt; line-height: 1.9; margin: 9mm 0 6mm; }
+  .qr-poster .qp-url { font-family: Pretendard, sans-serif; font-size: 12pt; color: #555; }
   .plabel { border: 1px solid #999; border-radius: 3mm; padding: 4mm 5mm; font-size: 9.5pt; break-inside: avoid; font-family: var(--sans); }
   .plabel .t { display: flex; justify-content: space-between; border-bottom: 1px solid #999; padding-bottom: 2mm; margin-bottom: 2mm; }
   .plabel .t b { font-family: var(--serif); font-size: 13pt; }
@@ -263,7 +272,8 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
       <div class="grid2">
         <div class="panel"><h2>학생에게 안내하기</h2>
           <div class="big-code"><div class="muted">학교 코드</div><div class="c" id="bigCode"></div><div class="muted" id="stuLink" style="word-break:break-all"></div></div>
-          <button class="btn line sm" id="copyLink">학생용 주소 복사</button></div>
+          <div class="qr-box"><div id="qrImg"></div><div class="muted" style="font-size:13px">휴대폰 카메라로 찍으면 바로 들어가요</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn line sm" id="copyLink">학생용 주소 복사</button><button class="btn line sm" id="qrSave">QR 이미지 저장</button><button class="btn sm" id="qrPoster">QR 안내문 인쇄</button></div></div>
         <div class="panel" id="schoolEdit"><h2>학교 정보</h2>
           <label class="field"><span class="lbl">학교 이름</span><input class="inp" id="eName"></label>
           <label class="field"><span class="lbl">지역</span><select class="inp" id="eRegion"></select></label>
@@ -286,6 +296,7 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
 </div>
 <div id="printArea"></div>
 
+<script src="qr.js"></script>
 <script src="common.js"></script>
 <script src="plants.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -600,14 +611,34 @@ function renderSchools() {
 }
 
 /* ───── 설정 ───── */
-function stuUrl(code) { const base = location.href.replace(/admin\.html.*$/, '').replace(/[?#].*$/, ''); return `${base}?s=${code}`; }
+function stuUrl(code) { const base = location.href.replace(/admin\.html.*$/, '').replace(/[?#].*$/, ''); return code === SH.DEFAULT_CODE ? base : `${base}?s=${code}`; }
 function renderSet() {
   const sc = curSchool();
   $('#bigCode').textContent = sc ? sc.code : '학교를 고르세요';
   $('#stuLink').textContent = sc ? stuUrl(sc.code) : '';
+  $('#qrImg').innerHTML = sc ? SH.qrSVG(stuUrl(sc.code), { size: 200 }) : '';
   if (sc && !G.super) { $('#eInst').value = sc.inst_name || ''; $('#eName').value = sc.name || ''; $('#eRegion').value = sc.region || ''; $('#eSite').value = sc.site_name || ''; $('#eLat').value = sc.site_lat ?? ''; $('#eLng').value = sc.site_lng ?? ''; $('#eContact').value = sc.contact || ''; }
 }
 $('#copyLink').onclick = async () => { const sc = curSchool(); if (!sc) return; try { await navigator.clipboard.writeText(stuUrl(sc.code)); SH.toast('학생용 주소를 복사했어요'); } catch { SH.toast('복사가 막혀 있어요. 주소를 직접 선택해 복사해 주세요.'); } };
+$('#qrSave').onclick = async () => {
+  const sc = curSchool(); if (!sc) return SH.toast('학교를 먼저 골라 주세요.');
+  if (SH.mode === 'demo') return SH.toast('미리보기에서는 저장이 막혀 있어요. 실제 사이트에서 저장할 수 있어요.');
+  const a = document.createElement('a'); a.href = await SH.qrPNG(stuUrl(sc.code)); a.download = `시드핸즈_QR_${sc.name || sc.code}.png`; document.body.appendChild(a); a.click(); a.remove();
+};
+$('#qrPoster').onclick = () => {
+  const sc = curSchool(); if (!sc) return SH.toast('학교를 먼저 골라 주세요.');
+  const url = stuUrl(sc.code), noCode = sc.code === SH.DEFAULT_CODE;
+  const pa = $('#printArea'); pa.classList.add('poster');
+  pa.innerHTML = `<div class="qr-poster"><div class="qp-logo">${SH.logo(56)}</div>
+    <div class="qp-kicker">${SH.esc(sc.name || '')} · 2026 시드핸즈 프로젝트</div>
+    <h1>우리가 모은 씨앗,<br>백두대간 시드볼트로!</h1>
+    <div class="qp-qr">${SH.qrSVG(url, { size: 420 })}</div>
+    <ol><li>휴대폰 <b>카메라</b>로 QR을 찍어요</li><li><b>학번·이름·비밀번호 4자리</b>로 들어가요${noCode ? '' : ` (학교 코드 <b>${SH.esc(sc.code)}</b>)`}</li><li>선생님 안내를 듣고 씨앗을 기록해요 🌰</li></ol>
+    <div class="qp-url">${SH.esc(url)}</div></div>`;
+  const off = () => { pa.classList.remove('poster'); pa.innerHTML = ''; window.removeEventListener('afterprint', off); };
+  window.addEventListener('afterprint', off);
+  if (!SH.print()) off();
+};
 $('#eGps').onclick = async () => { try { const p = await SH.locate(); $('#eLat').value = p.lat; $('#eLng').value = p.lng; } catch (e) { SH.toast(e.message); } };
 $('#eSave').onclick = async () => {
   const lat = parseFloat($('#eLat').value), lng = parseFloat($('#eLng').value);
