@@ -156,6 +156,8 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
 .pick2 { display: flex; gap: 6px; margin-top: 6px; position: relative; z-index: 1; }
 .pick2 .pk { background: #fff; border: 1.5px solid var(--line); border-radius: 999px; padding: 5px 9px; font-size: 13px; color: var(--ridge); font-weight: 600; cursor: pointer; }
 .pick2 .pk:active { background: var(--frost); }
+.pick2.col { flex-direction: column; gap: 5px; width: 100%; align-items: stretch; margin-top: 4px; }
+.pick2.col .pk { font-size: 12.5px; padding: 5px 4px; text-align: center; white-space: nowrap; }
 .mappop b { font-family: var(--serif); color: var(--spruce); font-size: 16px; }
 .nat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(255,255,255,.08); border-radius: var(--r); overflow: hidden; margin: 10px 0 0; }
 .nat div { background: #18443A; padding: 12px; text-align: center; font-size: 12.5px; color: #B9CCC1; }
@@ -253,7 +255,7 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
 .checkrow { display: flex; gap: 12px; align-items: flex-start; background: var(--frost); padding: 14px; border-radius: var(--r); cursor: pointer; }
 .checkrow input { width: 22px; height: 22px; accent-color: var(--spruce); flex: none; margin-top: 1px; }
 .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.slot { position: relative; aspect-ratio: 3/4; border-radius: var(--r); border: 1.5px dashed var(--line); background: var(--frost); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 13.5px; color: var(--ink-2); overflow: hidden; cursor: pointer; padding: 8px; gap: 2px; }
+.slot { position: relative; aspect-ratio: 2/3; border-radius: var(--r); border: 1.5px dashed var(--line); background: var(--frost); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 13.5px; color: var(--ink-2); overflow: hidden; cursor: pointer; padding: 8px; gap: 2px; }
 .slot b { color: var(--spruce); font-size: 14.5px; }
 .slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .slot .x { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(0,0,0,.55); color: #fff; z-index: 2; font-size: 16px; line-height: 1; }
@@ -838,7 +840,7 @@ function renderStep() {
   }
   if (st === 3) {
     h += `<div class="card"><div class="photos">
-      ${[['photo_plant', '식물 전체', '한 걸음 물러나서', '🌳'], ['photo_fruit', '열매', '가까이서', '🍎'], ['photo_seed', '씨앗', '손바닥 위에', '🌰']].map(([k, l, t, e]) => `<label class="slot ${A[k] ? 'done' : ''}">${A[k] ? `<img src="${A[k]}" alt="${l} 사진"><button type="button" class="x" data-del="${k}" aria-label="${l} 사진 지우기">×</button>` : `<span style="font-size:34px" aria-hidden="true">${e}</span><b>${l}</b><span class="small">${t}</span><span class="pick2"><span class="pk" data-pk="cam">📸 찍기</span><span class="pk" data-pk="alb">🖼️ 앨범</span></span>`}<input type="file" accept="image/*" capture="environment" data-in="${k}" data-src="cam"><input type="file" accept="image/*" data-in="${k}" data-src="alb"></label>`).join('')}
+      ${[['photo_plant', '식물 전체', '한 걸음 물러나서', '🌳'], ['photo_fruit', '열매', '가까이서', '🍎'], ['photo_seed', '씨앗', '손바닥 위에', '🌰']].map(([k, l, t, e]) => `<label class="slot ${A[k] ? 'done' : ''}">${A[k] ? `<img src="${A[k]}" alt="${l} 사진"><button type="button" class="x" data-del="${k}" aria-label="${l} 사진 지우기">×</button>` : `<span style="font-size:28px;line-height:1.1" aria-hidden="true">${e}</span><b>${l}</b><span class="pick2 col"><span class="pk" data-pk="cam">📸 찍기</span><span class="pk" data-pk="alb">🖼️ 앨범</span></span>`}<input type="file" accept="image/*" capture="environment" data-in="${k}" data-src="cam"><input type="file" accept="image/*" data-in="${k}" data-src="alb"></label>`).join('')}
     </div></div>
     <div class="card"><h3>씨앗 그림 <span class="muted small" style="font-family:var(--sans)">(하고 싶으면)</span></h3><div id="skHost"></div></div>`;
   }
