@@ -37,7 +37,7 @@ const HOME_DEFAULT = {
   "이정연": { label: "위례동", lat: 37.4855, lng: 127.1470 },
   "신민화": { label: "대치동", lat: 37.5000, lng: 127.0560 },
   "이귀리": { label: "둔촌동", lat: 37.5270, lng: 127.1390 },
-  "정종화": { label: "일원동", lat: 37.4835, lng: 127.0830 },
+  "정종화": { label: "구의역", lat: 37.5371, lng: 127.0859 },
 };
 /** 따로: 네 동네의 탐구 주제 — 동네마다 다른 도시 생태를 비교한다 */
 const THEMES = {
@@ -53,11 +53,24 @@ const THEMES = {
     q: "우리가 심고 가꾸는 작물은 얼마나 광합성할까?",
     about: "사람이 심고 가꾸는 텃밭. 채소·허브 같은 작물과 그 사이에 저절로 나는 잡초를 함께 기록해요.",
     habitats: ["잎채소", "뿌리·줄기채소", "열매채소", "허브·향신", "텃밭 잡초"] },
-  "정종화": { tag: "서울 도심 속 산", place: "대모산", icon: "Mountain",
+  "정종화": { key: "commute", tag: "서울시민의 출퇴근길", place: "구의역", icon: "TrainFront", lat: 37.5371, lng: 127.0859,
+    q: "매일 지나치는 출퇴근길, 우리는 어떤 식물과 함께 걷고 있을까?",
+    about: "2호선 구의역을 오가는 서울시민의 출퇴근길. 바쁘게 지나치느라 못 보던 가로수, 역 앞 화단, 길가에 저절로 난 식물을 하루하루 기록해요.",
+    habitats: ["역 앞 광장·화단", "가로수길", "버스정류장 주변", "아파트·상가 조경", "길가 틈새"] },
+};
+/** 한 사람이 동네를 둘 이상 탐구할 때: 첫째가 기본(새 기록), legacy는 spot 없는 옛 기록의 동네 */
+const EXTRA_SPOTS = {
+  "정종화": { legacy: "daemo", list: [{ key: "daemo", tag: "서울 도심 속 산", place: "대모산", icon: "Mountain", lat: 37.4766, lng: 127.0786,
     q: "서울 한가운데 산에는 어떤 식물이 살까?",
     about: "큰 도시에 둘러싸인 대모산. 숲 바닥·등산로·계곡에서 도시 숲만의 식물과 그 변화를 살펴요.",
-    habitats: ["숲 바닥", "등산로 가장자리", "계곡·물가", "능선·바위", "숲 가장자리"] },
+    habitats: ["숲 바닥", "등산로 가장자리", "계곡·물가", "능선·바위", "숲 가장자리"] }] },
 };
+/** 그 사람의 탐구 동네 목록 (첫째 = 기본) */
+const spotsOf = (name) => THEMES[name] ? [{ key: THEMES[name].key || "main", ...THEMES[name] }, ...((EXTRA_SPOTS[name] || {}).list || [])] : [];
+/** 동네 하나 찾기: spot 없으면 옛 기록 동네(legacy), 그것도 없으면 기본 */
+const themeOf = (name, spot) => { const l = spotsOf(name); if (!l.length) return null;
+  const k = spot || (EXTRA_SPOTS[name] || {}).legacy; return l.find((t) => t.key === k) || l[0]; };
+const recTheme = (r) => r && r.mode === "solo" ? themeOf(r.researcher, r.spot) : null;
 /** 식재·자생 처음 분류 (2026-11-02 당시 기록, 사진·장소로 판단 — 고치기에서 바꿀 수 있음) */
 const ORIGIN_SEED = { mvqlrnqlwrnos: "planted", mvqmcp3swc0a8: "planted", mvqmdzhf40whs: "wild", mvruy87e3j2aw: "planted", mvrv2tikitm97: "planted",
   mvrviz6fdn00f: "planted", mvrvnzinlwo03: "planted", mvrvs2akxmrrp: "wild", mvs246wvmsch1: "wild", mvs2a16v61l41: "planted", mvt14b5vgymu8: "planted",
@@ -511,7 +524,7 @@ function toCSV(recs) {
     "LAI", "탄소고정(gCO₂/h·m²)", "기후지표종", "메모", "AI 광합성 해설", "AI 기후지표 근거", "AI 수업 연계 조언", "예시"];
   const src = { gps: "GPS", map: "지도 지정", home: "우리 동네 기본 위치", photo: "사진 위치정보", default: "임시 위치" };
   const rows = recs.map((r) => [new Date(r.ts).toLocaleString("ko-KR"), MODES[r.mode] ? MODES[r.mode].label : "",
-    r.mode === "solo" && THEMES[r.researcher] ? THEMES[r.researcher].tag : "학교", r.origin === "planted" ? "식재" : r.origin === "wild" ? "자생" : "", r.habitat || "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
+    recTheme(r) ? recTheme(r).tag : "학교", r.origin === "planted" ? "식재" : r.origin === "wild" ? "자생" : "", r.habitat || "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
     r.koreanName, r.scientificName, r.confidence ?? "", r.ai && r.ai.taxonomy ? r.ai.taxonomy.family : "", r.growthForm, r.psType,
     r.weather.temp, r.weather.rh, r.weather.cloud, r.weather.sw, r.weather.ppfd, r.weather.par, M.activity(r.weather.ppfd).label,
     r.model.aLeaf, r.model.lai, r.model.gco2, r.ai && r.ai.ecologicalInsight && r.ai.ecologicalInsight.climateIndicator ? "O" : "",
@@ -524,7 +537,7 @@ function toCSV(recs) {
 /* ---------- 아이콘 (Lucide) ---------- */
 function Icon({ name, size = 18, className = "", stroke = 2 }) {
   const lib = window.lucide && window.lucide.icons;
-  const ALIAS = { Loader2: "LoaderCircle", LoaderCircle: "Loader2", Table2: "Table", Settings2: "Settings", House: "Home", Home: "House" };
+  const ALIAS = { Loader2: "LoaderCircle", LoaderCircle: "Loader2", Table2: "Table", Settings2: "Settings", House: "Home", Home: "House", TrainFront: "Train" };
   let node = lib && (lib[name] || lib[ALIAS[name]]);
   if (!node) return html`<span style=${{ width: size, height: size, display: "inline-block" }}></span>`;
   if (node[0] === "svg") node = node[2] || [];
@@ -773,9 +786,13 @@ function TodayView({ me, records, meetings = [], weather, wState, wErr, gps, onR
 function SoloView({ me, records, gps, onAdd, onOpen, say }) {
   const [who, setWho] = useState(me);
   const [, bump] = useState(0);
+  const [spotSel, setSpotSel] = useState("");
+  const spots = spotsOf(who), th = spots.find((t) => t.key === spotSel) || spots[0] || null;
   const solo = records.filter((r) => r.mode === "solo");
-  const mine = solo.filter((r) => r.researcher === who);
-  const home = getHome(who);
+  const allMine = solo.filter((r) => r.researcher === who);
+  const mine = spots.length > 1 && th ? allMine.filter((r) => recTheme(r) && recTheme(r).key === th.key) : allMine;
+  const home0 = getHome(who);
+  const home = th && spots.length > 1 && th.key !== spots[0].key ? { label: th.place, lat: th.lat, lng: th.lng } : home0;
   const useGpsAsHome = () => {
     if (!gps) { say("GPS 위치를 아직 못 잡았어요. 위치 권한을 허용해 주세요."); return; }
     setHome(me, { lat: +gps.lat.toFixed(6), lng: +gps.lng.toFixed(6) }); bump((x) => x + 1); say("지금 위치를 우리 동네 기본 위치로 저장했어요 (이 휴대폰에만)");
@@ -783,10 +800,10 @@ function SoloView({ me, records, gps, onAdd, onOpen, say }) {
   return html`<div class="grid gap-4">
     <div class="lanes">
       ${RESEARCHERS.map((r) => { const list = solo.filter((x) => x.researcher === r.name);
-        return html`<button key=${r.name} type="button" class=${"lane" + (who === r.name ? " lane-on" : "")} style=${{ "--c": r.color }} onClick=${() => setWho(r.name)}>
+        return html`<button key=${r.name} type="button" class=${"lane" + (who === r.name ? " lane-on" : "")} style=${{ "--c": r.color }} onClick=${() => { setWho(r.name); setSpotSel(""); }}>
           <span class="lane-top"><${Dot} color=${r.color} size=${9} /><b>${r.name}</b>${r.name === me ? html`<em>나</em>` : null}</span>
-          <span class="lane-home"><${Icon} name="MapPin" size=${11} />${THEMES[r.name] ? THEMES[r.name].place : getHome(r.name).label}</span>
-          ${THEMES[r.name] && html`<span class="lane-tag"><${Icon} name=${THEMES[r.name].icon} size=${12} />${THEMES[r.name].tag}</span>`}
+          <span class="lane-home"><${Icon} name="MapPin" size=${11} />${THEMES[r.name] ? spotsOf(r.name).map((t) => t.place).join(" · ") : getHome(r.name).label}</span>
+          ${spotsOf(r.name).map((t) => html`<span key=${t.key} class="lane-tag"><${Icon} name=${t.icon} size=${12} />${t.tag}</span>`)}
           <span class="lane-n mono">${list.length}<small>건 · ${new Set(list.map(speciesKey).filter(Boolean)).size}종</small></span>
           <span class="lane-thumbs">${list.slice(0, 3).map((x) => x.photo ? html`<img key=${x.id} src=${x.photo} alt="" />` : html`<i key=${x.id}><${Icon} name="Leaf" size=${12} /></i>`)}</span>
         </button>`; })}
@@ -795,13 +812,14 @@ function SoloView({ me, records, gps, onAdd, onOpen, say }) {
       <div class="flex items-center gap-2 flex-wrap">
         <h2 class="pill-h pill-solo"><${Icon} name="House" size=${17} />${who === me ? "나의 동네 도감" : `${who} 님의 동네 도감`}</h2>
         <span class="text-[12px] text-mist">${mine.length}건</span>
-        ${who === me && html`<button type="button" class="btn-add ml-auto" style=${{ "--c": MODES.solo.color }} onClick=${() => onAdd("solo")}><${Icon} name="Plus" size=${17} />따로 기록</button>`}
+        ${who === me && html`<button type="button" class="btn-add ml-auto" style=${{ "--c": MODES.solo.color }} onClick=${() => onAdd("solo", th && th.key)}><${Icon} name="Plus" size=${17} />따로 기록</button>`}
       </div>
-      ${THEMES[who] && html`<div class="theme-card" style=${{ "--c": rColor(who) }}>
-        <span class="theme-ic"><${Icon} name=${THEMES[who].icon} size=${22} /></span>
-        <span class="flex-1 min-w-0"><small>${THEMES[who].place} · ${THEMES[who].tag}</small><b>${THEMES[who].q}</b><em>${THEMES[who].about}</em>
+      ${spots.length > 1 && html`<div class="flex flex-wrap gap-1.5">${spots.map((t) => html`<${Chip} key=${t.key} on=${th.key === t.key} color=${rColor(who)} onClick=${() => setSpotSel(t.key)}>${t.place} · ${t.tag} ${allMine.filter((r) => recTheme(r) && recTheme(r).key === t.key).length}</${Chip}>`)}</div>`}
+      ${th && html`<div class="theme-card" style=${{ "--c": rColor(who) }}>
+        <span class="theme-ic"><${Icon} name=${th.icon} size=${22} /></span>
+        <span class="flex-1 min-w-0"><small>${th.place} · ${th.tag}</small><b>${th.q}</b><em>${th.about}</em>
           ${mine.length ? html`<span class="theme-origin"><i style=${{ background: EM.ORIGIN_INFO.planted.color }}>식재 ${mine.filter((r) => r.origin === "planted").length}</i><i style=${{ background: EM.ORIGIN_INFO.wild.color }}>자생 ${mine.filter((r) => r.origin === "wild").length}</i>${mine.some((r) => !r.origin) ? html`<i class="u">모름 ${mine.filter((r) => !r.origin).length}</i>` : null}</span>` : null}
-          ${mine.length ? html`<span class="theme-hab">${THEMES[who].habitats.map((h) => { const n = mine.filter((r) => r.habitat === h).length; return html`<i key=${h} class=${n ? "on" : ""}>${h}${n ? ` ${n}` : ""}</i>`; })}</span>` : null}</span>
+          ${mine.length ? html`<span class="theme-hab">${th.habitats.map((h) => { const n = mine.filter((r) => r.habitat === h).length; return html`<i key=${h} class=${n ? "on" : ""}>${h}${n ? ` ${n}` : ""}</i>`; })}</span>` : null}</span>
       </div>`}
       <div class="home-line"><${Icon} name="MapPin" size=${14} /><span>탐구 기본 위치 <b>${home.label}</b>${who === me ? html` <span class="text-mist">${home.custom ? "· 내가 정한 정확한 위치 (이 휴대폰에만 저장)" : "· 동 중심"}</span>` : null}</span>
         ${who === me && html`<button type="button" class="link-btn ml-auto" onClick=${useGpsAsHome}><${Icon} name="LocateFixed" size=${13} />지금 위치로 바꾸기</button>`}</div>
@@ -1235,7 +1253,12 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   const [framed, setFramed] = useState(null);
   const [ai, setAi] = useState(null), [aiState, setAiState] = useState("idle"), [aiErr, setAiErr] = useState("");
   const [saving, setSaving] = useState(false);
-  const home = getHome(researcher);
+  const spots = spotsOf(researcher);
+  const [spot, setSpot] = useState(() => (spots.find((t) => t.key === draft.spot) || spots[0] || {}).key);
+  const th = mode === "solo" ? (spots.find((t) => t.key === spot) || spots[0] || null) : null;
+  const home0 = getHome(researcher);
+  const spotHome = (k) => { const t = spots.find((x) => x.key === k); return t && spots.length > 1 && k !== spots[0].key ? { label: t.place, lat: t.lat, lng: t.lng } : home0; };
+  const home = spotHome(spot);
   const [f, setF] = useState({ origin: "", habitat: "", koreanName: "", scientificName: "", growthForm: "초본", psType: "C3", lai: "", notes: "", place: (draft.mode === "solo") ? home.label : "" });
   const camRef = useRef(null), galRef = useRef(null);
   const [shotTs, setShotTs] = useState(Date.now());
@@ -1290,7 +1313,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     if (!aiReady(settings)) { onOpenSettings(); return; }
     setAiState("loading"); setAiErr("");
     try {
-      const o = await analyzePlant({ settings, dataUrl: raw, weather: w, lat: p.lat, lng: p.lng, mode, ctx: { theme: mode === "solo" ? THEMES[researcher] : null, habitat: f.habitat } });
+      const o = await analyzePlant({ settings, dataUrl: raw, weather: w, lat: p.lat, lng: p.lng, mode, ctx: { theme: th, habitat: f.habitat } });
       setAi(o); setAiState("ok");
       setF((q) => ({ ...q, origin: q.origin || o.origin || "", koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType,
         lai: o.carbonFixationEst && Number(o.carbonFixationEst.laiEstimate) > 0 ? String(M.clamp(Number(o.carbonFixationEst.laiEstimate), 0.1, 10)) : q.lai }));
@@ -1303,7 +1326,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     setSaving(true);
     let photo = null;
     if (raw) { try { photo = await EM.composeFrame(raw, meta); } catch (e) { photo = raw; } }
-    onSave({ ...preview, id: uid(), savedAt: Date.now(), origin: f.origin || "", frameV: FRAME_V, photo, raw: raw || undefined, habitat: f.habitat || undefined, place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
+    onSave({ ...preview, id: uid(), savedAt: Date.now(), origin: f.origin || "", frameV: FRAME_V, photo, raw: raw || undefined, habitat: f.habitat || undefined, ...(mode === "solo" && th && spots.length > 1 ? { spot: th.key } : {}), place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
       weather: { temp: w.temp, rh: w.rh, cloud: w.cloud, sw: w.sw, ppfd: w.ppfd, par: w.par, ...(pastWx ? { past: true } : {}) }, ...(album ? { fromAlbum: true } : {}) });
   };
   const srcLabel = { gps: `내 위치(GPS) ±${Math.round(p.accuracy || 0)}m`, map: "지도에서 콕 찍은 자리", photo: "사진에 담긴 촬영 위치", home: `우리 동네 기본 위치 · ${home.label}`, default: "지도를 눌러 위치를 찍어 주세요" }[p.source];
@@ -1380,8 +1403,13 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
           <div class="sm:col-span-2"><${Label}>심은 식물? 저절로 자란 식물? · 사진 테두리 색이 달라져요</${Label}>
             <div class="flex flex-wrap gap-1.5">${ORIGINS.map(([k, l]) => html`<${Chip} key=${k || "none"} on=${f.origin === k} color=${k ? EM.ORIGIN_INFO[k].color : "#5F7A68"}
               onClick=${() => setF({ ...f, origin: k })}>${l}</${Chip}>`)}</div></div>
-          <div class="sm:col-span-2"><${Label}>${mode === "solo" && THEMES[researcher] ? `서식지 · ${THEMES[researcher].tag}` : "교정 어디에서"}</${Label}>
-            <div class="flex flex-wrap gap-1.5">${(mode === "solo" && THEMES[researcher] ? THEMES[researcher].habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${f.habitat === h} color=${m.color}
+          ${mode === "solo" && spots.length > 1 && html`<div class="sm:col-span-2"><${Label}>어느 동네?</${Label}>
+            <div class="flex flex-wrap gap-1.5">${spots.map((t) => html`<${Chip} key=${t.key} on=${spot === t.key} color=${m.color}
+              onClick=${() => { if (t.key === spot) return; const oh = home, nh = spotHome(t.key); setSpot(t.key);
+                setF((q) => ({ ...q, habitat: "", place: !q.place || q.place === oh.label ? nh.label : q.place }));
+                if (!draft.pos && pos && pos.source === "home") setPos({ lat: nh.lat, lng: nh.lng, accuracy: null, source: "home" }); }}>${t.place} · ${t.tag}</${Chip}>`)}</div></div>`}
+          <div class="sm:col-span-2"><${Label}>${th ? `서식지 · ${th.tag}` : "교정 어디에서"}</${Label}>
+            <div class="flex flex-wrap gap-1.5">${(th ? th.habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${f.habitat === h} color=${m.color}
               onClick=${() => setF({ ...f, habitat: f.habitat === h ? "" : h })}>${h}</${Chip}>`)}</div></div>
           <label class="fld sm:col-span-2"><span>장소 이름</span><input id="fPlace" value=${f.place} onInput=${(e) => setF({ ...f, place: e.target.value })}
             placeholder=${mode === "solo" ? `예: ${home.label} 앞 화단` : "예: 학교 정문 화단, 운동장 가장자리"} /></label>
@@ -1408,7 +1436,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
   // 이름·생활형 고치기 + 저장된 사진으로 AI 다시 찾기 (팀원 누구나)
   const [ed, setEd] = useState(null); // {koreanName, scientificName, growthForm, psType, place, notes}
   const [ai, setAi] = useState(null), [aiState, setAiState] = useState("idle"), [aiErr, setAiErr] = useState("");
-  const openEdit = () => { setEd({ origin: rec.origin || "", habitat: rec.habitat || "", koreanName: rec.koreanName || "", scientificName: rec.scientificName || "", growthForm: rec.growthForm || "초본", psType: rec.psType || "C3",
+  const openEdit = () => { setEd({ origin: rec.origin || "", habitat: rec.habitat || "", spot: recTheme(rec) ? recTheme(rec).key : "", koreanName: rec.koreanName || "", scientificName: rec.scientificName || "", growthForm: rec.growthForm || "초본", psType: rec.psType || "C3",
     place: rec.place || "", notes: rec.notes || "" }); setAi(null); setAiState("idle"); };
   const runAI = async () => {
     if (!aiReady(settings)) { onOpenSettings && onOpenSettings(); return; }
@@ -1416,7 +1444,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
     setAiState("loading"); setAiErr("");
     try {
       const dataUrl = await photoDataUrl(src);
-      const o = await analyzePlant({ settings, dataUrl, weather: rec.weather, lat: rec.lat, lng: rec.lng, mode: rec.mode, ctx: { theme: rec.mode === "solo" ? THEMES[rec.researcher] : null, habitat: ed && ed.habitat } });
+      const o = await analyzePlant({ settings, dataUrl, weather: rec.weather, lat: rec.lat, lng: rec.lng, mode: rec.mode, ctx: { theme: rec.mode === "solo" ? themeOf(rec.researcher, ed && ed.spot) : null, habitat: ed && ed.habitat } });
       setAi(o); setAiState("ok");
       setEd((q) => ({ ...q, origin: q.origin || o.origin || "", koreanName: o.koreanName || q.koreanName, scientificName: o.scientificName || q.scientificName, growthForm: o.growthForm, psType: o.photosynthesisType }));
     } catch (e) { setAiState("error"); setAiErr(e.message || String(e)); }
@@ -1428,7 +1456,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
       const model = M.estimate({ sw: rec.weather.sw, temp: rec.weather.temp, rh: rec.weather.rh, psType: ed.psType, growthForm: ed.growthForm, lai });
       let photo = rec.photo;
       if (rec.raw) { try { photo = await EM.composeFrame(rec.raw, { origin: ed.origin, mode: rec.mode, researcher: rec.researcher, ts: rec.ts, name: ed.koreanName.trim(), sci: ed.scientificName.trim(), place: ed.place.trim() || MODES[rec.mode].place }); } catch (e) {} }
-      await onUpdate({ ...rec, origin: ed.origin || "", frameV: rec.raw ? FRAME_V : rec.frameV, habitat: ed.habitat || undefined, koreanName: ed.koreanName.trim(), scientificName: ed.scientificName.trim(), growthForm: ed.growthForm, psType: ed.psType,
+      await onUpdate({ ...rec, origin: ed.origin || "", frameV: rec.raw ? FRAME_V : rec.frameV, habitat: ed.habitat || undefined, ...(rec.mode === "solo" && spotsOf(rec.researcher).length > 1 && ed.spot ? { spot: ed.spot } : {}), koreanName: ed.koreanName.trim(), scientificName: ed.scientificName.trim(), growthForm: ed.growthForm, psType: ed.psType,
         place: ed.place.trim(), notes: ed.notes.trim(), lai, model, photo, ...(ai ? { ai, confidence: ai.confidence } : {}), editedBy: me, editedAt: Date.now() },
         `${ed.koreanName.trim() || "식물"}(으)로 고쳤어요${rec.raw ? "" : " · 사진 속 이름은 예전 그대로예요"}`);
       setEd(null);
@@ -1487,7 +1515,8 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
           <label class="fld"><span>학명</span><input id="eSci" class="italic" value=${ed.scientificName} onInput=${(e) => setEd({ ...ed, scientificName: e.target.value })} placeholder="예: Trapa japonica" /></label>
         </div>
         <div class="w-full"><${Label}>식재 · 자생</${Label}><div class="flex flex-wrap gap-1.5">${ORIGINS.map(([k, l]) => html`<${Chip} key=${k || "none"} on=${ed.origin === k} color=${k ? EM.ORIGIN_INFO[k].color : "#5F7A68"} onClick=${() => setEd({ ...ed, origin: k })}>${l}</${Chip}>`)}</div></div>
-        <div class="w-full"><${Label}>서식지</${Label}><div class="flex flex-wrap gap-1.5">${(rec.mode === "solo" && THEMES[rec.researcher] ? THEMES[rec.researcher].habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${ed.habitat === h} onClick=${() => setEd({ ...ed, habitat: ed.habitat === h ? "" : h })}>${h}</${Chip}>`)}</div></div>
+        ${rec.mode === "solo" && spotsOf(rec.researcher).length > 1 && html`<div class="w-full"><${Label}>어느 동네?</${Label}><div class="flex flex-wrap gap-1.5">${spotsOf(rec.researcher).map((t) => html`<${Chip} key=${t.key} on=${ed.spot === t.key} onClick=${() => setEd({ ...ed, spot: t.key, habitat: ed.spot === t.key ? ed.habitat : "" })}>${t.place} · ${t.tag}</${Chip}>`)}</div></div>`}
+        <div class="w-full"><${Label}>서식지</${Label}><div class="flex flex-wrap gap-1.5">${(rec.mode === "solo" && themeOf(rec.researcher, ed.spot) ? themeOf(rec.researcher, ed.spot).habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${ed.habitat === h} onClick=${() => setEd({ ...ed, habitat: ed.habitat === h ? "" : h })}>${h}</${Chip}>`)}</div></div>
         <div class="w-full"><${Label}>생활형</${Label}><div class="flex flex-wrap gap-1.5">${FORM_LIST.map((g) => html`<${Chip} key=${g} on=${ed.growthForm === g} onClick=${() => setEd({ ...ed, growthForm: g })}>${g}</${Chip}>`)}</div></div>
         <div class="w-full"><${Label}>광합성 유형</${Label}><div class="flex flex-wrap gap-1.5">${PS_LIST.map((g) => html`<${Chip} key=${g} on=${ed.psType === g} onClick=${() => setEd({ ...ed, psType: g })}>${M.PS_TYPES[g].label}</${Chip}>`)}</div></div>
         <label class="fld w-full"><span>장소 이름</span><input id="ePlace" value=${ed.place} onInput=${(e) => setEd({ ...ed, place: e.target.value })} /></label>
@@ -2100,7 +2129,7 @@ function App() {
     fetch(TEAM_AI, { method: "GET" }).then((r) => r.ok ? r.json() : null).then((j) => { if (live && j) setSettings((st) => ({ ...st, team: !!j.configured, plantnet: j.plantnet || "" })); }).catch(() => {});
     return () => { live = false; }; }, []);
   const deleteMeeting = async (id) => { await db.del(id); delCloud(id, "meeting"); setTimeout(syncNow, 200); setMeetings((ms) => ms.filter((m) => m.id !== id)); setMeetEdit(null); say("협의회 기록을 지웠어요"); };
-  const addRecord = (mode) => setDraft({ mode, pos: null });
+  const addRecord = (mode, spot) => setDraft({ mode, pos: null, spot });
   const onMapPick = useCallback((lat, lng) => { setOpenId(null); setDraft({ mode: "team", pos: { lat, lng, source: "map", accuracy: null } }); }, []);
   const saveRecord = async (rec) => {
     const ok = await putLocal(rec); setTimeout(syncNow, 200);
