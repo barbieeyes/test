@@ -352,6 +352,8 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .lbtn.look{background:#17215c}
 .lbtn.look small{display:block;font-family:inherit;font-size:12px;opacity:.85;margin-top:2px}
 #app[data-role="guest"] #compose,#app[data-role="guest"] #cbar,#app[data-role="guest"] #btsend,#app[data-role="guest"] [data-rp]{display:none!important}
+.rno{display:inline-block;font-size:.72em;font-weight:700;line-height:1.35;padding:0 .4em;margin-right:.3em;border-radius:.45em;background:rgba(127,140,210,.24);color:var(--fg);vertical-align:.1em;letter-spacing:0;font-family:var(--f-mono,inherit)}
+.msg.me .rno,.msg.tea .rno{display:none}
 .gonly{display:none}
 #app[data-role="guest"] .gonly{display:block}
 .gnote{font-size:12.5px;color:var(--muted);background:var(--bg2);border:1px dashed var(--line);border-radius:12px;padding:9px 12px;margin:0 0 12px;word-break:keep-all}
@@ -887,13 +889,12 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
           <button class="lbtn look" type="button" id="llook">👀 둘러보기<small>입장 없이 미리 구경하기</small></button>
         </div>
         <div id="lstu">
-          <div class="lf"><span>학년</span><div class="seg" id="lg"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button></div></div>
-          <div class="lf"><label for="lc">반</label><select id="lc"><option value="">반 선택</option></select></div>
+          <div class="lf"><label for="lroom">내 방</label><select id="lroom"><option value="">방 호수 선택</option><option value="201">201호 · 1조</option><option value="202">202호 · 2조</option><option value="203">203호 · 3조</option><option value="205">205호 · 4조</option><option value="301">301호 · 5조</option><option value="302">302호 · 6조</option><option value="303">303호 · 7조</option><option value="305">305호 · 8조</option><option value="306">306호 · 8조</option></select></div>
         </div>
         <div id="ltea" hidden>
           <div class="lf"><label for="lcode">교사 입장 코드</label><input id="lcode" inputmode="numeric" autocomplete="off" placeholder="교사 입장 코드"></div>
         </div>
-        <div class="lf" id="lnamef"><label for="lname">이름</label><input id="lname" autocomplete="name" maxlength="10" placeholder="이름"><span class="hint" id="lnamehint" style="display:block;margin-top:5px;font-weight:400;line-height:1.45">같은 반에 이름이 같은 친구가 있으면 이름 뒤에 A, B를 붙여요</span></div>
+        <div class="lf" id="lnamef"><label for="lname">이름</label><input id="lname" autocomplete="name" maxlength="10" placeholder="이름"><span class="hint" id="lnamehint" style="display:block;margin-top:5px;font-weight:400;line-height:1.45">명단에 있는 이름 그대로 써요. 방 호수와 이름이 맞아야 들어가요.</span></div>
         <button class="lbtn" type="submit" id="lgo">캠프 입장하기</button>
         <div class="lerr" id="lerr" role="alert"></div>
         <button class="llink" type="button" id="lswap">선생님이신가요?</button>
@@ -948,7 +949,7 @@ function newKey(){const a=new Uint8Array(24);crypto.getRandomValues(a);return Ar
 let students={},rx={},myRx=new Set(),acks={},myAcks=new Set(),bell={},meteorRows=[],chatRows=[];
 async function q(builder){const {data,error}=await builder;if(error)throw error;return data||[]}
 async function loadTeams(){const d=await q(sb.from('gg_teams').select('id,name,hidden').order('id'));teams=d.filter(t=>!t.hidden).map(t=>({id:t.id,n:t.name}))}
-async function loadStudents(){const d=await q(sb.from('gg_students').select('id,grade,cls,num,name,team,tokens,stars'));students={};d.forEach(s=>students[s.id]=s);if(me&&me.role==='stu'&&students[me.id]){me.tokens=students[me.id].tokens;{const nt=students[me.id].team;if(nt!==me.team){const was=me.team;me.team=nt;try{const sv=JSON.parse(localStorage.getItem('gg-user')||'null');if(sv){sv.team=nt;localStorage.setItem('gg-user',JSON.stringify(sv))}}catch(x){}enterLabels();if(!chans().includes(chan))chan='all';renderChans();if(nt>0&&was!==undefined)toast('🎉 '+tlabel(nt)+'가 되었어요!')}}setStars(students[me.id].stars,true)}}
+async function loadStudents(){const d=await q(sb.from('gg_students').select('id,grade,cls,num,name,team,tokens,stars,room').not('room','is',null));students={};d.forEach(s=>students[s.id]=s);if(me&&me.role==='stu'&&students[me.id]){me.tokens=students[me.id].tokens;{const nt=students[me.id].team;if(nt!==me.team){const was=me.team;me.team=nt;try{const sv=JSON.parse(localStorage.getItem('gg-user')||'null');if(sv){sv.team=nt;localStorage.setItem('gg-user',JSON.stringify(sv))}}catch(x){}enterLabels();if(!chans().includes(chan))chan='all';renderChans();if(nt>0&&was!==undefined)toast('🎉 '+tlabel(nt)+'가 되었어요!')}}setStars(students[me.id].stars,true)}}
 async function loadPosts(){const d=await q(sb.from('gg_posts').select('id,program,kind,student_id,author,team,is_teacher,body,img_url,exhibit,created_at').eq('hidden',false).order('created_at',{ascending:false}).limit(600));
   posts.length=0;d.forEach(p=>posts.push({id:p.id,pg:p.program,k:p.kind,sid:p.student_id,n:p.author,tm:p.is_teacher?0:(p.team>0?p.team:-1),x:p.body,img:p.img_url,dk:p.exhibit,t:hm(p.created_at)}))}
 async function loadRx(){const d=await q(sb.from('gg_reactions').select('post_id,student_id,kind').eq('active',true));rx={};myRx=new Set();d.forEach(r=>{const o=rx[r.post_id]||(rx[r.post_id]={});o[r.kind]=(o[r.kind]||0)+1;if(me&&me.role==='stu'&&r.student_id===me.id)myRx.add(r.post_id+'|'+r.kind)})}
@@ -1044,6 +1045,7 @@ setInterval(()=>{if(me)renderPlan()},60000);
 /* ---------- 기록: 프로그램별 대시보드 ---------- */
 let teams=[1,2,3,4,5,6].map(id=>({id,n:''}));
 function team(id){return teams.find(t=>t.id===id)}
+function rno(sid){const s=sid&&students[sid];return s&&s.room?`<span class="rno">${s.room}</span>`:''}
 function tlabel(id){if(!(id>0))return '조 미정';const t=team(id);return t&&t.n?`${id}조 ${t.n}`:`${id}조`}
 function tc(id){return id>0?tcol[(id-1)%tcol.length]:'#9aa0b8'}
 
@@ -1102,7 +1104,7 @@ $('#pchips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;pick=b.d
 const RK=['발견!','신기해','나도 궁금'];
 function renderFeed(){
   const list=posts.filter(p=>cur==='all'||p.pg===cur);
-  $('#feed').innerHTML=list.length?list.map(p=>{const tea=p.tm===0,own=me&&me.role==='stu'&&p.sid===me.id;return `<article class="post" id="post-${p.id}"><div class="ph"><span class="av" style="background:${tea?'var(--petal)':tc(p.tm)}">${tea?'샘':p.tm>0?p.tm:'?'}</span><span style="min-width:0"><span class="nm">${tea?'선생님':esc(tlabel(p.tm))} · ${esc(p.n)}</span><br><span style="color:var(--muted);font-size:12px">${cur==='all'?(P[p.pg]?P[p.pg].n:''):esc(p.k)}</span></span><span class="tt">${p.t}</span>${role==='tea'?`<button class="mini danger" data-delpost="${p.id}">삭제</button>`:''}</div>${p.dk?'<div class="dkb">탐구 도감 전시 중</div>':''}${p.img?`<img src="${esc(p.img)}" alt="" loading="lazy">`:''}${p.x?`<p>${esc(p.x)}</p>`:''}<div class="reacts">${RK.map(k=>`<button data-rp="${p.id}" data-k="${k}" aria-pressed="${myRx.has(p.id+'|'+k)}">${k} ${(rx[p.id]||{})[k]||0}</button>`).join('')}${own||role==='tea'?`<button data-dk="${p.id}">${p.dk?'도감에서 빼기':'도감에 전시'}</button>`:''}</div></article>`}).join('')
+  $('#feed').innerHTML=list.length?list.map(p=>{const tea=p.tm===0,own=me&&me.role==='stu'&&p.sid===me.id;return `<article class="post" id="post-${p.id}"><div class="ph"><span class="av" style="background:${tea?'var(--petal)':tc(p.tm)}">${tea?'샘':p.tm>0?p.tm:'?'}</span><span style="min-width:0"><span class="nm">${tea?'선생님':esc(tlabel(p.tm))} · ${tea?'':rno(p.sid)}${esc(p.n)}</span><br><span style="color:var(--muted);font-size:12px">${cur==='all'?(P[p.pg]?P[p.pg].n:''):esc(p.k)}</span></span><span class="tt">${p.t}</span>${role==='tea'?`<button class="mini danger" data-delpost="${p.id}">삭제</button>`:''}</div>${p.dk?'<div class="dkb">탐구 도감 전시 중</div>':''}${p.img?`<img src="${esc(p.img)}" alt="" loading="lazy">`:''}${p.x?`<p>${esc(p.x)}</p>`:''}<div class="reacts">${RK.map(k=>`<button data-rp="${p.id}" data-k="${k}" aria-pressed="${myRx.has(p.id+'|'+k)}">${k} ${(rx[p.id]||{})[k]||0}</button>`).join('')}${own||role==='tea'?`<button data-dk="${p.id}">${p.dk?'도감에서 빼기':'도감에 전시'}</button>`:''}</div></article>`}).join('')
   :`<div class="empty">아직 기록이 없어요.<br>첫 번째 발견을 남겨 보세요!</div>`;
 }
 $('#feed').onclick=async e=>{
@@ -1151,7 +1153,7 @@ function renderDk(){
   const all=posts.filter(p=>p.dk);let no=0;
   $('#dkView').innerHTML=`<p class="lede">조원들이 전시한 기록이 표본 카드처럼 모여요. 프로그램마다 이어지는 진로도 함께 볼 수 있어요.</p>`+
   programs.map(x=>{const ps=all.filter(p=>p.pg===x.id);
-    return `<section class="dk-sec"><div class="dk-h"><h3>${x.emo} ${tag(x.w)}${x.n}</h3><span>표본 ${ps.length}</span></div><div class="dk-jobs">진로 · ${x.j.join(', ')}</div>${ps.length?`<div class="dk">${ps.map(p=>{no++;const by=p.tm?tlabel(p.tm):'선생님';return `<article class="spec"><div class="no"><span>No.${String(no).padStart(3,'0')}</span><span>${p.k}</span></div><div class="pic" style="color:${ICOL[x.id]}">${p.img?`<img src="${p.img}" alt="">`:ICON[x.id]}</div><div class="st">${esc(title(p.x)||'관찰 사진')}</div>${p.x?`<div class="sb">${esc(p.x)}</div>`:''}<div class="sw">${esc(by)} · ${esc(p.n)}<br><span style="color:var(--muted)">11.${x.d===1?13:14} ${p.t} · ${x.p.split(' ·')[0]}</span></div></article>`}).join('')}</div>`:`<div class="empty">아직 전시된 표본이 없어요.</div>`}</section>`}).join('');
+    return `<section class="dk-sec"><div class="dk-h"><h3>${x.emo} ${tag(x.w)}${x.n}</h3><span>표본 ${ps.length}</span></div><div class="dk-jobs">진로 · ${x.j.join(', ')}</div>${ps.length?`<div class="dk">${ps.map(p=>{no++;const by=p.tm?tlabel(p.tm):'선생님';return `<article class="spec"><div class="no"><span>No.${String(no).padStart(3,'0')}</span><span>${p.k}</span></div><div class="pic" style="color:${ICOL[x.id]}">${p.img?`<img src="${p.img}" alt="">`:ICON[x.id]}</div><div class="st">${esc(title(p.x)||'관찰 사진')}</div>${p.x?`<div class="sb">${esc(p.x)}</div>`:''}<div class="sw">${esc(by)} · ${p.tm===0?'':rno(p.sid)}${esc(p.n)}<br><span style="color:var(--muted)">11.${x.d===1?13:14} ${p.t} · ${x.p.split(' ·')[0]}</span></div></article>`}).join('')}</div>`:`<div class="empty">아직 전시된 표본이 없어요.</div>`}</section>`}).join('');
 }
 function setView(v){[['f','Feed','feedView'],['d','Dk','dkView'],['x','Dic','dicView'],['j','Job','jobView']].forEach(([k,b,el])=>{$('#v'+b).setAttribute('aria-pressed',v===k);$('#'+el).hidden=v!==k});if(v==='d')renderDk();if(v==='x')renderDic();if(v==='j')renderJobs()}
 $('#vFeed').onclick=()=>setView('f');$('#vDk').onclick=()=>setView('d');$('#vDic').onclick=()=>setView('x');$('#vJob').onclick=()=>setView('j');
@@ -1167,8 +1169,8 @@ function renderChat(){
   box.innerHTML=(list.length?'':`<div class="sys">${chan==='all'?'전체 채팅방이에요. 첫 인사를 남겨 보세요!':esc(tlabel(+chan.slice(1)))+' 채팅방이에요.'}</div>`)+list.map(m=>{
     if(m.deleted)return `<div class="sys">선생님이 메시지를 삭제했어요</div>`;
     const mm=me&&((me.role==='stu'&&m.student_id===me.id)||(me.role==='tea'&&m.is_teacher&&m.author===tname()));
-    const wn=m.is_teacher?m.author:tlabel(m.team)+' · '+m.author;
-    return `<div class="msg${mm?' me':''}${m.is_teacher?' tea':''}"><span class="mn">${mm?'나':esc(wn)} <span style="opacity:.6;font-size:10.5px">${hm(m.created_at)}</span>${role==='tea'?`<button class="mini danger" data-delmsg="${m.id}">삭제</button>`:''}</span><div class="mb">${esc(m.body)}</div></div>`}).join('');
+    const wn=m.is_teacher?esc(m.author):esc(tlabel(m.team))+' · '+rno(m.student_id)+esc(m.author);
+    return `<div class="msg${mm?' me':''}${m.is_teacher?' tea':''}"><span class="mn">${mm?'나':wn} <span style="opacity:.6;font-size:10.5px">${hm(m.created_at)}</span>${role==='tea'?`<button class="mini danger" data-delmsg="${m.id}">삭제</button>`:''}</span><div class="mb">${esc(m.body)}</div></div>`}).join('');
   if(!$('#s-chat').hidden)window.scrollTo(0,document.body.scrollHeight);
 }
 function uid(u){return u?(u.role==='stu'?'stu:'+u.id:'tea:'+u.name):''}
@@ -1241,7 +1243,7 @@ const CATS={safe:'안전 수칙',notice:'공지',info:'안내'};
 const notices=[];
 let ncat='notice',editing=null;
 function bodyHTML(b){const L=b.split('\n').map(x=>x.trim()).filter(Boolean);return L.length>1?'<ul>'+L.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p>'+esc(b)+'</p>'}
-function nitem(n){const tea=role==='tea';const all=Object.values(students),seen=acks[n.id]||new Set(),miss=all.filter(s=>!seen.has(s.id));return `<div class="nitem"><div class="h"><span><span class="cat ${n.cat==='safe'?'safe':n.cat==='info'?'info':''}">${CATS[n.cat]}</span>${n.edited?'수정됨':''}${n.popup?' · 팝업':''}</span><span>${n.cat==='safe'?'':n.t}</span></div><b>${esc(n.h)}</b>${bodyHTML(n.b)}${tea?`${n.popup&&all.length?`<div class="ack"><div class="ackbar"><i style="width:${seen.size/all.length*100}%"></i></div>확인 ${seen.size}/${all.length}</div>${miss.length?`<div class="miss">아직 안 봄 · ${miss.slice(0,8).map(s=>esc(s.name)).join(', ')}${miss.length>8?' 외 '+(miss.length-8)+'명':''}</div>`:''}`:''}<div class="nact"><button class="mini" data-nedit="${n.id}">수정</button><button class="mini danger" data-ndel="${n.id}">삭제</button></div>`:''}</div>`}
+function nitem(n){const tea=role==='tea';const all=Object.values(students),seen=acks[n.id]||new Set(),miss=all.filter(s=>!seen.has(s.id));return `<div class="nitem"><div class="h"><span><span class="cat ${n.cat==='safe'?'safe':n.cat==='info'?'info':''}">${CATS[n.cat]}</span>${n.edited?'수정됨':''}${n.popup?' · 팝업':''}</span><span>${n.cat==='safe'?'':n.t}</span></div><b>${esc(n.h)}</b>${bodyHTML(n.b)}${tea?`${n.popup&&all.length?`<div class="ack"><div class="ackbar"><i style="width:${seen.size/all.length*100}%"></i></div>확인 ${seen.size}/${all.length}</div>${miss.length?`<div class="miss">아직 안 봄 · ${miss.slice(0,8).map(s=>(s.room?s.room+' ':'')+esc(s.name)).join(', ')}${miss.length>8?' 외 '+(miss.length-8)+'명':''}</div>`:''}`:''}<div class="nact"><button class="mini" data-nedit="${n.id}">수정</button><button class="mini danger" data-ndel="${n.id}">삭제</button></div>`:''}</div>`}
 function renderNotices(){
   const safe=notices.filter(n=>n.cat==='safe').sort((a,b)=>new Date(a.at)-new Date(b.at)),rest=notices.filter(n=>n.cat!=='safe');
   $('#slist').innerHTML=safe.length?safe.map(nitem).join(''):'<div class="empty">등록된 안전 수칙이 없어요.</div>';
@@ -1275,7 +1277,7 @@ $('#mx').onclick=closeModal;$('#mok').onclick=closeModal;
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.s));
 function show(s){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.s===s));document.querySelectorAll('.screen').forEach(x=>x.hidden=x.id!=='s-'+s);$('#cbar').hidden=s!=='chat';if(s!=='quiz'&&typeof mPause==='function')mPause();window.scrollTo(0,0);if(s==='chat'){$('#cdot').hidden=true;renderChat()}}
 async function enter(u){me=u;role=u.role;starLast=null;app.dataset.role=role;
-  $('#login').hidden=true;$('#who').textContent=role==='tea'?u.name+' 선생님':role==='guest'?'캠프 날 입장할 수 있어요':`${u.grade}학년 ${u.cls}반${u.num?' '+u.num+'번':''} ${u.name}`;$('#logout').textContent=role==='guest'?'입장 화면':'나가기';$('#teaPane').hidden=role!=='tea';
+  $('#login').hidden=true;$('#who').textContent=role==='tea'?u.name+' 선생님':role==='guest'?'캠프 날 입장할 수 있어요':`${u.room?u.room+'호 · ':''}${u.grade}학년 ${u.name}`;$('#logout').textContent=role==='guest'?'입장 화면':'나가기';$('#teaPane').hidden=role!=='tea';
   try{await loadAll()}catch(e){console.warn(e)}subscribe();
   enterLabels();if(role==='tea'){tpane('n');updPcnt()}chan='all';qedit=null;gshow('hub');renderChans();renderPlan();renderLog();renderBoard();renderQAdmin();renderNotices();quizStart();show(role==='tea'?'news':'plan');
   if(role==='stu'){checkGifts();setTimeout(checkPopups,800)}
@@ -1283,7 +1285,7 @@ async function enter(u){me=u;role=u.role;starLast=null;app.dataset.role=role;
 async function resume(saved){
   if(saved.role!=='tea'&&!isOpen())return openLogin();
   if(saved.role==='tea'){try{const r=await rpc('gg_teacher_auth',{p_code:saved.code});if(r==='ok')return enter(saved)}catch(e){if(!sb)return enter(saved)}return openLogin()}
-  try{const s=await rpc('gg_touch',{p_sid:saved.id,p_key:saved.key});enter({...saved,name:s.name,team:s.team,tokens:s.tokens,grade:s.grade,cls:s.cls,num:s.num})}
+  try{const s=await rpc('gg_touch',{p_sid:saved.id,p_key:saved.key});if(!s.room){try{localStorage.removeItem('gg-user')}catch(x){}return openLogin()}enter({...saved,name:s.name,team:s.team,tokens:s.tokens,grade:s.grade,cls:s.cls,num:s.num,room:s.room})}
   catch(e){const m=String(e&&e.message||e);if(m.includes('not_student')){try{localStorage.removeItem('gg-user')}catch(x){}openLogin();lerr('같은 이름으로 다른 기기에서 입장했어요. 다시 입장해 주세요.')}else enter(saved)}
 }
 $('#logout').onclick=()=>{if(!(me&&me.role==='guest')){try{localStorage.removeItem('gg-user')}catch(e){}}me=null;app.dataset.role='';updStar();mPause&&mPause();openLogin()};
@@ -1307,7 +1309,7 @@ function renderAssign(){const el=$('#taList');if(!el||!me||me.role!=='tea')retur
   const arr=Object.values(students).sort((a,b)=>(a.team>0)-(b.team>0)||a.grade-b.grade||a.cls-b.cls||String(a.name).localeCompare(b.name,'ko'));
   const none=arr.filter(s=>!(s.team>0)).length;const list=taf==='none'?arr.filter(s=>!(s.team>0)):arr;
   const opts=t=>`<option value="0"${t>0?'':' selected'}>조 미정</option>`+teams.map(x=>`<option value="${x.id}"${x.id===t?' selected':''}>${esc(tlabel(x.id))}</option>`).join('');
-  el.innerHTML=`<div class="tk-sum">입장한 학생 ${arr.length}명 · 조 미정 <b>${none}</b>명</div>`+(list.length?list.map(s=>`<div class="tk-row ta-row"><span class="tk-team" style="background:${tc(s.team)}">${s.team>0?s.team+'조':'?'}</span><span class="tk-who"><b>${esc(s.name)}</b><span>${s.grade}학년 ${s.cls}반</span></span><select class="ta-sel" data-ta="${s.id}" aria-label="${esc(s.name)} 조">${opts(s.team)}</select></div>`).join(''):`<div class="empty">${arr.length?'모든 학생이 조를 받았어요 🎉':'아직 입장한 학생이 없어요.'}</div>`)}
+  el.innerHTML=`<div class="tk-sum">명단 학생 ${arr.length}명 · 조 미정 <b>${none}</b>명 · 방 호수대로 조가 미리 정해져 있어요</div>`+(list.length?list.map(s=>`<div class="tk-row ta-row"><span class="tk-team" style="background:${tc(s.team)}">${s.team>0?s.team+'조':'?'}</span><span class="tk-who"><b>${esc(s.name)}</b><span>${s.room}호 · ${s.grade}학년 ${s.cls}반</span></span><select class="ta-sel" data-ta="${s.id}" aria-label="${esc(s.name)} 조">${opts(s.team)}</select></div>`).join(''):`<div class="empty">${arr.length?'모든 학생이 조를 받았어요 🎉':'아직 입장한 학생이 없어요.'}</div>`)}
 $('#taFilter').onclick=e=>{const b=e.target.closest('[data-taf]');if(!b)return;taf=b.dataset.taf;$('#taFilter').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===b));renderAssign()};
 $('#taList').addEventListener('change',async e=>{const sel=e.target.closest('[data-ta]');if(!sel)return;const id=sel.dataset.ta,t=+sel.value;sel.disabled=true;
   try{await rpc('gg_set_team',{p_code:tcode(),p_ids:[id],p_team:t});if(students[id])students[id].team=t;toast(`${students[id]?students[id].name:'학생'} → ${t>0?tlabel(t):'조 미정'}`)}catch(x){fail(x)}sel.disabled=false;setTimeout(renderAssign,taf==='none'&&t>0?500:0)});
@@ -1328,18 +1330,18 @@ $('#llook').onclick=()=>enter({role:'guest',name:'둘러보기'});
 /* ---------- 로그인 ---------- */
 let lmode='stu',lg='';
 fillTeamSelect();
-for(let i=1;i<=14;i++)$('#lc').insertAdjacentHTML('beforeend',`<option value="${i}">${i}반</option>`);
+
 
 function segPick(el,v){el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v))}
-$('#lg').onclick=e=>{const b=e.target.closest('button');if(b){lg=b.dataset.v;segPick($('#lg'),lg)}};
+
 $('#lswap').onclick=()=>{lmode=lmode==='stu'?'tea':'stu';$('#lswap').textContent=lmode==='stu'?'선생님이신가요?':'학생으로 입장하기';$('#lerr').textContent='';lmodeUI()};
 $('#lform').onsubmit=async e=>{e.preventDefault();const name=lmode==='stu'?$('#lname').value.replace(/\s+/g,''):$('#lname').value.trim(),go=$('#lgo');if(go.dataset.busy)return;
   if(!sb)return lerr('서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.');
   let u;
-  if(lmode==='stu'){const cls=$('#lc').value;if(!lg)return lerr('학년을 골라 주세요.');if(!cls)return lerr('반을 골라 주세요.');if(!name)return lerr('이름을 적어 주세요.');
+  if(lmode==='stu'){const room=$('#lroom').value;if(!room)return lerr('내 방 호수를 골라 주세요.');if(!name)return lerr('이름을 적어 주세요.');
     go.dataset.busy='1';go.textContent='입장하는 중…';
-    try{const key=newKey();const id=await rpc('gg_join',{p_grade:+lg,p_cls:+cls,p_num:null,p_name:name,p_team:0,p_key:key});u={role:'stu',id,key,grade:+lg,cls:+cls,num:null,team:0,name,tokens:1}}
-    catch(x){console.warn(x);lerr(String(x&&x.message||x).includes('not_open')?'학생 입장은 캠프 날(11월 13일)에 열려요.':'입장하지 못했어요. 잠시 뒤 다시 해 주세요.');return}finally{delete go.dataset.busy;go.textContent='캠프 입장하기'}}
+    try{const key=newKey();const r=await rpc('gg_join_room',{p_room:room,p_name:name,p_key:key});u={role:'stu',id:r.id,key,grade:r.grade,cls:r.cls,num:null,team:r.team,room:r.room,name:r.name,tokens:r.tokens}}
+    catch(x){console.warn(x);const m=String(x&&x.message||x);lerr(m.includes('not_open')?'학생 입장은 캠프 날(11월 13일)에 열려요.':m.includes('not_in_list')?`${room}호 명단에 "${name}" 이름이 없어요. 방 호수와 이름을 다시 확인해 주세요.`:'입장하지 못했어요. 잠시 뒤 다시 해 주세요.');return}finally{delete go.dataset.busy;go.textContent='캠프 입장하기'}}
   else{const code=$('#lcode').value.trim();if(!code)return lerr('교사 입장 코드를 적어 주세요.');if(!name)return lerr('이름을 적어 주세요.');
     go.dataset.busy='1';try{const r=await rpc('gg_teacher_auth',{p_code:code});if(r==='locked')return lerr('잘못된 코드가 여러 번 입력돼서 10분 동안 잠겼어요.');if(r!=='ok')return lerr('입장 코드가 맞지 않아요. 인솔 교사에게 확인해 주세요.');u={role:'tea',team:0,name,code}}
     catch(x){return lerr('연결이 불안정해요. 잠시 뒤 다시 해 주세요.')}finally{delete go.dataset.busy}}
@@ -1653,10 +1655,10 @@ function mRankHTML(big,live){
   const teamBest={};rows.forEach(r=>{if(r.tm&&(!teamBest[r.tm]||r.s>teamBest[r.tm].s))teamBest[r.tm]=r});
   const tb=Object.values(teamBest).sort((a,b)=>b.s-a.s);
   return `<div class="rk${big?' big':''}"><div class="rk-h"><b>🏆 실시간 랭킹</b><span>${rows.length}명 참가</span></div>
-  ${rows.length?'':'<div class="empty">아직 기록이 없어요. 첫 1등에 도전해 보세요!</div>'}<ol class="rk-l">${rows.slice(0,big?12:7).map((r,i)=>`<li class="${r.id===my?'me':''}${r.live?' lv':''}"><span class="rk-p">${medal[i]||i+1}</span><span class="rk-n"><b>${esc(r.n)}</b><span>${r.tm?esc(tlabel(r.tm)):''}${r.live?' · 지금 플레이 중':''}</span></span><span class="rk-s">${r.s.toLocaleString()}</span></li>`).join('')}</ol>
+  ${rows.length?'':'<div class="empty">아직 기록이 없어요. 첫 1등에 도전해 보세요!</div>'}<ol class="rk-l">${rows.slice(0,big?12:7).map((r,i)=>`<li class="${r.id===my?'me':''}${r.live?' lv':''}"><span class="rk-p">${medal[i]||i+1}</span><span class="rk-n"><b>${rno(r.id)}${esc(r.n)}</b><span>${r.tm?esc(tlabel(r.tm)):''}${r.live?' · 지금 플레이 중':''}</span></span><span class="rk-s">${r.s.toLocaleString()}</span></li>`).join('')}</ol>
   ${(()=>{const i=rows.findIndex(r=>r.id===my);return i>=(big?12:7)?`<div class="rk-me">내 순위 <b>${i+1}위</b> · ${rows[i].s.toLocaleString()}점</div>`:''})()}
   <div class="rk-h" style="margin-top:12px"><b>조별 최고 기록</b></div>
-  <div class="rk-teams">${tb.map((r,i)=>`<div class="rk-t${i===0?' top':''}"><span style="background:${tc(r.tm)}">${r.tm}조</span><b>${r.s.toLocaleString()}</b><em>${esc(r.n)}</em></div>`).join('')}</div></div>`;
+  <div class="rk-teams">${tb.map((r,i)=>`<div class="rk-t${i===0?' top':''}"><span style="background:${tc(r.tm)}">${r.tm}조</span><b>${r.s.toLocaleString()}</b><em>${rno(r.id)}${esc(r.n)}</em></div>`).join('')}</div></div>`;
 }
 let mLiveT=0;
 function mRankRender(live){const el=$('#mrank');if(el)el.innerHTML=mRankHTML(false,live);const bg=$('#mbigin');if(bg&&!$('#mbig').hidden)bg.innerHTML=mRankHTML(true,live)}
@@ -2045,11 +2047,11 @@ async function checkGifts(){
 setInterval(()=>{if(me&&me.role==='stu'&&!document.hidden)checkGifts()},30000);
 async function renderTk(){
   $('#tkTeam').innerHTML=teams.map(t=>`<option value="${t.id}">${esc(tlabel(t.id))}</option>`).join('');
-  try{roster=await rpc('gg_roster',{p_code:tcode()})||[]}catch(e){fail(e)}
+  try{roster=(await rpc('gg_roster',{p_code:tcode()})||[]).filter(r=>students[r.id])}catch(e){fail(e)}
   const f=tkFilter.replace(/\s/g,'');
   const ids=roster.filter(r=>!f||(`${r.grade}학년${r.cls}반${r.name}${tlabel(r.team)}`).replace(/\s/g,'').includes(f));
   const total=roster.reduce((s,r)=>s+r.tokens,0);
-  $('#tkList').innerHTML=roster.length?`<div class="tk-sum">학생 ${roster.length}명 · 남은 인화권 합계 ${total}장</div>`+(ids.length?ids.map(r=>`<div class="tk-row"><span class="tk-team" style="background:${tc(r.team)}">${r.team}조</span><span class="tk-who"><b>${esc(r.name)}</b><span>${r.grade}학년 ${r.cls}반${r.last_delta!=null?` · 최근 ${r.last_delta>0?'+':''}${r.last_delta} ${esc(r.last_reason||'')}`:''}</span></span><span class="tk-n">🎟️ ${r.tokens}</span><span class="tk-btns"><button class="mini" data-tk="${r.id}" data-d="-1" ${r.tokens?'':'disabled'} aria-label="한 장 빼기">−</button><button class="mini pr" data-tk="${r.id}" data-d="1" aria-label="한 장 주기">+1</button></span></div>`).join(''):'<div class="empty">찾는 학생이 없어요.</div>')
+  $('#tkList').innerHTML=roster.length?`<div class="tk-sum">학생 ${roster.length}명 · 남은 인화권 합계 ${total}장</div>`+(ids.length?ids.map(r=>`<div class="tk-row"><span class="tk-team" style="background:${tc(r.team)}">${r.team}조</span><span class="tk-who"><b>${esc(r.name)}</b><span>${students[r.id]&&students[r.id].room?students[r.id].room+'호 · ':''}${r.grade}학년 ${r.cls}반${r.last_delta!=null?` · 최근 ${r.last_delta>0?'+':''}${r.last_delta} ${esc(r.last_reason||'')}`:''}</span></span><span class="tk-n">🎟️ ${r.tokens}</span><span class="tk-btns"><button class="mini" data-tk="${r.id}" data-d="-1" ${r.tokens?'':'disabled'} aria-label="한 장 빼기">−</button><button class="mini pr" data-tk="${r.id}" data-d="1" aria-label="한 장 주기">+1</button></span></div>`).join(''):'<div class="empty">찾는 학생이 없어요.</div>')
   :'<div class="empty">아직 입장한 학생이 없어요.<br>학생이 앱에 입장하면 여기에 이름이 생기고, 인화권 1장이 기본으로 들어가요.</div>';
 }
 async function give(ids,d,msg){if(!ids.length)return;try{await rpc('gg_tokens_give',{p_code:tcode(),p_ids:ids,p_delta:d,p_reason:d>0?tkWhy:''});if(msg)toast(msg);if(d>0)burst(null,null,30)}catch(e){fail(e)}renderTk()}
@@ -2080,7 +2082,7 @@ async function openStars(){if(!me||me.role!=='stu'||starBusy)return;starBusy=tru
   $('#mbody').innerHTML=`<div class="stbox"><div class="sthero"><span style="font-size:30px">⭐</span><span class="big">${my.toLocaleString('ko-KR')}<small>개</small></span><span class="rk2">전체 <b>${myR}위</b> / ${arr.length}명<br>${mt?`${esc(tlabel(me.team))} <b>${tR}위</b> · ${mt.sum.toLocaleString('ko-KR')}개`:'조는 곧 정해져요'}</span></div>
   <p style="font-size:12.5px;color:var(--muted);margin:0;word-break:keep-all">별을 많이 모으면 캠프가 끝날 때 선생님이 순위대로 상품을 주실 거예요. 조원 별을 합친 조 순위로도 상을 받을 수 있어요!</p>
   <h4 class="sth">조별 별 순위</h4><ol class="strank">${tl.slice(0,6).map((t,i)=>`<li class="${t.id===me.team?'me':''}"><span class="n">${i+1}</span><span>${esc(tlabel(t.id))}</span><span class="v">⭐ ${t.sum.toLocaleString('ko-KR')}</span></li>`).join('')||'<li><span></span><span>아직 조가 없어요</span><span></span></li>'}</ol>
-  <h4 class="sth">별 순위 TOP 5</h4><ol class="strank">${arr.slice(0,5).filter(s=>s.stars>0).map(s=>`<li class="${s.id===me.id?'me':''}"><span class="n">${rankOf(arr,s.stars,'stars')}</span><span>${esc(s.name)} <small style="color:var(--muted)">${esc(tlabel(s.team))}</small></span><span class="v">⭐ ${s.stars}</span></li>`).join('')||'<li><span></span><span>아직 별을 모은 친구가 없어요. 첫 번째가 되어 볼까요?</span><span></span></li>'}</ol>
+  <h4 class="sth">별 순위 TOP 5</h4><ol class="strank">${arr.slice(0,5).filter(s=>s.stars>0).map(s=>`<li class="${s.id===me.id?'me':''}"><span class="n">${rankOf(arr,s.stars,'stars')}</span><span>${rno(s.id)}${esc(s.name)} <small style="color:var(--muted)">${esc(tlabel(s.team))}</small></span><span class="v">⭐ ${s.stars}</span></li>`).join('')||'<li><span></span><span>아직 별을 모은 친구가 없어요. 첫 번째가 되어 볼까요?</span><span></span></li>'}</ol>
   <h4 class="sth">최근 받은 별</h4><ul class="stlog">${log.slice(0,15).map(l=>`<li><span>${esc(l.reason)}<small>${hm(l.created_at)}</small></span><span class="d${l.delta<0?' m':''}">${l.delta>0?'+':''}${l.delta}</span></li>`).join('')||'<li><span>아직 받은 별이 없어요. 탐구 기록부터 올려 봐요!</span><span></span></li>'}</ul>
   <h4 class="sth">별 모으는 방법</h4><div class="stways">${STAR_WAYS.map(w=>`<span>${w[0]}</span><span>${w[1]}</span>`).join('')}</div></div>`;
   $('#modal').hidden=false;$('#mok').focus()}
@@ -2093,7 +2095,7 @@ function renderSP(){if(!me||me.role!=='tea')return;
   $('#spTeams').innerHTML=tl.length?tl.map((t,i)=>`<div><span>${i+1}. ${esc(tlabel(t.id))}</span><b>⭐ ${t.sum.toLocaleString('ko-KR')}</b></div>`).join(''):'<div>조가 아직 없어요</div>';
   const f=spFilter.replace(/\s/g,'');const ids=arr.filter(r=>!f||(`${r.grade}학년${r.cls}반${r.name}${tlabel(r.team)}`).replace(/\s/g,'').includes(f));
   const total=arr.reduce((a,r)=>a+r.stars,0);
-  $('#spList').innerHTML=arr.length?`<div class="tk-sum">학생 ${arr.length}명 · 별 합계 ${total.toLocaleString('ko-KR')}개 · 지금 선택: <b>${spAmt>0?'+':''}${spAmt}</b></div>`+(ids.length?ids.map(r=>`<div class="tk-row"><span class="tk-team" style="background:${tc(r.team)}">${rankOf(arr,r.stars,'stars')}위</span><span class="tk-who"><b>${esc(r.name)}</b><span>${r.grade}학년 ${r.cls}반 · ${esc(tlabel(r.team))}</span></span><span class="tk-n st">⭐ ${r.stars}</span><span class="tk-btns"><button class="mini pr" data-sp="${r.id}" aria-label="${esc(r.name)}에게 별 ${spAmt}개">${spAmt>0?'+':''}${spAmt}</button></span></div>`).join(''):'<div class="empty">찾는 학생이 없어요.</div>')
+  $('#spList').innerHTML=arr.length?`<div class="tk-sum">학생 ${arr.length}명 · 별 합계 ${total.toLocaleString('ko-KR')}개 · 지금 선택: <b>${spAmt>0?'+':''}${spAmt}</b></div>`+(ids.length?ids.map(r=>`<div class="tk-row"><span class="tk-team" style="background:${tc(r.team)}">${rankOf(arr,r.stars,'stars')}위</span><span class="tk-who"><b>${esc(r.name)}</b><span>${r.room}호 · ${r.grade}학년 · ${esc(tlabel(r.team))}</span></span><span class="tk-n st">⭐ ${r.stars}</span><span class="tk-btns"><button class="mini pr" data-sp="${r.id}" aria-label="${esc(r.name)}에게 별 ${spAmt}개">${spAmt>0?'+':''}${spAmt}</button></span></div>`).join(''):'<div class="empty">찾는 학생이 없어요.</div>')
   :'<div class="empty">아직 입장한 학생이 없어요.</div>'}
 async function giveSP(ids,msg){if(!ids.length)return;try{await rpc('gg_stars_give',{p_code:tcode(),p_ids:ids,p_delta:spAmt,p_reason:spWhy});if(msg)toast(msg);if(spAmt>0)burst(null,null,30);await loadStudents()}catch(e){fail(e)}renderSP()}
 async function finalAward(what,btn){if(btn.dataset.arm===undefined){btn.dataset.arm='';const h=btn.innerHTML;btn.innerHTML='한 번 더 누르면 지급해요<small>지급한 별은 되돌릴 수 없어요 · 3초 안에 다시 눌러 주세요</small>';setTimeout(()=>{if(btn.isConnected){delete btn.dataset.arm;btn.innerHTML=h}},3000);return}
