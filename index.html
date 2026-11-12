@@ -889,7 +889,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
           <button class="lbtn look" type="button" id="llook">👀 둘러보기<small>입장 없이 미리 구경하기</small></button>
         </div>
         <div id="lstu">
-          <div class="lf"><label for="lroom">내 방</label><select id="lroom"><option value="">방 호수 선택</option><option value="201">201호 · 1조</option><option value="202">202호 · 2조</option><option value="203">203호 · 3조</option><option value="205">205호 · 4조</option><option value="301">301호 · 5조</option><option value="302">302호 · 6조</option><option value="303">303호 · 7조</option><option value="305">305호 · 8조</option><option value="306">306호 · 8조</option></select></div>
+          <div class="lf"><label for="lroom">내 방</label><select id="lroom"><option value="">방 호수 선택</option><option value="201">201호 · 1조</option><option value="202">202호 · 2조</option><option value="203">203호 · 3조</option><option value="205">205호 · 4조</option><option value="301">301호 · 5조</option><option value="302">302호 · 6조</option><option value="303">303호 · 8·9조</option><option value="305">305호 · 7조</option><option value="306">306호 · 7조</option></select></div>
         </div>
         <div id="ltea" hidden>
           <div class="lf"><label for="lcode">교사 입장 코드</label><input id="lcode" inputmode="numeric" autocomplete="off" placeholder="교사 입장 코드"></div>
@@ -1049,7 +1049,7 @@ function rno(sid){const s=sid&&students[sid];return s&&s.room?`<span class="rno"
 function tlabel(id){if(!(id>0))return '조 미정';const t=team(id);return t&&t.n?`${id}조 ${t.n}`:`${id}조`}
 function tc(id){return id>0?tcol[(id-1)%tcol.length]:'#9aa0b8'}
 
-const tcol=['#d4507a','#3b8a45','#3a6fb5','#d48a1a','#7a4fb5','#2a8f8a'];
+const tcol=['#d4507a','#3b8a45','#3a6fb5','#d48a1a','#7a4fb5','#2a8f8a','#a0582c','#5f7a1f','#1f6f9a'];
 const programs=[
  {id:'star',emo:'🔭',j:['천문학자','천체물리학자','우주항공공학자','천문대 연구원'],jd:'별의 밝기와 색으로 온도·거리를 알아내는 일',w:'glow',d:1,s:'18:30',e:'20:30',n:'별빛으로 만나는 우주',p:'플라네타륨 · 관측장',k:['별·우주','관측 사진','궁금한 점'],m:[['별자리 3개 찾아 기록하기',4],['망원경으로 본 천체 올리기',2],['AI·디지털 기기로 별 이름 찾기',3]]},
  {id:'night',emo:'🔥',j:['과학 커뮤니케이터','과학 교사','과학관 해설사'],jd:'배운 과학을 쉽고 재미있게 전하는 일',w:'',d:1,s:'20:30',e:'21:30',n:'Grow & Glow Night',p:'캠프파이어장',k:['느낀 점','칭찬 한 줄','골든벨'],m:[['조원에게 칭찬 한 줄 남기기',0],['별빛 골든벨 참여',0]]},
