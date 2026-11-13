@@ -14,7 +14,9 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Grow&amp;Glow">
 <meta name="application-name" content="Grow&amp;Glow">
-<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@supports (-webkit-touch-callout:none){input,select,textarea{font-size:16px!important}}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
 <title>Grow &amp; Glow 캠프</title>
@@ -252,6 +254,16 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .tabs button[aria-selected="true"]::before{content:"";position:absolute;top:0;left:30%;right:30%;height:2px;background:var(--gold);border-radius:2px}
 .nb{position:absolute;top:3px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#ff3d7f;color:#fff;font:900 11px/17px var(--f-body,sans-serif);text-align:center;box-shadow:0 0 0 2px var(--bg),0 0 10px #ff3d7faa;animation:nbpop .5s ease-out}
 .nb[hidden]{display:none!important}
+.crxs{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.msg.me .crxs{justify-content:flex-end}
+.crx{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-size:12.5px;line-height:1;padding:3px 7px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);color:var(--fg)}
+.crx b{font-weight:700;font-size:11.5px}
+.crx.on{border-color:#ff7fb0;background:#ff7fb022}
+.rxpop{position:fixed;z-index:70;display:flex;gap:2px;padding:5px 6px;border-radius:999px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 24px #0006;animation:nbpop .25s ease-out}
+.rxpop button{all:unset;cursor:pointer;font-size:24px;line-height:1;padding:4px 5px;border-radius:50%}
+.rxpop button:active{transform:scale(1.25)}
+.msg .mb{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
 @keyframes nbpop{0%{transform:scale(.3)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
 .dot{position:absolute;top:6px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--petal)}
 .progs{display:flex;gap:8px;overflow-x:auto;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 14px;padding:2px max(16px,env(safe-area-inset-left,0px)) 8px;scrollbar-width:none}
@@ -319,7 +331,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .sys{align-self:center;font-size:11.5px;color:var(--muted);background:var(--bg2);padding:3px 10px;border-radius:999px}
 .cbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:6;display:flex;justify-content:center;pointer-events:none}
 .cbar .in{pointer-events:auto;width:100%;max-width:480px;display:flex;gap:8px;padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:color-mix(in srgb,var(--bg) 94%,transparent);border-top:1px solid var(--line);box-sizing:border-box}
-.cbar input{flex:1;min-width:0;font:inherit;color:var(--fg);background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:9px 14px}
+.cbar input{font-size:16px!important;flex:1;min-width:0;font:inherit;color:var(--fg);background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:9px 14px}
 /* login */
 .login{position:fixed;inset:0;z-index:70;background:#0f1838;overflow-y:auto;color:#22301f}
 #lcv{position:absolute;inset:0;width:100%;height:100%}
@@ -778,6 +790,7 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
     <section class="screen" id="s-chat" hidden>
       <div class="gnote gonly" style="margin-top:4px">👀 둘러보기 중이에요. 채팅은 캠프 날 입장하면 할 수 있어요.</div>
       <h2>캠프 채팅</h2>
+      <p class="hint" style="margin:-4px 0 8px">💬 메시지를 꾹 누르면 ❤️ 👍 😂 😮 공감, 두 번 톡톡 누르면 ❤️</p>
       <div class="daytabs chans" id="chans" role="group" aria-label="채팅방"></div>
       <div class="chat" id="chat" aria-live="polite"></div>
     </section>
@@ -949,7 +962,7 @@ function fail(e){console.warn(e);const m=String(e&&(e.message||e.details)||e);
   toast('연결이 불안정해요. 잠시 뒤 다시 해 주세요')}
 function newKey(){const a=new Uint8Array(24);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('')}
 
-let students={},rx={},myRx=new Set(),acks={},myAcks=new Set(),bell={},meteorRows=[],chatRows=[];
+let chatRx={},students={},rx={},myRx=new Set(),acks={},myAcks=new Set(),bell={},meteorRows=[],chatRows=[];
 async function q(builder){const {data,error}=await builder;if(error)throw error;return data||[]}
 async function loadTeams(){const d=await q(sb.from('gg_teams').select('id,name,hidden').order('id'));teams=d.filter(t=>!t.hidden).map(t=>({id:t.id,n:t.name}))}
 async function loadStudents(){const d=await q(sb.from('gg_students').select('id,grade,cls,num,name,team,tokens,stars,room').not('room','is',null));students={};d.forEach(s=>students[s.id]=s);if(me&&me.role==='stu'&&students[me.id]){me.tokens=students[me.id].tokens;{const nt=students[me.id].team;if(nt!==me.team){const was=me.team;me.team=nt;try{const sv=JSON.parse(localStorage.getItem('gg-user')||'null');if(sv){sv.team=nt;localStorage.setItem('gg-user',JSON.stringify(sv))}}catch(x){}enterLabels();if(!chans().includes(chan))chan='all';renderChans();if(nt>0&&was!==undefined)toast('🎉 '+tlabel(nt)+'가 되었어요!')}}setStars(students[me.id].stars,true)}}
@@ -962,6 +975,7 @@ async function loadNotices(){const d=await q(sb.from('gg_notices').select('id,ca
   notices.length=0;d.forEach(n=>notices.push({id:n.id,cat:n.cat,h:n.title,b:n.body,popup:n.popup,edited:n.edited,t:hm(n.created_at),at:n.created_at}))}
 async function loadAcks(){const d=await q(sb.from('gg_notice_acks').select('notice_id,student_id'));acks={};myAcks=new Set();d.forEach(a=>{(acks[a.notice_id]||(acks[a.notice_id]=new Set())).add(a.student_id);if(me&&me.role==='stu'&&a.student_id===me.id)myAcks.add(a.notice_id)})}
 async function loadQuiz(){const d=await q(sb.from('gg_quiz').select('id,ord,q,opts,answer,expl,hidden').eq('hidden',false).order('ord').order('id'));Q=d.map(r=>({id:r.id,q:r.q,o:r.opts,a:r.answer,e:r.expl}))}
+async function loadChatRx(){let d=[];try{d=await q(sb.from('gg_chat_rx').select('chat_id,who,kind').eq('active',true))}catch(e){chatRx={};return}chatRx={};d.forEach(r=>{const o=chatRx[r.chat_id]||(chatRx[r.chat_id]={});(o[r.kind]||(o[r.kind]=new Set())).add(r.who)})}
 async function loadBell(){const d=await q(sb.from('gg_bell').select('team,score'));bell={};d.forEach(b=>bell[b.team]=b.score)}
 async function loadMeteor(){meteorRows=await q(sb.from('gg_meteor').select('student_id,best').gt('best',0))}
 
@@ -970,6 +984,7 @@ const TB={
  gg_students:[loadStudents,()=>{if(me){updTkUI();if(!$('#tpTeams').hidden&&!(document.activeElement&&document.activeElement.closest('#taList')))renderAssign();updStar();if(!$('#tpStar').hidden)renderSP();renderNotices();if(!$('#gMeteor').hidden)mRankRender(mg&&mg.run?mg.score:null)}}],
  gg_posts:[loadPosts,()=>{if(me)renderLog()}],
  gg_reactions:[loadRx,()=>{if(me){renderFeed();renderDash()}}],
+ gg_chat_rx:[loadChatRx,()=>{if(me&&!$('#s-chat').hidden)renderChat()}],
  gg_chat:[loadChat,()=>{if(me&&!$('#s-chat').hidden)renderChat();updNew()}],
  gg_notices:[loadNotices,()=>{if(me){renderNotices();checkPopups();updNew()}}],
  gg_notice_acks:[loadAcks,()=>{if(me){renderNotices();checkPopups()}}],
@@ -981,7 +996,7 @@ const qT={};
 function queue(t){clearTimeout(qT[t]);qT[t]=setTimeout(async()=>{try{await TB[t][0]();TB[t][1]()}catch(e){console.warn(t,e)}},250)}
 async function loadAll(){if(!sb)return;await Promise.all(Object.keys(TB).map(t=>TB[t][0]().catch(e=>console.warn(t,e))))}
 let rtOn=false;
-function subscribe(){if(!sb||rtOn)return;rtOn=true;const ch=sb.channel('gg-camp');Object.keys(TB).forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>queue(t)));ch.subscribe()}
+function subscribe(){if(!sb||rtOn)return;rtOn=true;const ch=sb.channel('gg-camp');Object.keys(TB).filter(t=>t!=='gg_chat_rx').forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>queue(t)));ch.subscribe();try{sb.channel('gg-rx').on('postgres_changes',{event:'*',schema:'public',table:'gg_chat_rx'},()=>queue('gg_chat_rx')).subscribe()}catch(e){}}
 setInterval(()=>{if(me&&sb&&!document.hidden)Object.keys(TB).forEach(queue)},30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&me&&sb){Object.keys(TB).forEach(queue);if(me.role==='stu')checkGifts();else updPcnt()}});
 
@@ -1173,7 +1188,7 @@ function renderChat(){
     if(m.deleted)return `<div class="sys">선생님이 메시지를 삭제했어요</div>`;
     const mm=me&&((me.role==='stu'&&m.student_id===me.id)||(me.role==='tea'&&m.is_teacher&&m.author===tname()));
     const wn=m.is_teacher?esc(m.author):esc(tlabel(m.team))+' · '+rno(m.student_id)+esc(m.author);
-    return `<div class="msg${mm?' me':''}${m.is_teacher?' tea':''}"><span class="mn">${mm?'나':wn} <span style="opacity:.6;font-size:10.5px">${hm(m.created_at)}</span>${role==='tea'?`<button class="mini danger" data-delmsg="${m.id}">삭제</button>`:''}</span><div class="mb">${esc(m.body)}</div></div>`}).join('');
+    return `<div class="msg${mm?' me':''}${m.is_teacher?' tea':''}"><span class="mn">${mm?'나':wn} <span style="opacity:.6;font-size:10.5px">${hm(m.created_at)}</span>${role==='tea'?`<button class="mini danger" data-delmsg="${m.id}">삭제</button>`:''}</span><div class="mb" data-rxm="${m.id}">${esc(m.body)}</div>${rxRow(m.id)}</div>`}).join('');
   if(!$('#s-chat').hidden)window.scrollTo(0,document.body.scrollHeight);
 }
 function uid(u){return u?(u.role==='stu'?'stu:'+u.id:'tea:'+u.name):''}
@@ -1331,6 +1346,26 @@ function ddayUI(){const el=$('#ldday');if(!el)return;const now=Date.now();if(now
 setInterval(()=>{if(!$('#login').hidden){const was=$('#lclosed').hidden;lmodeUI();if(was===false&&isOpen())toast('학생 입장이 열렸어요! 🎉')}},30000);
 $('#llook').onclick=()=>enter({role:'guest',name:'둘러보기'});
 
+
+/* ---------- 채팅 공감 (카톡처럼) ---------- */
+const RXK=[['heart','❤️'],['thumb','👍'],['lol','😂'],['wow','😮']];
+function myWho(){return me?(me.role==='stu'?'stu:'+me.id:'tea:'+tname()):''}
+function rxRow(id){const o=chatRx[id];if(!o)return '';const w=myWho();const h=RXK.filter(([k])=>o[k]&&o[k].size).map(([k,e])=>`<button class="crx${o[k].has(w)?' on':''}" data-rxk="${k}" data-rxid="${id}" aria-label="${e} ${o[k].size}">${e}<b>${o[k].size}</b></button>`).join('');return h?`<div class="crxs">${h}</div>`:''}
+let rxPop=null,rxJust=0;
+function closeRx(){if(rxPop){rxPop.remove();rxPop=null}}
+function openRx(el,id){closeRx();if(!me||me.role==='guest')return;const r=el.getBoundingClientRect();const p=document.createElement('div');p.className='rxpop';p.innerHTML=RXK.map(([k,e])=>`<button data-rxk="${k}" data-rxid="${id}" aria-label="${e}">${e}</button>`).join('');document.body.appendChild(p);
+  const w=p.offsetWidth,x=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2)),y=r.top-p.offsetHeight-6;p.style.left=x+'px';p.style.top=(y<60?r.bottom+6:y)+'px';rxPop=p;rxJust=Date.now()}
+async function doRx(id,k){closeRx();const w=myWho();const o=chatRx[id]||(chatRx[id]={});const S=o[k]||(o[k]=new Set());const had=S.has(w);had?S.delete(w):S.add(w);renderChat();
+  try{await rpc('gg_chat_react',{...who(),p_code:tcode(),p_tname:tname(),p_chat:+id,p_kind:k})}catch(e){had?S.add(w):S.delete(w);renderChat();fail(e)}}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-rxk]');if(b){e.stopPropagation();doRx(b.dataset.rxid,b.dataset.rxk);return}if(rxPop&&!e.target.closest('.rxpop')&&Date.now()-rxJust>500)closeRx()},true);
+(()=>{let t=null,sx=0,sy=0;const box=$('#chat');
+  box.addEventListener('dblclick',e=>{const m=e.target.closest('[data-rxm]');if(m){e.preventDefault();doRx(m.dataset.rxm,'heart')}});
+  box.addEventListener('pointerdown',e=>{const m=e.target.closest('[data-rxm]');if(!m)return;sx=e.clientX;sy=e.clientY;clearTimeout(t);t=setTimeout(()=>{openRx(m,m.dataset.rxm);if(navigator.vibrate)navigator.vibrate(15)},420)});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>box.addEventListener(ev,()=>clearTimeout(t)));
+  box.addEventListener('pointermove',e=>{if(Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>10)clearTimeout(t)});
+  box.addEventListener('contextmenu',e=>{if(e.target.closest('[data-rxm]'))e.preventDefault()});
+  box.addEventListener('scroll',()=>{if(Date.now()-rxJust>500)closeRx()});window.addEventListener('scroll',()=>{if(Date.now()-rxJust>500)closeRx()},{passive:true});
+})();
 /* ---------- 새 채팅·공지 N 표시 ---------- */
 function seenKey(){return 'gg-seen-'+uid(me)}
 function getSeen(){try{return JSON.parse(localStorage.getItem(seenKey())||'{}')}catch(e){return {}}}
