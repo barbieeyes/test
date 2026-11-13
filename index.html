@@ -250,6 +250,9 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
 .tabs button svg{display:block;margin:0 auto 3px;width:22px;height:22px}
 .tabs button[aria-selected="true"]{color:var(--fg)}
 .tabs button[aria-selected="true"]::before{content:"";position:absolute;top:0;left:30%;right:30%;height:2px;background:var(--gold);border-radius:2px}
+.nb{position:absolute;top:3px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#ff3d7f;color:#fff;font:900 11px/17px var(--f-body,sans-serif);text-align:center;box-shadow:0 0 0 2px var(--bg),0 0 10px #ff3d7faa;animation:nbpop .5s ease-out}
+.nb[hidden]{display:none!important}
+@keyframes nbpop{0%{transform:scale(.3)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
 .dot{position:absolute;top:6px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--petal)}
 .progs{display:flex;gap:8px;overflow-x:auto;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 14px;padding:2px max(16px,env(safe-area-inset-left,0px)) 8px;scrollbar-width:none}
 .progs::-webkit-scrollbar{display:none}
@@ -868,9 +871,9 @@ nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-wid
   <nav class="tabs" role="tablist" aria-label="메뉴"><div class="in">
     <button role="tab" aria-selected="true" data-s="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>일정</button>
     <button role="tab" aria-selected="false" data-s="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 19c6 0 12-5 13-14C10 6 5 11 5 19z"/><path d="M5 19c3-4 6-6 9-8"/></svg>탐구</button>
-    <button role="tab" aria-selected="false" data-s="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>채팅<span class="dot" id="cdot" hidden></span></button>
+    <button role="tab" aria-selected="false" data-s="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>채팅<span class="nb" id="cdot" hidden aria-label="새 채팅">N</span></button>
     <button role="tab" aria-selected="false" data-s="quiz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>게임</button>
-    <button role="tab" aria-selected="false" data-s="news"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></svg>공지<span class="dot" id="ndot" hidden></span></button>
+    <button role="tab" aria-selected="false" data-s="news"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></svg>공지<span class="nb" id="ndot" hidden aria-label="새 공지">N</span></button>
   </div></nav>
 
   <div class="cbar" id="cbar" hidden><div class="in"><label for="cin" style="position:absolute;left:-9999px">메시지</label><input id="cin" maxlength="200" placeholder="메시지 보내기" autocomplete="off"><button class="btn" id="csend">보내기</button></div></div>
@@ -954,7 +957,7 @@ async function loadPosts(){const d=await q(sb.from('gg_posts').select('id,progra
   posts.length=0;d.forEach(p=>posts.push({id:p.id,pg:p.program,k:p.kind,sid:p.student_id,n:p.author,tm:p.is_teacher?0:(p.team>0?p.team:-1),x:p.body,img:p.img_url,dk:p.exhibit,t:hm(p.created_at)}))}
 async function loadRx(){const d=await q(sb.from('gg_reactions').select('post_id,student_id,kind').eq('active',true));rx={};myRx=new Set();d.forEach(r=>{const o=rx[r.post_id]||(rx[r.post_id]={});o[r.kind]=(o[r.kind]||0)+1;if(me&&me.role==='stu'&&r.student_id===me.id)myRx.add(r.post_id+'|'+r.kind)})}
 async function loadChat(){const d=await q(sb.from('gg_chat').select('id,channel,student_id,author,team,is_teacher,body,deleted,created_at').order('created_at',{ascending:false}).limit(400));const before=chatRows.length?chatRows[chatRows.length-1].id:0;chatRows=d.reverse();const last=chatRows.length?chatRows[chatRows.length-1]:null;
-  if(last&&last.id!==before&&before&&$('#s-chat').hidden&&!(me&&me.role==='stu'&&last.student_id===me.id))$('#cdot').hidden=false}
+  }
 async function loadNotices(){const d=await q(sb.from('gg_notices').select('id,cat,title,body,popup,edited,created_at').eq('hidden',false).order('created_at',{ascending:false}));
   notices.length=0;d.forEach(n=>notices.push({id:n.id,cat:n.cat,h:n.title,b:n.body,popup:n.popup,edited:n.edited,t:hm(n.created_at),at:n.created_at}))}
 async function loadAcks(){const d=await q(sb.from('gg_notice_acks').select('notice_id,student_id'));acks={};myAcks=new Set();d.forEach(a=>{(acks[a.notice_id]||(acks[a.notice_id]=new Set())).add(a.student_id);if(me&&me.role==='stu'&&a.student_id===me.id)myAcks.add(a.notice_id)})}
@@ -967,8 +970,8 @@ const TB={
  gg_students:[loadStudents,()=>{if(me){updTkUI();if(!$('#tpTeams').hidden&&!(document.activeElement&&document.activeElement.closest('#taList')))renderAssign();updStar();if(!$('#tpStar').hidden)renderSP();renderNotices();if(!$('#gMeteor').hidden)mRankRender(mg&&mg.run?mg.score:null)}}],
  gg_posts:[loadPosts,()=>{if(me)renderLog()}],
  gg_reactions:[loadRx,()=>{if(me){renderFeed();renderDash()}}],
- gg_chat:[loadChat,()=>{if(me&&!$('#s-chat').hidden)renderChat()}],
- gg_notices:[loadNotices,()=>{if(me){renderNotices();checkPopups()}}],
+ gg_chat:[loadChat,()=>{if(me&&!$('#s-chat').hidden)renderChat();updNew()}],
+ gg_notices:[loadNotices,()=>{if(me){renderNotices();checkPopups();updNew()}}],
  gg_notice_acks:[loadAcks,()=>{if(me){renderNotices();checkPopups()}}],
  gg_quiz:[loadQuiz,()=>{if(me){if(answered!==false)quizStart();renderQAdmin()}}],
  gg_bell:[loadBell,()=>{if(me)renderBoard()}],
@@ -1269,13 +1272,13 @@ $('#nsend').onclick=async()=>{
     toast(editing?'공지를 고쳤어요':pop?'공지를 보냈어요. 학생 화면에 팝업으로 떠요':'공지를 올렸어요');resetComposer();await loadNotices();renderNotices();burst(null,null,30)}
   catch(e){fail(e)}finally{delete btn.dataset.busy}
 };
-function showModal(n){$('#mtitle').textContent=n.h;$('#mbody').innerHTML=bodyHTML(n.b);document.querySelector('.mbox .bell').textContent='선생님 '+CATS[n.cat];$('#modal').hidden=false;$('#ndot').hidden=false;$('#mok').focus()}
-function closeModal(){$('#modal').hidden=true;$('#ndot').hidden=true;if(pending){const n=pending;pending=null;myAcks.add(n.id);if(me&&me.role==='stu')rpc('gg_notice_ack',{...who(),p_id:n.id}).catch(e=>console.warn(e))}setTimeout(checkPopups,400)}
+function showModal(n){$('#mtitle').textContent=n.h;$('#mbody').innerHTML=bodyHTML(n.b);document.querySelector('.mbox .bell').textContent='선생님 '+CATS[n.cat];$('#modal').hidden=false;$('#mok').focus()}
+function closeModal(){$('#modal').hidden=true;if(pending){const n=pending;pending=null;myAcks.add(n.id);if(me&&me.role==='stu')rpc('gg_notice_ack',{...who(),p_id:n.id}).catch(e=>console.warn(e))}setTimeout(checkPopups,400)}
 $('#mx').onclick=closeModal;$('#mok').onclick=closeModal;
 
 /* ---------- 탭·역할·세계 ---------- */
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.s));
-function show(s){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.s===s));document.querySelectorAll('.screen').forEach(x=>x.hidden=x.id!=='s-'+s);$('#cbar').hidden=s!=='chat';if(s!=='quiz'&&typeof mPause==='function')mPause();window.scrollTo(0,0);if(s==='chat'){$('#cdot').hidden=true;renderChat()}}
+function show(s){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.s===s));document.querySelectorAll('.screen').forEach(x=>x.hidden=x.id!=='s-'+s);$('#cbar').hidden=s!=='chat';if(s!=='quiz'&&typeof mPause==='function')mPause();window.scrollTo(0,0);if(s==='chat'){renderChat()}updNew()}
 async function enter(u){me=u;role=u.role;starLast=null;app.dataset.role=role;
   $('#login').hidden=true;$('#who').textContent=role==='tea'?u.name+' 선생님':role==='guest'?'캠프 날 입장할 수 있어요':`${u.room?u.room+'호 · ':''}${u.grade}학년 ${u.name}`;$('#logout').textContent=role==='guest'?'입장 화면':'나가기';$('#teaPane').hidden=role!=='tea';
   try{await loadAll()}catch(e){console.warn(e)}subscribe();
@@ -1327,6 +1330,20 @@ function ddayUI(){const el=$('#ldday');if(!el)return;const now=Date.now();if(now
   else{$('#lddk').textContent='GROW & GLOW';$('#lddd').textContent='캠프 중 ✨';$('#lddc').innerHTML='지금 별새꽃돌과학관에 있어요'}}
 setInterval(()=>{if(!$('#login').hidden){const was=$('#lclosed').hidden;lmodeUI();if(was===false&&isOpen())toast('학생 입장이 열렸어요! 🎉')}},30000);
 $('#llook').onclick=()=>enter({role:'guest',name:'둘러보기'});
+
+/* ---------- 새 채팅·공지 N 표시 ---------- */
+function seenKey(){return 'gg-seen-'+uid(me)}
+function getSeen(){try{return JSON.parse(localStorage.getItem(seenKey())||'{}')}catch(e){return {}}}
+function putSeen(o){try{localStorage.setItem(seenKey(),JSON.stringify(o))}catch(e){}}
+function newestChat(){if(!me)return 0;const ok=chans();let m=0;chatRows.forEach(r=>{if(r.deleted)return;if(!ok.includes(r.channel))return;if(me.role==='stu'&&r.student_id===me.id)return;if(me.role==='tea'&&r.is_teacher&&r.author===tname())return;if(r.id>m)m=r.id});return m}
+function newestNotice(){let m=0;notices.forEach(n=>{if(n.id>m)m=n.id});return m}
+function updNew(){if(!me||me.role==='guest'){$('#cdot').hidden=true;$('#ndot').hidden=true;return}
+  const sv=getSeen(),c=newestChat(),n=newestNotice(),onChat=!$('#s-chat').hidden&&!document.hidden,onNews=!$('#s-news').hidden&&!document.hidden;let ch=false;
+  if(onChat&&c>(sv.chat||0)){sv.chat=c;ch=true}
+  if(onNews&&n>(sv.news||0)){sv.news=n;ch=true}
+  if(ch)putSeen(sv);
+  $('#cdot').hidden=!(c>(sv.chat||0));$('#ndot').hidden=!(n>(sv.news||0))}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(updNew,300)});
 /* ---------- 로그인 ---------- */
 let lmode='stu',lg='';
 fillTeamSelect();
