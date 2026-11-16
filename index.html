@@ -485,6 +485,27 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
 .lsFlow span{animation:rise .5s both}.lsFlow span:nth-child(n){animation-delay:calc(var(--i,0)*60ms)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:860px){.boothGrid{grid-template-columns:minmax(0,1fr)}.chatBox{height:68vh}}
+/* ===== 대시보드 ===== */
+.dashTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.dashTime{font-size:12px;color:var(--mute);margin-top:2px}
+.dStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.dStat{background:linear-gradient(135deg,rgba(63,214,232,.16),rgba(127,243,225,.06));border:1.5px solid var(--line);border-radius:16px;padding:12px 14px}
+.dStat b{display:block;font-family:var(--disp);font-size:34px;color:#fff;line-height:1.1}.dStat span{font-size:12px;color:#9fd8e8;font-weight:900}.dStat small{font-size:12px;color:var(--mute);margin-left:4px}
+.dGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.bar{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;font-weight:900;color:#0d3550}
+.bar .lb{width:62px;flex:none}.bar .tr{flex:1;height:18px;background:#e3f4fa;border-radius:9px;overflow:hidden}.bar .tr i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#3fd6e8,#f3c35a);transition:width .6s}
+.bar .v{width:58px;text-align:right;flex:none;color:#3f6f86}
+.dTeams{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:10px}
+.dTeam{border:2px solid #d4ebf3;border-radius:14px;padding:10px 12px}
+.dTeam h5{font-size:16px;font-weight:900;color:#0d4a66;display:flex;justify-content:space-between}
+.dTeam h5 span{font-size:12px;color:#3f6f86}
+.pl{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:6px;align-items:center;margin-top:7px;font-size:13px}
+.pl .on{width:9px;height:9px;border-radius:50%;background:#c4d4dc}.pl .on.y{background:#2bbf7f;box-shadow:0 0 6px #2bbf7f}
+.pl .nm{font-weight:900;color:#0d3550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pl .nm small{font-weight:700;color:#3f6f86;margin-left:4px}
+.pl .sc{font-weight:900;color:#b07a00}
+.steps{grid-column:2/4;display:flex;gap:3px}.steps i{flex:1;height:6px;border-radius:3px;background:#e3eef3}.steps i.y{background:linear-gradient(90deg,#3fd6e8,#7ff3e1)}.steps i.w{background:#f3c35a}
+.dMsg{font-size:13px;padding:6px 0;border-bottom:1px solid #e3eef3;color:#244f66}.dMsg b{color:#0d3550}
+@media (max-width:860px){.dGrid{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -519,6 +540,7 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
     <button data-tab="t3"><small>3차시</small>관측 기록 남기기</button>
     <button data-tab="t4"><small>함께</small>💬 채팅<span class="dot" id="chatDot"></span></button>
     <button data-tab="t5"><small>추억</small>📸 네컷 사진관</button>
+    <button data-tab="t7" class="teaOnly" style="display:none"><small>선생님</small>📊 대시보드</button>
     <button data-tab="t6" class="teaOnly" style="display:none"><small>선생님</small>🗂️ 사진함<span class="dot" id="inboxDot"></span></button>
   </div>
   <div class="tabBody scroll">
@@ -585,6 +607,16 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
                 </div>
                 <div class="boothPrev"><canvas id="bCv"></canvas></div>
               </div>
+            </div>
+            <div class="tpane" id="t7">
+              <div class="dashTop"><div><div class="lsTag">📊 교사용 대시보드 · 10초마다 자동 새로고침</div><div class="dashTime" id="dTime">불러오는 중…</div></div><button class="pill sm" id="dRefresh"><span class="tri"></span>새로고침</button></div>
+              <div class="dStats" id="dStats"></div>
+              <div class="dGrid">
+                <div class="mCard"><h4 style="font-size:20px">🏆 조별 점수</h4><div id="dRank"></div></div>
+                <div class="mCard"><h4 style="font-size:20px">🧭 미션 단계별 인원</h4><div id="dFunnel"></div></div>
+              </div>
+              <div class="mCard" style="margin-top:12px"><h4 style="font-size:20px">👥 조별 현황</h4><div class="srcNote" style="margin:4px 0 0">초록 점 = 지금 접속 중(2분 이내). 막대 = 1차시 미션 진행도.</div><div class="dTeams" id="dTeams"></div></div>
+              <div class="mCard" style="margin-top:12px"><h4 style="font-size:20px">💬 최근 채팅</h4><div id="dChat"></div></div>
             </div>
             <div class="tpane" id="t6">
               <div class="lsTag" style="margin:4px 0 6px">🗂️ 사진함 · 학생들이 보낸 네컷 사진 (선생님 전용)</div>
@@ -2017,8 +2049,8 @@ function chipsUI(){
   $$('#bLayouts button').forEach(b=>b.onclick=()=>{BT.layout=b.dataset.k;renderBooth()});
 }
 function bGeom(){
-  if(BT.layout==='strip'){const W=600,H=1800,m=34,top=150,gap=22,sh=(H-top-250-gap*3)/4;return{W,H,slots:[0,1,2,3].map(i=>[m,top+i*(sh+gap),W-m*2,sh]),top,label:H-232}}
-  const W=1200,H=1800,m=50,top=190,gap=26,sw=(W-m*2-gap)/2,sh=(H-top-300-gap)/2;return{W,H,slots:[0,1,2,3].map(i=>[m+(i%2)*(sw+gap),top+Math.floor(i/2)*(sh+gap),sw,sh]),top,label:H-280};
+  if(BT.layout==='strip'){const W=600,H=1800,m=34,top=250,gap=22,sh=(H-top-250-gap*3)/4;return{W,H,slots:[0,1,2,3].map(i=>[m,top+i*(sh+gap),W-m*2,sh]),top,label:H-232}}
+  const W=1200,H=1800,m=50,top=300,gap=26,sw=(W-m*2-gap)/2,sh=(H-top-300-gap)/2;return{W,H,slots:[0,1,2,3].map(i=>[m+(i%2)*(sw+gap),top+Math.floor(i/2)*(sh+gap),sw,sh]),top,label:H-280};
 }
 function drawFrameBg(x,G){
   const {W,H}=G, r=rng(77);
@@ -2030,8 +2062,10 @@ function drawFrameBg(x,G){
   if(BT.frame==='saturn'){const cx=W*.86,cy=G.label+(H-G.label)*.42,R=W*(BT.layout==='strip'?.055:.035);x.fillStyle='#f3c35a';x.beginPath();x.arc(cx,cy,R,0,7);x.fill();x.strokeStyle='#ffe3a1';x.lineWidth=R*.18;x.beginPath();x.ellipse(cx,cy,R*1.9,R*.5,-.35,0,7);x.stroke()}
   if(BT.frame==='han'){const base=H;let bx=0;const rr=rng(3);while(bx<W){const bw=30+rr()*50,bh=40+rr()*110;x.fillStyle='#050916';x.fillRect(bx,base-bh,bw,bh);for(let wy=base-bh+8;wy<base-6;wy+=14)for(let wx=bx+6;wx<bx+bw-6;wx+=11){x.fillStyle=rr()>.6?'rgba(255,207,107,.85)':'#141a38';x.fillRect(wx,wy,5,6)}bx+=bw+3}}
   // 제목
-  x.textAlign='center';x.fillStyle=pal[2];x.font=`700 ${Math.round(W*.058)}px ${FD}`;x.fillText('HANGANG STARLIGHT',W/2,G.top*.48);
-  x.fillStyle='#fff';x.font=`700 ${Math.round(W*.04)}px ${FB}`;x.fillText('한강중 별자리 탐험대 ✦ 별이 빛나는 밤에',W/2,G.top*.78);
+  const st=BT.layout==='strip';x.textAlign='center';x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=12;
+  x.fillStyle=pal[2];x.font=`700 ${Math.round(W*(st?.034:.024))}px ${FD}`;x.fillText('HANGANG STARLIGHT ✦ 별자리 탐험대',W/2,G.top*.2);
+  x.fillStyle='#fff';x.font=`700 ${Math.round(W*(st?.105:.07))}px ${FD}`;x.fillText('한강중학교',W/2,G.top*.5);
+  x.fillStyle=pal[2];x.font=`700 ${Math.round(W*(st?.088:.062))}px ${FD}`;x.fillText('별이 빛나는 밤에',W/2,G.top*.82);x.shadowBlur=0;
 }
 function renderBooth(){
   chipsUI(); const G=bGeom(), cv=$('#bCv'); cv.width=G.W; cv.height=G.H; const x=cv.getContext('2d');
@@ -2100,6 +2134,28 @@ function dl(url,name){const a=document.createElement('a');a.href=url;a.download=
 $('#pRefresh').onclick=()=>{loadInbox();beep('x')};
 $$('#pFilter button').forEach(b=>b.onclick=()=>{pf=b.dataset.pf;$$('#pFilter button').forEach(x=>x.classList.toggle('on',x===b));renderInbox()});
 
+
+/* =========================================================
+   📡 진행 상황 보내기 (교사 대시보드용)
+   ========================================================= */
+const STAGES=['입장','프롤로그','단서 수집','빛 센서','단서 분석','추리 보드','소리 센서','검거 성공'];
+let PR={no:0,stage:'입장',caseT:'',solved:0,recs:0,best:0};
+try{Object.assign(PR,JSON.parse(localStorage.getItem('hsPR')||'{}'))}catch(e){}
+let lastPing=0;
+function placeName(){const on=document.querySelector('.screen.on');if(!on)return'';if(on.id==='hub')return{t1:'1차시 탭',t2:'2차시 밤하늘',t3:'3차시 관측 기록',t4:'채팅',t5:'네컷 사진관',t6:'사진함',t7:'대시보드'}[curTab]||'수업 목록';return{title:'1차시 미션',brief:'1차시 미션',s1:'1차시 미션',lm:'1차시 미션',s2:'1차시 미션',s3:'1차시 미션',sm:'1차시 미션',win:'1차시 미션',teacher:'사건 만들기',login:'로그인'}[on.id]||''}
+function ping(no,force){
+  if(no!=null){PR.no=no;PR.stage=STAGES[no]}
+  if(G){PR.caseT=G.cfg.t;PR.best=Math.max(PR.best||0,G.score||0)}
+  try{localStorage.setItem('hsPR',JSON.stringify(PR))}catch(e){}
+  if(!SB||!ME.name||ME.team==='T'||!(+ME.team>=1))return;
+  if(!force&&Date.now()-lastPing<4000)return; lastPing=Date.now();
+  SB.rpc('hs_ping',{p_team:+ME.team,p_name:ME.name.slice(0,12),p_stage_no:PR.no,p_stage:PR.stage,p_place:placeName(),p_case:PR.caseT||null,p_score:PR.best||0,p_solved:PR.solved||0,p_recs:PR.recs||0}).then(()=>{},()=>{});
+}
+setInterval(()=>{if(!document.hidden)ping(null,true)},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)ping(null,true)});
+// 단계마다 알리기
+const _wrap=(name,no,extra)=>{const f=window[name];if(typeof f!=='function')return;window[name]=function(...a){const r=f.apply(this,a);if(extra)extra();ping(no,true);return r}};
+
 /* =========================================================
    ✨ 반짝반짝 효과
    ========================================================= */
@@ -2129,6 +2185,52 @@ requestAnimationFrame(fxLoop);
 $$('.lsFlow span').forEach((s,i)=>s.style.setProperty('--i',i));
 // 미션 성공 순간에도 반짝!
 const _toast=toast; toast=function(h,ms){_toast(h,ms); if(/성공|완성|보냈어요|확보|발견|ON/.test(h))spark(innerWidth/2,innerHeight*.25,26)};
+
+
+// --- 대시보드용 진행 알림 연결
+startCase=(f=>function(c){const r=f(c);ping(1,true);return r})(startCase);
+startS1=(f=>function(){const r=f();ping(2,true);return r})(startS1);
+startLight=(f=>function(){const r=f();ping(3,true);return r})(startLight);
+goS2=(f=>function(){const r=f();ping(4,true);return r})(goS2);
+goS3=(f=>function(){const r=f();ping(5,true);return r})(goS3);
+startSound=(f=>function(){const r=f();ping(6,true);return r})(startSound);
+win=(f=>function(){const r=f();PR.solved=(PR.solved||0)+1;ping(7,true);return r})(win);
+setTab=(f=>function(t){const r=f(t);ping(null);return r})(setTab);
+$$('#tabs button').forEach(b=>b.onclick=()=>{beep('x');setTab(b.dataset.tab)});
+(()=>{const b=$('#rSave');const old=b.onclick;b.onclick=function(e){const n=recs.length;old.call(this,e);setTimeout(()=>{if(recs.length>n){PR.recs=(PR.recs||0)+1;ping(null,true)}},800)}})();
+(()=>{const old=enterHub;enterHub=function(t){const r=old(t);ping(null,true);if(isT()&&!t)setTab('t7');return r}})();
+
+/* =========================================================
+   📊 교사용 대시보드
+   ========================================================= */
+let dashTimer=0;
+async function loadDash(){
+  if(!isT()||!SB){$('#dTeams').innerHTML='<div class="chatEmpty">선생님으로 로그인해야 볼 수 있어요.</div>';return}
+  const {data,error}=await SB.rpc('hs_dash',{p_code:TCODE}); if(error){$('#dTime').textContent='불러오지 못했어요 · 잠시 뒤 다시 시도해요';return}
+  renderDash(data); clearInterval(dashTimer); dashTimer=setInterval(()=>{if(curTab==='t7'&&$('#hub').classList.contains('on')&&!document.hidden)loadDash()},10000);
+}
+function renderDash(d){
+  const now=new Date(d.now).getTime(), P=d.players||[], online=p=>now-new Date(p.updated_at).getTime()<120000;
+  $('#dTime').textContent=`마지막 새로고침 ${hm(d.now)} · 입장한 학생 ${P.length}명`;
+  const on=P.filter(online).length, solvedP=P.filter(p=>p.solved>0).length;
+  $('#dStats').innerHTML=[['지금 접속 중',on,`/ ${P.length}명`],['사건 해결한 학생',solvedP,`/ ${P.length}명`],['새 네컷 사진',d.inbox_new,`/ ${d.inbox_total}장`],['채팅',d.chat_total,'개'],['관측 기록',P.reduce((a,p)=>a+p.recs,0),'개']]
+    .map(([k,v,u])=>`<div class="dStat"><span>${k}</span><b>${v}<small>${u}</small></b></div>`).join('');
+  // 조별 점수
+  const teams={};P.forEach(p=>{(teams[p.team]=teams[p.team]||[]).push(p)});
+  const tScore=Object.entries(teams).map(([t,a])=>[t,a.reduce((s,p)=>s+p.score,0),a.length]).sort((a,b)=>b[1]-a[1]);
+  const mx=Math.max(1,...tScore.map(x=>x[1]));
+  $('#dRank').innerHTML=tScore.length?tScore.map(([t,s,n],i)=>`<div class="bar"><span class="lb">${i<3?['🥇','🥈','🥉'][i]:''} ${t}조</span><span class="tr"><i style="width:${s/mx*100}%"></i></span><span class="v">${s.toLocaleString()}점</span></div>`).join(''):'<div class="srcNote">아직 입장한 조가 없어요.</div>';
+  // 단계별 인원
+  const cnt=STAGES.map((_,i)=>P.filter(p=>p.stage_no===i).length), mc=Math.max(1,...cnt);
+  $('#dFunnel').innerHTML=STAGES.map((s,i)=>`<div class="bar"><span class="lb" style="width:74px">${s}</span><span class="tr"><i style="width:${cnt[i]/mc*100}%"></i></span><span class="v">${cnt[i]}명</span></div>`).join('');
+  // 조별 현황
+  $('#dTeams').innerHTML=Object.keys(teams).length?Object.entries(teams).sort((a,b)=>a[0]-b[0]).map(([t,a])=>`<div class="dTeam"><h5>${t}조 <span>${a.filter(online).length}/${a.length}명 접속 · 💬 ${(d.chat_rooms||{})['t'+t]||0}</span></h5>${a.map(p=>`<div class="pl"><i class="on ${online(p)?'y':''}"></i><span class="nm">${esc(p.name)}<small>${esc(p.place||'')}${p.case_t?' · '+esc(p.case_t):''}</small></span><span class="sc">${p.score.toLocaleString()}점${p.solved?' ⭐'+p.solved:''}</span><span class="steps">${STAGES.map((_,i)=>`<i class="${i<p.stage_no?'y':i===p.stage_no?'w':''}" title="${STAGES[i]}"></i>`).join('')}</span></div>`).join('')}</div>`).join('')
+    :'<div class="chatEmpty">학생이 로그인하면 여기에 조별로 나타나요.</div>';
+  $('#dChat').innerHTML=(d.recent_chat||[]).map(m=>`<div class="dMsg"><b>${m.is_teacher?'선생님':m.team+'조 '+esc(m.name)}</b> <span style="color:#3f8aa6">[${m.room==='all'?'전체방':m.room.slice(1)+'조 방'}] ${hm(m.created_at)}</span><br>${esc(m.body)}</div>`).join('')||'<div class="srcNote">아직 채팅이 없어요.</div>';
+}
+$('#dRefresh').onclick=()=>{loadDash();beep('x')};
+setTab=(f=>function(t){const r=f(t);if(t==='t7')loadDash();return r})(setTab);
+$$('#tabs button').forEach(b=>b.onclick=()=>{beep('x');setTab(b.dataset.tab)});
 
 /* =========================================================
    시작
