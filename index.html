@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>별빛 단서를 찾아라 · HANGANG STARLIGHT</title>
+<title>한강중 별자리 탐험대 · HANGANG STARLIGHT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&family=Orbit&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Jua&family=Gowun+Dodum&family=Do+Hyeon&family=Nanum+Gothic:wght@400;700;800&family=Gaegu:wght@400;700&family=Gugi&display=swap" rel="stylesheet">
@@ -956,7 +956,7 @@ $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()})
 
 /* 배경 격자 (전시관 스타일의 휘어진 격자 + 별) */
 function drawGrid(){
-  const svg=$('#bgGrid'); const W=innerWidth,H=innerHeight; svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const svg=$('#bgGrid'); const W=innerWidth,H=innerHeight; if(W<10||H<10){setTimeout(drawGrid,300);return} svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   let h=`<defs><radialGradient id="bgr" cx="30%" cy="20%" r="90%"><stop offset="0" stop-color="#0c1d42"/><stop offset=".55" stop-color="#071230"/><stop offset="1" stop-color="#020611"/></radialGradient></defs><rect width="${W}" height="${H}" fill="url(#bgr)"/>`;
   const r=rng(7);
   for(let i=0;i<160;i++){h+=`<circle cx="${r()*W}" cy="${r()*H}" r="${(r()*1.2+.3).toFixed(2)}" fill="#fff" opacity="${(r()*.6+.2).toFixed(2)}"/>`}
@@ -1090,7 +1090,7 @@ $$('[data-help]').forEach(b=>b.onclick=()=>help(b.dataset.help,true));
    STAGE 1 — 별빛 스캐너
    ========================================================= */
 let cv,ctx,W=0,H=0,DPR=1,items=[],scan={x:-999,y:-999,on:false},curFlt='vis',raf=0,timer=0,timeLeft=60,sky=null,coachHidden=false;
-function sizeSky(){cv=$('#sky');DPR=Math.min(2,devicePixelRatio||1);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*DPR;cv.height=H*DPR;ctx=cv.getContext('2d');ctx.setTransform(DPR,0,0,DPR,0,0);buildSky(); layoutItems();}
+function sizeSky(){cv=$('#sky');DPR=Math.min(2,devicePixelRatio||1);W=cv.clientWidth;H=cv.clientHeight;if(W<2||H<2)return;cv.width=W*DPR;cv.height=H*DPR;ctx=cv.getContext('2d');ctx.setTransform(DPR,0,0,DPR,0,0);buildSky(); layoutItems();}
 function buildSky(){
   // offscreen sky with Han river skyline
   const off=document.createElement('canvas');off.width=W*DPR;off.height=H*DPR;const c=off.getContext('2d');c.setTransform(DPR,0,0,DPR,0,0);
@@ -1142,7 +1142,7 @@ function renderSlots(){
 function updS1(){const m=myClues();const n=m.filter(c=>G.found.has(c.k)).length;$('#s1Count').textContent=n+'/'+m.length}
 function loop(){
   raf=requestAnimationFrame(loop);
-  if(!ctx)return; const t=performance.now()/1000;
+  if(!ctx||!sky||!sky.width||!sky.height||W<2||H<2){if($('#s1').classList.contains('on')&&$('#sky').clientWidth>1)sizeSky();return} const t=performance.now()/1000;
   ctx.clearRect(0,0,W,H); ctx.drawImage(sky,0,0,W,H);
   // darkness + scanner cone
   const fl=FILTERS.find(f=>f.k===curFlt);
