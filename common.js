@@ -1,7 +1,7 @@
 /* 시드핸즈 — 공통 설정, 서버 연결, 화면 부품 */
 const SH = {};
 SH.SUPABASE_URL = 'https://hcvaaxxwqqrbpnloyjzr.supabase.co';
-SH.DEFAULT_CODE = 'SR2026'; /* 코드 없이 바로 들어가는 기본 학교 (송례중학교) */
+SH.DEFAULT_CODE = ''; /* 전국용: 기본 학교 없음 (모든 학교가 코드로 들어와요) */
 SH.ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmFheHh3cXFyYnBubG95anpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMjI1MTgsImV4cCI6MjEwMTU5ODUxOH0.8TKT8aExXiyazDY313G9BHTvZCSu2yrTdxlgwxpNCB8';
 
 /* ───────── 작은 도구 ───────── */
@@ -424,7 +424,7 @@ SH._demoDB = function () {
       const p = picks[i];
       db.schools[0].acc_seq++;
       db.accs.push({ id: 'a' + i, school_id: 'sc1', student_id: id, acc_no: `SR2026-2026-${String(db.schools[0].acc_seq).padStart(3, '0')}`, status: sts[i],
-        teacher_note: sts[i] === 'rejected' ? '열매가 덜 익었어요. 다음 탐사 때 다 익은 열매로 다시 받아 볼까요?' : null,
+        teacher_note: sts[i] === 'rejected' ? '열매가 덜 익었어요. 다음 채종 때 다 익은 열매로 다시 받아 볼까요?' : null,
         data: { date: SH.dayOf(now - (i + 1) * 864e5 * 3), place: '대모산 불국사 가는 길', country: '대한민국', address: '서울특별시 강남구 일원동 대모산', identifier: n + ', 담당 교사', lat: 37.4752 + 0.0012 * i, lng: 127.0742 + 0.0015 * (i % 4), acc: 8, alt: 120 + i * 18, plant: p[0], sci: p[1], family: p[2], idConf: SH.ACC.idConf[i % 2], origin: SH.ACC.origin[0], habitat: SH.ACC.habitat[i % 4], form: p[3], popSize: SH.ACC.popSize[i % 2 ? 3 : 2], plantsSampled: String(10 + i * 4), share: SH.ACC.share[i === 6 ? 2 : 0], fruit: p[4], ripe: SH.ACC.ripe[sts[i] === 'rejected' ? 2 : 0], fruitState: SH.ACC.fruitState[0], seedCount: String(120 + i * 85), seedNote: '', health: SH.ACC.health[0], drying: true, team: '' },
         photo_plant: null, photo_fruit: null, photo_seed: null, sketch: null, created_at: iso(now - (i + 1) * 864e5 * 3), updated_at: iso(now - i * 36e5) });
       const cols = ['#6E9A5B', '#C76A8C', '#9A6B45', '#7262A8', '#D9982B', '#2F5D7C', '#22543F'], ms = ['leaf', 'flower', 'bark', 'hair', 'leaf', 'flower', 'leaf'];

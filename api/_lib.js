@@ -63,7 +63,7 @@ async function chat(provider, key, system, content, maxTokens) {
         const j = await r.json(); text = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
       } else {
         r = await fetch(T.url, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model: m, max_tokens: maxTokens, temperature: 0.2, messages: [{ role: 'system', content: system }, { role: 'user', content }] }) });
+          body: JSON.stringify({ model: m, max_tokens: maxTokens, temperature: 0.2, ...(provider === 'google' ? { reasoning_effort: 'low' } : {}), messages: [{ role: 'system', content: system }, { role: 'user', content }] }) });
         if (!r.ok) { lastErr = `${m} ${r.status} ${(await r.text()).slice(0, 300)}`; continue; }
         const j = await r.json(); text = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
       }
@@ -74,6 +74,7 @@ async function chat(provider, key, system, content, maxTokens) {
   const err = new Error(lastErr); err.ai = true; throw err;
 }
 
-function body(req) { return typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {}); }
+function body(req) { try { return typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {}); } catch { return null; } }
+const SRV = () => process.env.SH_SRV_SECRET || '';
 
-module.exports = { rpc, encrypt, decrypt, chat, body, TARGETS };
+module.exports = { rpc, encrypt, decrypt, chat, body, TARGETS, SRV };

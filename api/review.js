@@ -1,6 +1,6 @@
 // 시드핸즈 AI 검토: 식물 사진 + 씨앗 사진 + 학생이 적은 이름 → 참고 의견
 // 학교 키가 있으면 그 키로, 없으면 운영국 공용(Vercel AI Gateway, OIDC)으로 호출합니다.
-const { rpc, decrypt, chat, body } = require('./_lib');
+const { rpc, decrypt, chat, body, SRV } = require('./_lib');
 
 const SYSTEM = `너는 한국 자생식물 종자 채집을 돕는 식물분류 전문가야. 초·중학생이 학교 시드핸즈 활동에서 채종한 씨앗 기록을 미리 검토해.
 학생이 적은 식물 이름이 사진과 맞는지, 씨앗이 잘 익었는지, 사진이 동정에 충분한지 살펴봐.
@@ -35,11 +35,12 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
   const b = body(req);
+  if (!b) return res.status(400).json({ ok: false, error: '요청 형식이 올바르지 않아요.' });
   if (!b.token) return res.status(400).json({ ok: false, error: '로그인이 필요해요.' });
   if (!okImg(b.plantPhoto) || !okImg(b.seedPhoto)) return res.status(400).json({ ok: false, error: '식물 사진과 씨앗 사진이 둘 다 있어야 AI 검토를 받을 수 있어요.' });
 
   let q;
-  try { q = await rpc('seedhands_ai_quota', { p_token: b.token }); }
+  try { q = await rpc('seedhands_ai_quota2', { p_secret: SRV(), p_token: b.token }); }
   catch (e) { console.error(e.message); return res.status(502).json({ ok: false, error: '서버 확인 중 문제가 생겼어요.' }); }
   if (!q.ok) return res.status(q.error === 'session' ? 401 : 429).json({ ok: false, off: !!q.off, error: q.error === 'session' ? '다시 로그인해 주세요.' : q.error });
 
@@ -79,7 +80,7 @@ module.exports = async (req, res) => {
     claimed: { plant: S(b.plant, 60), sci: S(b.sci, 100) }, provider,
   };
   let id = null;
-  try { const lg = await rpc('seedhands_ai_log', { p_token: b.token, p_plant: b.plant || '', p_sci: b.sci || '', p_model: out.model, p_result: clean }); id = lg.id || null; }
+  try { const lg = await rpc('seedhands_ai_log2', { p_secret: SRV(), p_token: b.token, p_plant: b.plant || '', p_sci: b.sci || '', p_model: out.model, p_result: clean }); id = lg.id || null; }
   catch (e) { console.error('log fail', e.message); }
   return res.status(200).json({ ok: true, id, model: out.model, result: clean });
 };

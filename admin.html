@@ -43,7 +43,7 @@
       <div class="seg" style="margin-bottom:22px"><button data-g="login" class="on">로그인</button><button data-g="reg">새 학교 등록</button></div>
       <form id="loginF" autocomplete="on">
         <h2>학교 관리자 로그인</h2>
-        <label class="field"><span class="lbl">학교 코드</span><input class="inp" id="gCode" autocapitalize="characters" placeholder="예: 송례중2026" style="font-weight:700" required></label>
+        <label class="field"><span class="lbl">학교 코드</span><input class="inp" id="gCode" autocapitalize="characters" placeholder="예: 한빛초2026" style="font-weight:700" required></label>
         <label class="field"><span class="lbl">관리자 비밀번호</span><input class="inp" id="gPw" type="password" autocomplete="current-password" required></label>
         <div class="err" id="gErr" role="alert"></div>
         <button class="btn block">들어가기</button>
@@ -52,9 +52,9 @@
       </form>
       <form id="regF" class="hidden" autocomplete="off">
         <h2>새 학교 등록</h2>
-        <label class="field"><span class="lbl">학교 이름</span><input class="inp" id="rName" placeholder="예: 송례중학교" required></label>
+        <label class="field"><span class="lbl">학교 이름</span><input class="inp" id="rName" placeholder="예: 한빛초등학교" required></label>
         <label class="field"><span class="lbl">지역</span><select class="inp" id="rRegion"></select></label>
-        <label class="field"><span class="lbl">주로 탐사하는 산·숲 이름</span><input class="inp" id="rSite" placeholder="예: 대모산"></label>
+        <label class="field"><span class="lbl">주요 채종 지역</span><input class="inp" id="rSite" placeholder="예: 서울특별시 송파구 장지동"><span class="hint">시·군·구·동까지 적어요. 산·숲이 아니어도 돼요 (학교 숲, 공원, 하천 둔치 등).</span></label>
         <label class="field"><span class="lbl">관리자 비밀번호</span><input class="inp" id="rPw" type="password" autocomplete="new-password" minlength="6" required><span class="hint">6자 이상. 함께 관리할 선생님과 공유해요.</span></label>
         <label class="field"><span class="lbl">담당 선생님 연락처 <span class="muted">(선택)</span></span><input class="inp" id="rContact" placeholder="이메일 또는 학교 전화"></label>
         <div class="err" id="rErr" role="alert"></div>
@@ -132,7 +132,7 @@
 
     <section data-view="schools" class="hidden">
       <div class="panel"><h2>참여 학교 <small id="schN"></small></h2>
-        <div class="tbl"><table><thead><tr><th>학교</th><th>지역</th><th>탐사지</th><th>코드</th><th class="num">학생</th><th class="num">채종 기록</th><th class="num">시드볼트 입고</th><th>등록일</th></tr></thead><tbody id="schBody"></tbody></table></div></div>
+        <div class="tbl"><table><thead><tr><th>학교</th><th>지역</th><th>채종 지역</th><th>코드</th><th class="num">학생</th><th class="num">채종 기록</th><th class="num">시드볼트 입고</th><th>등록일</th></tr></thead><tbody id="schBody"></tbody></table></div></div>
     </section>
 
     <section data-view="set" class="hidden">
@@ -144,9 +144,9 @@
         <div class="panel" id="schoolEdit"><h2>학교 정보</h2>
           <label class="field"><span class="lbl">학교 이름</span><input class="inp" id="eName"></label>
           <label class="field"><span class="lbl">지역</span><select class="inp" id="eRegion"></select></label>
-          <label class="field"><span class="lbl">탐사지 이름</span><input class="inp" id="eSite"></label>
-          <label class="field"><span class="lbl">탐사지 위치</span><div style="display:flex;gap:8px"><input class="inp" id="eLat" placeholder="위도" inputmode="decimal"><input class="inp" id="eLng" placeholder="경도" inputmode="decimal"><button class="btn line sm" id="eGps" type="button">현재 위치</button></div><span class="hint">학생 기록이 탐사지에서 멀리 떨어지면 알려 줘요.</span></label>
-          <label class="field"><span class="lbl">기탁기관명</span><input class="inp" id="eInst" placeholder="예: 송례중학교 과학과"><span class="hint">기탁 목록의 기탁기관명 칸에 들어가요.</span></label>
+          <label class="field"><span class="lbl">주요 채종 지역</span><input class="inp" id="eSite" placeholder="예: 서울특별시 송파구 장지동"><span class="hint">시·군·구·동 주소로 적어요</span></label>
+          <label class="field"><span class="lbl">채종 지역 대표 위치</span><div style="display:flex;gap:8px"><input class="inp" id="eLat" placeholder="위도" inputmode="decimal"><input class="inp" id="eLng" placeholder="경도" inputmode="decimal"><button class="btn line sm" id="eGps" type="button">현재 위치</button></div><span class="hint">학생 기록이 채종 지역에서 멀리 떨어지면 알려 줘요.</span></label>
+          <label class="field"><span class="lbl">기탁기관명</span><input class="inp" id="eInst" placeholder="예: 한빛초등학교 과학과"><span class="hint">기탁 목록의 기탁기관명 칸에 들어가요.</span></label>
           <label class="field"><span class="lbl">담당 연락처</span><input class="inp" id="eContact"></label>
           <button class="btn" id="eSave">학교 정보 저장</button></div>
         <div class="panel" id="aiPanel"><h2>🤖 AI 검토 연결</h2>
@@ -197,7 +197,7 @@ async function findCode(q0 = '') {
   const bg = document.createElement('div');
   bg.style.cssText = 'position:fixed;inset:0;background:rgba(15,30,24,.42);z-index:180;display:flex;align-items:center;justify-content:center;padding:20px';
   bg.innerHTML = `<div role="dialog" aria-modal="true" style="background:var(--paper);border-radius:20px;max-width:460px;width:100%;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.2)">
-    <h3 style="font-size:21px;margin-bottom:6px">🔎 우리 학교 코드 찾기</h3><p class="muted small" style="margin:0 0 12px">학교 이름의 일부를 적어요. (예: 송례, 한빛초)</p>
+    <h3 style="font-size:21px;margin-bottom:6px">🔎 우리 학교 코드 찾기</h3><p class="muted small" style="margin:0 0 12px">학교 이름의 일부를 적어요. (예: 한빛초, 새싹중)</p>
     <form id="fcF" style="display:flex;gap:8px"><input class="inp" id="fcQ" value="${SH.esc(q0)}" placeholder="학교 이름"><button class="btn">찾기</button></form>
     <div id="fcR" style="display:grid;gap:8px;margin-top:12px;max-height:50vh;overflow:auto"></div>
     <div style="text-align:right;margin-top:12px"><button class="btn line sm" data-x>닫기</button></div></div>`;
@@ -271,7 +271,7 @@ function renderAll() {
   document.querySelectorAll('[data-view]').forEach(s => s.classList.toggle('hidden', s.dataset.view !== G.view));
   const sc = curSchool();
   const titles = { acc: '기탁 준비', form: '기탁 양식', stu: '학생', map: '채종 지도', notes: '관찰 노트', schools: '전국 학교', set: '학교 설정' };
-  $('#pgTitle').innerHTML = `<small>${SH.esc(sc ? sc.name + (sc.site_name ? ', ' + sc.site_name + ' 탐사' : '') : '전체 학교')}</small>${titles[G.view]}`;
+  $('#pgTitle').innerHTML = `<small>${SH.esc(sc ? sc.name + (sc.site_name ? ' · 채종 지역 ' + sc.site_name : '') : '전체 학교')}</small>${titles[G.view]}`;
   $('#codeBadge').innerHTML = sc ? `학교 코드<b>${SH.esc(sc.code)}</b>` : `${G.schools.length}개 학교`;
   ({ acc: renderAcc, form: renderForm, stu: renderStu, map: renderMap, notes: renderNotes, schools: renderSchools, set: renderSet })[G.view]();
 }
@@ -317,7 +317,7 @@ function renderAcc() {
   $('#flow').innerHTML = items.map(s => `<button class="${G.stFilter === s.id ? 'on' : ''} ${s.id === 'rejected' ? 'rej' : ''} ${s.id === 'deposited' ? 'dep' : ''}" data-st="${s.id}"><b>${list.filter(a => a.status === s.id).length}</b><span>${s.label}</span></button>`).join('');
   $('#flow').querySelectorAll('button').forEach(b => b.onclick = () => { G.stFilter = G.stFilter === b.dataset.st ? '' : b.dataset.st; renderAcc(); });
   if (!$('#bulkSt').options.length) $('#bulkSt').innerHTML = items.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
-  const rows = filteredAccs();
+  const rows = filteredAccs(), vis = new Set(rows.map(a => a.id)); [...G.sel].forEach(id => { if (!vis.has(id)) G.sel.delete(id); });
   $('#accBody').innerHTML = rows.map(a => {
     const d = a.data || {}, s = G.stuById[a.student_id], rd = SH.readiness(a);
     return `<tr data-id="${a.id}" class="${G.sel.has(a.id) ? 'sel' : ''}"><td onclick="event.stopPropagation()"><input type="checkbox" data-chk="${a.id}" ${G.sel.has(a.id) ? 'checked' : ''} aria-label="${SH.esc(a.acc_no)} 선택"></td>
@@ -502,7 +502,7 @@ function renderMap() {
   if (window.L && SH.mode !== 'demo') {
     if (!map) { map = L.map('map', { scrollWheelZoom: false }); SH.tiles(map); layer = L.layerGroup().addTo(map); }
     layer.clearLayers();
-    if (sc?.site_lat) L.circleMarker([sc.site_lat, sc.site_lng], { radius: 6, color: '#143A2E', weight: 2, fillColor: '#fff', fillOpacity: 1 }).addTo(layer).bindPopup(SH.esc(sc.site_name || '탐사지'));
+    if (sc?.site_lat) L.circleMarker([sc.site_lat, sc.site_lng], { radius: 6, color: '#143A2E', weight: 2, fillColor: '#fff', fillOpacity: 1 }).addTo(layer).bindPopup(SH.esc(sc.site_name || '채종 지역'));
     pts.forEach(a => { const s = G.stuById[a.student_id]; L.circleMarker([+a.data.lat, +a.data.lng], { radius: 8, color: '#fff', weight: 2, fillColor: STC[a.status], fillOpacity: .95 }).addTo(layer).bindPopup(`<b>${SH.esc(a.data.plant)}</b><br>${SH.esc(a.acc_no)}<br>${SH.esc(s?.name || '')}, ${SH.esc(a.data.date || '')}<br>${SH.ST[a.status].label}`); });
     setTimeout(() => { map.invalidateSize(); pts.length ? map.fitBounds(L.latLngBounds(pts.map(a => [+a.data.lat, +a.data.lng])).pad(.3), { maxZoom: 16 }) : map.setView(center, sc ? 14 : 7); }, 30);
   } else {
@@ -536,7 +536,7 @@ function renderSchools() {
 }
 
 /* ───── 설정 ───── */
-function stuUrl(code) { const base = location.href.replace(/admin\.html.*$/, '').replace(/[?#].*$/, ''); return code === SH.DEFAULT_CODE ? base : `${base}?s=${code}`; }
+function stuUrl(code) { const base = location.href.replace(/admin\.html.*$/, '').replace(/[?#].*$/, ''); return `${base}?s=${encodeURIComponent(code)}`; }
 async function renderAi() {
   if (!G.school || G.super) { $('#aiPanel').classList.add('hidden'); return; } $('#aiPanel').classList.remove('hidden');
   const r = await SH.rpc('seedhands_admin_ai_get', { p_token: G.token }); if (!r.ok) return;
@@ -568,7 +568,7 @@ $('#qrSave').onclick = async () => {
 };
 $('#qrPoster').onclick = () => {
   const sc = curSchool(); if (!sc) return SH.toast('학교를 먼저 골라 주세요.');
-  const url = stuUrl(sc.code), noCode = sc.code === SH.DEFAULT_CODE;
+  const url = stuUrl(sc.code), noCode = false;
   const pa = $('#printArea'); pa.classList.add('poster');
   pa.innerHTML = `<div class="qr-poster"><div class="qp-logo">${SH.logo(56)}</div>
     <div class="qp-kicker">${SH.esc(sc.name || '')} · 2026 시드핸즈 프로젝트</div>

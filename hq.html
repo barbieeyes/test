@@ -175,7 +175,7 @@
     <section data-view="sch" class="hidden">
       <div class="panel"><h2>참여 학교 <small id="schN"></small></h2>
         <div class="toolbar"><input class="inp" id="sq" placeholder="학교 이름·코드 찾기"><span class="sp"></span><button class="btn line sm" id="xSch">학교 목록 엑셀로</button></div>
-        <div class="tbl"><table><thead><tr><th>학교</th><th>코드</th><th>지역</th><th>탐사지</th><th>식생대</th><th class="num">학생</th><th class="num">기록</th><th class="num">씨앗(립)</th><th class="num">입고</th><th>등록일</th><th></th></tr></thead><tbody id="schBody"></tbody></table></div></div>
+        <div class="tbl"><table><thead><tr><th>학교</th><th>코드</th><th>지역</th><th>채종 지역</th><th>식생대</th><th class="num">학생</th><th class="num">기록</th><th class="num">씨앗(립)</th><th class="num">입고</th><th>등록일</th><th></th></tr></thead><tbody id="schBody"></tbody></table></div></div>
     </section>
 
     <section data-view="dep" class="hidden">
@@ -253,7 +253,7 @@ function go(v) {
 async function load() {
   const r = await SH.rpc('seedhands_hq_overview', { p_token: G.token });
   if (!r.ok) { sessionStorage.removeItem('sh_hq'); G.token = null; $('#gate').classList.remove('hidden'); $('#app').classList.add('hidden'); if (r.error !== 'session') SH.toast(r.error); return; }
-  G.schools = r.schools; G.allAccs = r.accessions; G.aiCount = r.ai_count;
+  G.stuMap = null; G.schools = r.schools; G.allAccs = r.accessions; G.aiCount = r.ai_count;
   const years = [...new Set(G.allAccs.map(a => (a.data?.date || a.created_at || '').slice(0, 4)).filter(Boolean))].sort().reverse();
   $('#fYear').innerHTML = '<option value="">모든 해</option>' + years.map(y => `<option ${y === G.year ? 'selected' : ''}>${y}</option>`).join('');
   applyYear();
@@ -309,13 +309,13 @@ function mapPts() {
 function colorOf(a) { return G.color === 'zone' ? (zoneOf(a)?.color || '#888') : STC[a.status] || '#6E9A5B'; }
 function rMap() {
   const P = mapPts(); $('#mN').textContent = `지도에 ${P.length}점`;
-  $('#mLeg').innerHTML = G.color === 'zone' ? Object.values(SH.ZONES).map(z => `<span><i style="background:${z.color}"></i>${z.emoji} ${z.name}</span>`).join('') + '<span>🏫 학교 탐사지 · 🏔️ 시드볼트 · 점선: 백두대간</span>'
-    : [...SH.STATUS, SH.STATUS_REJ].map(s => `<span><i style="background:${STC[s.id]}"></i>${s.label}</span>`).join('') + '<span>🏫 학교 탐사지 · 🏔️ 시드볼트 · 점선: 백두대간</span>';
+  $('#mLeg').innerHTML = G.color === 'zone' ? Object.values(SH.ZONES).map(z => `<span><i style="background:${z.color}"></i>${z.emoji} ${z.name}</span>`).join('') + '<span>🏫 학교 채종 지역 · 🏔️ 시드볼트 · 점선: 백두대간</span>'
+    : [...SH.STATUS, SH.STATUS_REJ].map(s => `<span><i style="background:${STC[s.id]}"></i>${s.label}</span>`).join('') + '<span>🏫 학교 채종 지역 · 🏔️ 시드볼트 · 점선: 백두대간</span>';
   const el = $('#hqMap');
   if (!SH.leaflet()) {
     el.innerHTML = SH.koreaSVG({ points: P.map(a => ({ lat: +a.data.lat, lng: +a.data.lng, plant: a.data.plant, status: a.status, color: colorOf(a), school: schoolOf(a.school_id).name })), dark: false, id: 'hqSvg' });
     el.querySelectorAll('.kr-dot').forEach((d, i) => { if (P[i]) { d.setAttribute('fill', colorOf(P[i])); d.style.cursor = 'pointer'; d.onclick = () => pickAcc(P[i]); } });
-    if (!G.infoSet) { pickPlace(37.4772, 127.0789, '서울 대모산 (예시)'); G.infoSet = true; }
+    if (!G.infoSet) { pickPlace(36.95, 128.87, '경북 봉화 · 시드볼트 (예시)'); G.infoSet = true; }
     return;
   }
   if (!G.map) {
@@ -372,7 +372,7 @@ function arcList() {
     && (!q || [a.acc_no, a.data?.plant, a.data?.sci, a.student, schoolOf(a.school_id).name].join(' ').toLowerCase().includes(q)));
 }
 function rArc() {
-  const L = arcList();
+  const L = arcList(), vis = new Set(L.map(a => a.id)); [...G.sel].forEach(id => { if (!vis.has(id)) G.sel.delete(id); });
   $('#arcBody').innerHTML = L.map(a => `<tr data-id="${a.id}" class="${G.sel.has(a.id) ? 'sel' : ''}"><td><input type="checkbox" data-c="${a.id}" ${G.sel.has(a.id) ? 'checked' : ''}></td><td class="small">${SH.esc(a.acc_no)}</td>
     <td><div class="nm">${SH.esc(a.data?.plant || '이름 모름')}</div><div class="sci">${SH.esc(a.data?.sci || '')}</div></td><td>${SH.esc(schoolOf(a.school_id).name || '')}</td><td>${regOf(a)}</td>
     <td>${SH.esc(a.student || '')}</td><td>${SH.dot(a.data?.date || '')}</td><td class="num">${a.data?.seedCount ? fmt(num(a.data.seedCount)) : ''}</td><td>${aiTag(a)}</td>
@@ -496,23 +496,23 @@ function rSch() {
   $$('#schBody [data-ed]').forEach(b => b.onclick = e => { e.stopPropagation(); editSchool(b.dataset.ed); });
   $$('#schBody tr[data-id]').forEach(tr => tr.onclick = () => editSchool(tr.dataset.id));
 }
-$('#xSch').onclick = () => { const rows = [['학교', '코드', '지역', '탐사지', '위도', '경도', '기탁기관명', '연락처', '학생 수', '기록 수', '씨앗(립)', '입고', '등록일']];
+$('#xSch').onclick = () => { const rows = [['학교', '코드', '지역', '채종 지역', '위도', '경도', '기탁기관명', '연락처', '학생 수', '기록 수', '씨앗(립)', '입고', '등록일']];
   G.schools.forEach(s => { const A = G.accs.filter(a => a.school_id === s.id); rows.push([s.name, s.code, s.region || '', s.site_name || '', s.site_lat ?? '', s.site_lng ?? '', s.inst_name || '', s.contact || '', +s.students || 0, A.length, A.reduce((t, a) => t + num(a.data?.seedCount), 0), A.filter(a => a.status === 'deposited').length, SH.dayOf(s.created_at)]); });
   SH.download(SH.xlsx([{ name: '참여학교', rows }]), `시드핸즈_참여학교_${SH.today()}.xlsx`); };
 function editSchool(id) {
   const s = schoolOf(id); const bg = document.createElement('div'); bg.className = 'drawer-bg';
   bg.innerHTML = `<div class="drawer"><div class="dh"><h2>${SH.esc(s.name)}</h2><button class="btn line sm" data-x>닫기</button></div>
     <div class="panel"><h2>학교 정보·코드 고치기</h2>
-      ${[['name', '학교 이름'], ['code', '학교 코드 (학생이 입력하는 코드)'], ['region', '지역'], ['site_name', '탐사지'], ['site_lat', '탐사지 위도'], ['site_lng', '탐사지 경도'], ['inst_name', '기탁기관명'], ['contact', '담당 연락처']]
+      ${[['name', '학교 이름'], ['code', '학교 코드 (학생이 입력하는 코드)'], ['region', '지역'], ['site_name', '주요 채종 지역 (시·군·구·동)'], ['site_lat', '대표 위치 위도'], ['site_lng', '대표 위치 경도'], ['inst_name', '기탁기관명'], ['contact', '담당 연락처']]
         .map(([k, l]) => `<label class="field"><span class="lbl">${l}</span><input class="inp" data-e="${k}" value="${SH.esc(s[k] ?? '')}"></label>`).join('')}
       <p class="small muted">코드를 바꾸면 이전에 나눠 준 QR·주소는 더 이상 쓸 수 없어요. 학생들은 다시 로그인하지 않아도 돼요.</p>
       <button class="btn sm" id="sSave">저장</button></div>
     <div class="panel"><h2>관리자 비밀번호 다시 정하기</h2><p class="small muted" style="margin:0 0 10px">담당 교사가 비밀번호를 잊었을 때 써요. 새 비밀번호를 담당 교사에게 따로 알려 주세요.</p>
       <div style="display:flex;gap:8px"><input class="inp" id="sPw" placeholder="새 비밀번호 (6자 이상)"><button class="btn line sm" id="sPwBtn">바꾸기</button></div></div>
-    <div class="panel"><h2>바로가기</h2><p class="small">학생 주소: <code>${SH.esc(base() + (s.code === SH.DEFAULT_CODE ? '' : '?s=' + s.code))}</code></p><div id="sQr"></div></div>
+    <div class="panel"><h2>바로가기</h2><p class="small">학생 주소: <code>${SH.esc(base() + ('?s=' + s.code))}</code></p><div id="sQr"></div></div>
     <div class="dangerzone"><b style="color:var(--alert)">학교 삭제</b><p class="small muted" style="margin:4px 0 8px">학생, 채종 기록, 사진, 관찰 노트가 모두 영구히 지워져요.</p><button class="btn line sm" id="sDel" style="color:var(--alert)">이 학교 지우기</button></div></div>`;
   document.body.appendChild(bg); const close = () => bg.remove(); bg.querySelector('[data-x]').onclick = close; bg.onclick = e => { if (e.target === bg) close(); };
-  bg.querySelector('#sQr').innerHTML = SH.qrSVG(base() + (s.code === SH.DEFAULT_CODE ? '' : '?s=' + encodeURIComponent(s.code)), { size: 160 });
+  bg.querySelector('#sQr').innerHTML = SH.qrSVG(base() + ('?s=' + encodeURIComponent(s.code)), { size: 160 });
   bg.querySelector('#sSave').onclick = async () => { const patch = {}; bg.querySelectorAll('[data-e]').forEach(i => { if (String(s[i.dataset.e] ?? '') !== i.value) patch[i.dataset.e] = i.value.trim(); });
     if (!Object.keys(patch).length) return SH.toast('바뀐 내용이 없어요');
     const r = await SH.rpc('seedhands_hq_school_update', { p_token: G.token, p_school: s.id, p_patch: patch }); if (!r.ok) return SH.toast(r.error || '저장하지 못했어요'); SH.toast('저장했어요'); close(); await load(); };
@@ -550,7 +550,7 @@ function rRoles() {
       ['활동 중', ['「한눈에 보기」에서 학교별 참여와 기록 수를 매주 확인해요.', '「채종 아카이브」에서 AI가 ⚠️·🤔로 표시한 기록을 먼저 살펴보고, 필요하면 담당 교사에게 메모를 남겨요.', '「참여 학교」에서 코드 분실·비밀번호 분실 문의를 처리해요(코드 확인, 비밀번호 다시 정하기).']],
       ['마무리', ['학교에서 「정선 완료」이후로 올린 기록을 「기탁 양식」에서 엑셀로 내려받아요.', '시드볼트와 기탁 일정을 협의하고, 도착한 씨앗과 목록을 맞춰 본 뒤 「시드볼트 입고」로 바꿔요.', '연말에 전체 아카이브를 엑셀로 내려받아 보관해요.']]] },
     { c: '#2F5D7C', t: '② 담당 교사', w: '전국 참여 학교 선생님', s: [
-      ['시작 전', ['선생님 화면에서 「새 학교 등록」을 하고 학교 코드를 받아요. 코드를 잊으면 「학교 코드 찾기」를 눌러요.', '「학교 설정」에서 탐사지 위치·기탁기관명을 넣고, QR 안내문을 인쇄해 학생에게 나눠 줘요.', '교사 학습안으로 채종할 식물과 안전 수칙을 미리 정해요.']],
+      ['시작 전', ['선생님 화면에서 「새 학교 등록」을 하고 학교 코드를 받아요. 코드를 잊으면 「학교 코드 찾기」를 눌러요.', '「학교 설정」에서 채종 지역 위치·기탁기관명을 넣고, QR 안내문을 인쇄해 학생에게 나눠 줘요.', '교사 학습안으로 채종할 식물과 안전 수칙을 미리 정해요.']],
       ['활동 중', ['현장에서 학생에게 안전 수칙을 안내하고, 씨앗 찾기와 식물 이름(동정)을 직접 설명해요.', '학생 기록을 「기탁 준비」에서 검토하고, AI 의견과 사진을 보고 학명·무게·점수를 마무리해요.', '씨앗을 건조 → 정선 → 포장 단계로 옮기며 단계를 바꿔요.']],
       ['마무리', ['포장한 씨앗에 라벨을 붙이고 「포장·라벨 완료」로 바꿔요.', '운영국 안내에 따라 씨앗을 보내요.', '학생 기록 중 잘못된 것은 고치거나 지워요.']]] },
     { c: '#D9982B', t: '③ 학생', w: '참여 초·중학생', s: [

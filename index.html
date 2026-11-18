@@ -44,6 +44,10 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
 #intro .dots i.on { background: var(--seed); width: 20px; border-radius: 4px; }
 #intro .go { opacity: 0; pointer-events: none; transition: opacity .5s; }
 #intro.end .go { opacity: 1; pointer-events: auto; }
+.i-heat { opacity: 0; transition: opacity .8s; }
+.heat .i-heat { opacity: 1; animation: heatPulse 2s ease-in-out infinite; }
+@keyframes heatPulse { 50% { filter: brightness(1.25); } }
+.heat polygon, .heat ellipse:not(.i-seed ellipse) { fill: #4A4630; transition: fill 1s; }
 .i-seed { opacity: 0; transform-box: fill-box; transform-origin: center; }
 .play .i-seed { animation: pop .5s cubic-bezier(.3,1.6,.5,1) forwards; }
 @keyframes pop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
@@ -345,7 +349,7 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
   <button class="skip" id="introSkip">건너뛰기</button>
   <div class="stage" id="introStage"></div>
   <div class="cap">
-    <div class="dots" id="introDots"><i></i><i></i><i></i><i></i></div>
+    <div class="dots" id="introDots"><i></i><i></i><i></i><i></i><i></i></div>
     <h2 id="introH"></h2><p id="introP"></p>
     <button class="btn seed go" id="introGo" style="min-width:220px;min-height:56px">시작하기</button>
   </div>
@@ -357,7 +361,7 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
     <div class="wrap">
       <div class="topline"><span id="lgLogo"></span><div class="sch"><b>시드핸즈 프로젝트</b>씨앗을 지키는 손</div><button class="btn ghost sm" id="replayIntro">소개 다시 보기</button></div>
       <div class="lg-hero"><h1><small>2026</small><span id="lgTitle">시드핸즈 프로젝트</span></h1><div id="lgToli"></div>
-        <p>우리 산에서 받은 야생식물 씨앗을 기록해서 백두대간 글로벌 시드볼트로 보내요.</p></div>
+        <p>기후위기로 사라져 가는 우리 야생식물의 씨앗을 모아 기록하고, 백두대간 글로벌 시드볼트에 맡겨 미래의 숲을 지켜요.</p></div>
     </div>
   </div>
   <div class="wrap">
@@ -369,7 +373,7 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
       <button class="btn block" id="codeBtn">다음</button>
       <div style="margin-top:16px;border-top:1px dashed var(--line);padding-top:14px">
         <p class="small" style="margin:0 0 8px">🔎 코드를 모르겠다면 학교 이름으로 찾아요</p>
-        <div style="display:flex;gap:8px"><input class="inp" id="schQ" placeholder="예: 송례, 한빛초"><button type="button" class="btn line" id="schFind">찾기</button></div>
+        <div style="display:flex;gap:8px"><input class="inp" id="schQ" placeholder="예: 한빛초, 새싹중"><button type="button" class="btn line" id="schFind">찾기</button></div>
         <div id="schRes" style="display:grid;gap:6px;margin-top:8px"></div></div>
     </form>
     <form class="login-card hidden" id="loginForm" autocomplete="off">
@@ -480,14 +484,17 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
   <div class="pagehead"><div class="wrap"><button class="backbtn" data-home aria-label="뒤로"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button><h1>시드볼트와 채종 약속</h1></div></div>
   <div class="wrap prose">
     <div id="vaultSay"></div>
+    <h2>왜 씨앗을 모아야 할까요?</h2>
+    <p>지구의 기온이 빠르게 오르면서 식물이 살던 곳의 날씨가 바뀌고 있어요. 높은 산에 사는 식물은 더 올라갈 곳이 없어 가장 먼저 위험해져요. 세계에서 우리나라에만 자라는 <b>구상나무</b>는 한라산·지리산·덕유산에서 집단으로 말라 죽고 있어 국제 멸종위기종으로 지정되어 있어요.</p>
+    <p>한 종의 식물이 사라지면 그 식물의 꽃가루·열매·잎에 기대 사는 곤충, 새, 동물도 함께 흔들려요. 그래서 식물이 아직 남아 있을 때 <b>씨앗을 모아 안전한 곳에 맡겨 두는 일</b>이 기후위기 시대의 생물다양성 보전에서 아주 중요해요. 잘 말린 씨앗을 아주 차갑게 두면 수십 년, 수백 년 뒤에도 싹을 틔울 수 있어요.</p>
     <h2>백두대간 글로벌 시드볼트</h2>
     <p>경상북도 봉화의 국립백두대간수목원 땅속 깊은 곳에 있는 씨앗 금고예요. 지구에 큰 재난이 닥쳐도 식물이 사라지지 않도록 야생식물 씨앗을 아주 오래 보관해요. 이런 시드볼트는 노르웨이 스발바르와 우리나라, 세계에 단 두 곳뿐이에요. 스발바르가 주로 농작물 씨앗을 지킨다면, 백두대간 시드볼트는 <b>야생식물</b> 씨앗을 지켜요.</p>
     <div class="factrow">
       <div><b class="num">-20℃</b><span>1년 내내 유지되는 저장고 온도 (습도 40% 이하)</span></div>
-      <div><b class="num">6,149종</b><span>보관 중인 야생식물 (약 28만 8천 점)</span></div>
+      <div><b class="num">6,410종</b><span>보관 중인 야생식물 (약 29만 8천 점)</span></div>
       <div><b>블랙박스</b><span>맡긴 기관이 봉인한 상자를 그대로 보관하고, 소유권도 그대로예요</span></div>
     </div>
-    <p class="src">숫자는 2026년 4월 한국수목원정원관리원 발표를 다룬 경향신문 기사 기준이에요.</p>
+    <p class="src">숫자는 2026년 9월 기준 한국수목원정원관리원 발표예요. 시드볼트는 2050년까지 전 세계 야생식물 종의 30%를 보관하는 것을 목표로 해요.</p>
     <h2>씨앗이 시드볼트까지 가는 길</h2>
     <ol>
       <li><b>채종 완료</b>: 산에서 씨앗을 받고 이 앱에 기록해요.</li>
@@ -543,10 +550,11 @@ $('#lgLogo').innerHTML = SH.logo(36); $('#hLogo').innerHTML = SH.logo(36); $('#l
 
 /* ───── 인트로 애니메이션 ───── */
 const SCENES = [
-  ['전국의 친구들이 우리 산에서 씨앗을 모아요', '학교 가까운 산과 숲에서 다 익은 야생식물 씨앗을 찾아요'],
-  ['씨앗은 백두대간을 따라', '한반도의 등뼈, 백두대간 능선을 따라 봉화로 모여요'],
-  ['백두대간 글로벌 시드볼트에 도착!', '땅속 -20℃ 금고에서 아주 오래 안전하게 보관돼요'],
-  ['씨앗을 지키는 손, 시드핸즈', '여러분이 받은 씨앗 한 톨이 미래의 숲이 돼요']
+  ['지구가 점점 더워지고 있어요', '더위와 가뭄으로 구상나무처럼 우리나라에만 사는 식물들이 말라 죽고 있어요'],
+  ['식물이 사라지면 숲 전체가 위험해요', '식물에 기대 사는 곤충·새·동물도 함께 사라져요. 그래서 전국 친구들이 야생식물 씨앗을 모아요'],
+  ['씨앗은 백두대간을 따라', '학교 주변 산·공원·하천에서 받은 씨앗이 한반도의 등뼈, 백두대간을 따라 봉화로 모여요'],
+  ['백두대간 글로벌 시드볼트에 도착!', '세계에 단 두 곳뿐인 시드볼트 중 야생식물 씨앗을 지키는 유일한 곳. 영하 20℃ 땅속 금고에서 아주 오래 잠들어요'],
+  ['씨앗을 지키는 손, 시드핸즈', '여러분이 받은 씨앗 한 톨이 언젠가 사라진 숲을 다시 살리는 미래의 숲이 돼요']
 ];
 function introSVG() {
   const seeds = [[127.05, 37.48], [126.98, 37.56], [128.61, 35.87], [129.06, 35.16], [128.88, 37.75], [126.85, 35.15], [127.38, 36.35], [127.49, 36.63], [127.15, 35.82], [127.03, 37.26], [126.39, 34.81], [129.35, 36.02], [128.1, 35.18], [127.73, 37.88], [126.7, 37.45]];
@@ -554,6 +562,9 @@ function introSVG() {
   const [vx, vy] = P(SH.VAULT.lng, SH.VAULT.lat);
   const land = SH.KR.map(p => P(p[0], p[1]).join(',')).join(' '), ridge = SH.RIDGE.map(p => P(p[0], p[1]).join(',')).join(' '), [jx, jy] = P(126.55, 33.38);
   return `<svg viewBox="0 0 340 580" aria-hidden="true"><polygon points="${land}" fill="#1E4D3C" stroke="#3F7360" stroke-width="1.2" stroke-linejoin="round"/><ellipse cx="${jx}" cy="${jy}" rx="30" ry="17" fill="#1E4D3C" stroke="#3F7360" stroke-width="1.2"/>
+    <g class="i-heat"><circle cx="250" cy="70" r="40" fill="#E8603C" opacity=".85"/><circle cx="250" cy="70" r="56" fill="none" stroke="#F0A04B" stroke-width="3" stroke-dasharray="6 8"/>
+      <text x="250" y="80" font-size="30" text-anchor="middle">🌡️</text>
+      <g transform="translate(70,250)"><path d="M0 60 L12 0 L24 60Z" fill="#8A7A5A"/><path d="M-10 60 L12 10 L34 60Z" fill="none" stroke="#B9A57A" stroke-width="2"/><text x="12" y="88" font-size="11" fill="#F2D9B0" text-anchor="middle">말라 가는 구상나무</text></g></g>
     <polyline class="i-ridge" points="${ridge}" fill="none" stroke="#D9982B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
     ${seeds.map(([a, b], i) => { const [x, y] = P(a, b); const mx = (+x + +vx) / 2, my = Math.min(+y, +vy) - 50; return `<path class="i-flow" style="animation-delay:${i * 0.08}s" d="M${x},${y} Q${mx},${my} ${vx},${vy}" fill="none" stroke="#F0BE5C" stroke-width="1.4" stroke-opacity=".75"/>`; }).join('')}
     ${seeds.map(([a, b], i) => { const [x, y] = P(a, b); return `<g class="i-seed" style="animation-delay:${0.15 + i * 0.12}s"><ellipse cx="${x}" cy="${y}" rx="4" ry="5.5" fill="#D9982B"/><path d="M${x} ${+y - 5}c1-3 3-4 5-4" stroke="#8DBA6F" stroke-width="1.6" fill="none"/></g>`; }).join('')}
@@ -566,14 +577,15 @@ function playIntro(after) {
   const el = $('#intro'); el.classList.remove('hidden', 'end'); $('#introStage').innerHTML = introSVG();
   const svg = $('#introStage svg'), dots = [...$('#introDots').children];
   const scene = i => { $('#introH').textContent = SCENES[i][0]; $('#introP').textContent = SCENES[i][1]; dots.forEach((d, k) => d.classList.toggle('on', k === i)); };
-  const finish = () => { introTimers.forEach(clearTimeout); introTimers = []; SH.store.set('sh_intro_seen', 1); svg.classList.add('play', 'play2', 'play3'); scene(3); el.classList.add('end'); };
+  const finish = () => { introTimers.forEach(clearTimeout); introTimers = []; SH.store.set('sh_intro_seen', 1); svg.classList.add('play', 'play2', 'play3'); svg.classList.remove('heat'); scene(4); el.classList.add('end'); };
   const close = () => { introTimers.forEach(clearTimeout); el.classList.add('hidden'); SH.store.set('sh_intro_seen', 1); after && after(); };
   $('#introSkip').onclick = close; $('#introGo').onclick = close;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return finish();
-  scene(0); requestAnimationFrame(() => svg.classList.add('play'));
-  introTimers.push(setTimeout(() => { scene(1); svg.classList.add('play2'); }, 2600));
-  introTimers.push(setTimeout(() => { scene(2); svg.classList.add('play3'); }, 4800));
-  introTimers.push(setTimeout(finish, 7000));
+  scene(0); svg.classList.add('heat');
+  introTimers.push(setTimeout(() => { scene(1); }, 3200));
+  introTimers.push(setTimeout(() => { scene(2); svg.classList.remove('heat'); svg.classList.add('play'); }, 6400));
+  introTimers.push(setTimeout(() => { scene(3); svg.classList.add('play2', 'play3'); }, 9200));
+  introTimers.push(setTimeout(finish, 12400));
 }
 $('#replayIntro').onclick = () => playIntro();
 
@@ -584,7 +596,7 @@ async function lookupCode(code) {
   if (!r.ok) throw new Error(r.error);
   S.code = r.school.code; S.school = r.school; SH.store.set('sh_code', S.code);
   $('#lgSchool').textContent = r.school.name;
-  $('#lgSite').textContent = [r.school.region, r.school.site_name && r.school.site_name + ' 탐사'].filter(Boolean).join(', ');
+  $('#lgSite').textContent = [r.school.region, r.school.site_name && '채종 지역 ' + r.school.site_name].filter(Boolean).join(', ');
   $('#lgTitle').textContent = r.school.name + ' 시드핸즈';
   $('#codeForm').classList.add('hidden'); $('#loginForm').classList.remove('hidden');
 }
@@ -625,7 +637,7 @@ async function loadMe(fromLogin) {
 function goHome() { renderHome(); show('home'); if (SH.store.get('sh_safety_day') !== SH.today()) setTimeout(() => showSafety(), 300); }
 async function showLogin() {
   show('login');
-  const c = urlCode() || SH.store.get('sh_code') || SH.DEFAULT_CODE;
+  const c = urlCode() || SH.store.get('sh_code');
   if (c) { try { await lookupCode(c); return; } catch {} }
   $('#codeForm').classList.remove('hidden');
 }
@@ -642,7 +654,8 @@ function onboard(done) {
   chat.querySelectorAll('.msg').forEach(m => m.remove());
   const script = [
     { t: [`안녕, ${SH.esc(nm)}! 나는 <b>톨이</b>야. 씨앗 한 톨에서 태어났어.`, `나는 너희가 모은 씨앗이 <b>백두대간 글로벌 시드볼트</b>까지 무사히 도착하도록 길을 안내하는 친구야.`], r: ['반가워, 톨이!'] },
-    { t: ['시드볼트는 경북 봉화의 땅속 깊은 곳에 있는 <b>씨앗 금고</b>야.', '영하 20도에서 야생식물 씨앗을 아주 오래 지켜 줘. 혹시 숲이 사라져도 다시 살릴 수 있게!'], r: ['우와, 멋지다!', '나는 뭘 하면 돼?'] },
+    { t: ['그런데 요즘 지구가 점점 더워지고 있는 거 알아? 🌡️', '한라산·지리산 꼭대기에 사는 <b>구상나무</b>는 세계에서 우리나라에만 자라는 나무인데, 더위와 가뭄 때문에 많이 말라 죽고 있대.', '식물이 사라지면 그 식물에 기대 사는 곤충·새·동물도 함께 위험해져. 이걸 <b>생물다양성이 줄어든다</b>고 해.'], r: ['정말? 어떡해…', '그럼 어떻게 해야 해?'] },
+    { t: ['그래서 씨앗을 미리 모아 두는 거야! 씨앗은 잘 말려서 차갑게 두면 아주 오래 살아 있거든.', '세계에 <b>시드볼트</b>는 딱 두 곳뿐이야. 노르웨이 시드볼트는 농작물 씨앗을, 우리나라 경북 봉화의 <b>백두대간 글로벌 시드볼트</b>는 세계에서 유일하게 <b>야생식물 씨앗</b>을 지켜.', '영하 20도 땅속 금고에서 잠들어 있다가, 언젠가 숲이 망가지면 그 씨앗으로 다시 살릴 수 있어. 너희가 모은 씨앗이 바로 <b>미래의 숲</b>이야!'], r: ['우와, 멋지다!', '나는 뭘 하면 돼?'] },
     { t: ['밖에 나가면 <b>선생님 안내</b>가 제일 중요해. 어떤 씨앗을 받을지, 식물 이름이 뭔지 <b>선생님 설명을 듣고</b> 시작하자.', '씨앗을 받으면 \'씨앗 찾았어요! 기록하기\'를 눌러 줘. 위치랑 주소, 높이는 내가 GPS로 찾아서 적어 줄게!'], r: ['좋아!'] },
     { t: ['딱 세 가지만 약속해 줘.', '① 같은 식물이 <b>많이 모인 곳</b>에서<br>② 열매는 <b>조금만</b> (다섯 개 중 하나보다 적게)<br>③ 식물과 씨앗 <b>사진 찍기</b>'], r: ['약속할게!'] },
     { t: ['고마워! 그럼 우리 함께 씨앗 지키러 가 보자. 🌱'], r: ['시작하기'] }
@@ -662,7 +675,7 @@ function onboard(done) {
 /* ───── 홈 ───── */
 function renderHome() {
   $('#hSchool').textContent = S.school.name + ' 2026 시드핸즈';
-  $('#hSite').textContent = S.school.site_name ? S.school.site_name + ' 탐사' : '';
+  $('#hSite').textContent = S.school.site_name ? '채종 지역: ' + S.school.site_name : '';
   document.title = S.school.name + ' 2026 시드핸즈 프로젝트';
   const nm = S.student.name.length > 2 ? S.student.name.slice(1) : S.student.name;
   const counts = SH.STATUS.map(s => S.accs.filter(a => a.status === s.id || (s.id === 'collected' && a.status === 'rejected')).length);
@@ -745,7 +758,7 @@ function openNation() {
   $('#natSay').innerHTML = SH.say('전국의 친구들이 모은 씨앗이야! 점을 눌러 보면 어떤 씨앗인지 알 수 있어. 모두 백두대간을 따라 시드볼트로 가고 있어. ⛰️', { cls: 'soft' });
   show('nation'); drawNatMap(); loadPublic();
 }
-function openVaultInfo() { $('#vaultSay').innerHTML = SH.say('내가 가고 싶은 곳이 바로 여기야. 씨앗을 잘 받는 방법도 꼭 읽어 줘!'); show('vault'); }
+function openVaultInfo() { $('#vaultSay').innerHTML = SH.say('기후위기로 사라져 가는 식물을 지키려고 내가 가는 곳이 바로 여기야. 씨앗을 잘 받는 방법도 꼭 읽어 줘!'); show('vault'); }
 async function loadPublic() { try { const r = await SH.rpc('seedhands_public_points', {}); if (r.ok) { S.pub = r; if (!$('#nation').classList.contains('hidden')) drawNatMap(); } } catch {} }
 function drawNatMap() {
   const pts = (S.pub?.points || []).slice();
@@ -754,7 +767,7 @@ function drawNatMap() {
   if (SH.leaflet()) {
     const mk = S.accs.filter(a => a.data.lat).map(a => `${(+a.data.lat).toFixed(3)},${(+a.data.lng).toFixed(3)}`);
     const isMine = p => mk.includes(`${(+p.lat).toFixed(3)},${(+p.lng).toFixed(3)}`);
-    $('#natMap').innerHTML = '<div id="natL" class="lmap" style="height:520px;border-radius:18px"></div><div class="maplegend lg-light"><span><i style="background:#9FD08A"></i>채종한 씨앗</span><span><i style="background:#6E9A5B"></i>내 씨앗</span><span><i style="background:#D9982B"></i>시드볼트 도착</span><span>🏔️ 시드볼트 · 🏫 우리 탐사지</span></div>';
+    $('#natMap').innerHTML = '<div id="natL" class="lmap" style="height:520px;border-radius:18px"></div><div class="maplegend lg-light"><span><i style="background:#9FD08A"></i>채종한 씨앗</span><span><i style="background:#6E9A5B"></i>내 씨앗</span><span><i style="background:#D9982B"></i>시드볼트 도착</span><span>🏔️ 시드볼트 · 🏫 우리 채종 지역</span></div>';
     setTimeout(() => SH.seedMap($('#natL'), { points: pts.filter(p => !isMine(p)), mine: pts.filter(isMine), site, ridge: true, vault: true, zoom: { c: [36.4, 127.9], z: 7 } }), 30);
   } else $('#natMap').innerHTML = SH.koreaSVG({ points: pts, site, dark: true, id: 'natSvg' }) + `<div class="maplegend"><span><i style="background:#9FD08A"></i>채종한 씨앗</span><span><i style="background:#D9982B"></i>시드볼트 입고</span><span><i style="background:#D9982B;border-radius:2px;width:14px;height:3px;vertical-align:3px"></i>백두대간</span></div><div class="mappop hidden" id="mapPop"></div>`;
   const pop = $('#mapPop');
@@ -830,7 +843,7 @@ function q(title, hint, body) { return `<div class="q"><div class="ql">${title}<
 function renderStep() {
   const d = A.data, st = A.step;
   $('#stepbar').innerHTML = STEPS.map(([t], i) => `<button type="button" class="${i <= st ? 'on' : ''} ${i === st ? 'cur' : ''}" data-step="${i}"><i></i>${t}</button>`).join('');
-  $('#stepbar').querySelectorAll('[data-step]').forEach(b => b.onclick = () => { const to = +b.dataset.step; if (to > 0 && !A.data.plant?.trim()) return SH.toast('식물 이름을 먼저 정해 주세요.'); A.step = to; renderStep(); });
+  $('#stepbar').querySelectorAll('[data-step]').forEach(b => b.onclick = () => { const to = +b.dataset.step; if (to > 0 && !A.data.plant?.trim()) return SH.toast('식물 이름을 먼저 정해 주세요.'); if (to > 3 && (!A.photo_plant || !A.photo_seed)) return SH.toast('📸 식물 전체 사진과 씨앗 사진을 먼저 넣어 주세요.', 3200); A.step = to; renderStep(); });
   $('#accPrev').textContent = st ? '이전' : '취소';
   $('#accNext').textContent = st === 4 ? (A.id ? '고친 내용 저장' : '저장하고 보내기') : '다음';
   $('#accNext').className = st === 4 ? 'btn seed' : 'btn';
@@ -847,7 +860,7 @@ function renderStep() {
       <div class="locways">
         <button type="button" class="btn ${d.lat ? 'line' : ''} bigbtn" id="gpsBtn">📍 ${d.lat ? '지금 위치로 다시 찾기' : '지금 여기예요 (GPS)'}</button>
         <div class="addr-or">또는 <b>주소·장소 이름</b>으로 찾기 <span class="muted">(집에 와서 나중에 적을 때)</span></div>
-        <form class="addrsearch" id="addrForm"><input class="inp" id="addrQ" placeholder="예: 대모산, 일원동 산 1, 송례중학교" autocomplete="off"><button class="btn" type="submit">🔎 찾기</button></form>
+        <form class="addrsearch" id="addrForm"><input class="inp" id="addrQ" placeholder="예: 송파구 장지동, 탄천 산책로, ○○공원" autocomplete="off"><button class="btn" type="submit">🔎 찾기</button></form>
         <div id="addrRes" class="addrres"></div>
         <span class="hint">찾은 다음 지도에서 핀을 끌어 씨앗 받은 곳에 딱 맞춰 줘요.</span>
       </div>
@@ -959,12 +972,16 @@ function bindAi() {
   });
 }
 async function runAi() {
+  if (A.aiBusy) return;
+  const me = A, sig = aiSig();
   A.aiBusy = true; A.aiErr = ''; bindAi();
   const d = A.data, z = d.lat ? SH.zoneOf(d.lat, d.lng, d.alt) : null;
   const r = await SH.aiReview({ token: S.token, plant: d.plant, sci: d.sci, date: d.date, lat: d.lat, lng: d.lng, alt: d.alt, address: d.address, zone: z ? z.name : '', habitat: d.habitat, fruit: d.fruit, plantPhoto: A.photo_plant, seedPhoto: A.photo_seed, fruitPhoto: A.photo_fruit });
-  A.aiBusy = false;
+  me.aiBusy = false;
+  if (A !== me) return; /* 그 사이 다른 기록으로 바뀌었어요 */
+  if (aiSig() !== sig) { A.aiErr = '확인하는 동안 사진이나 이름이 바뀌었어요. 다시 확인받아 주세요.'; bindAi(); return; }
   if (!r.ok) { A.aiErr = r.error || 'AI 확인을 받지 못했어요.'; if (r.off) { S.aiOn = false; A.aiErr += ' 그냥 보내도 괜찮아요.'; } bindAi(); return; }
-  A.aiRes = r.result; Object.assign(A.data, { ai_id: r.id, ai_level: r.result.level, ai_summary: r.result.summary, ai_at: new Date().toISOString(), ai_sig: aiSig() }); markAcc(); bindAi();
+  A.aiRes = r.result; Object.assign(A.data, { ai_id: r.id, ai_level: r.result.level, ai_summary: r.result.summary, ai_at: new Date().toISOString(), ai_sig: sig }); markAcc(); bindAi();
   SH.toast(SH.AI_LEVEL[r.result.level]?.emoji + ' AI 확인이 끝났어요!');
 }
 function gisRows() {
@@ -1013,7 +1030,7 @@ async function setPlant(info, keepName) {
   const d = A.data; if (!keepName) d.plant = info.n; d.sci = info.s || ''; d.family = info.f || ''; d.taxon = info.id || null;
   const t = SH.taxoFields(d.sci, d.family); Object.assign(d, { famLa: t.famLa, genus: t.genus, genusKo: t.genusKo, author: t.author });
   const inp = $('#accBody [data-f=plant]'); if (inp && !keepName) inp.value = d.plant;
-  $('#idLine').innerHTML = idLine(); $('#tipArea').innerHTML = plantTip();
+  const il = $('#idLine'); if (il) il.innerHTML = idLine(); const ta = $('#tipArea'); if (ta) ta.innerHTML = plantTip();
   if (!d.form) { const p = SH.findPlant(d.plant, d.sci); if (p) d.form = p.t === '풀' ? '풀' : p.t === '덩굴' ? '덩굴' : ''; }
   markAcc();
   if (info.id && !t.famLa) { const x = await SH.taxonInfo(info.id); if (A) { Object.assign(d, { famLa: x.famLa || '', genusKo: x.genusKo || '', genus: x.genus || t.genus }); if (!d.family) d.family = x.family || ''; $('#idLine') && ($('#idLine').innerHTML = idLine()); markAcc(); } }
@@ -1086,6 +1103,9 @@ $('#accNext').onclick = async () => {
     if (go) { runAi(); return; } A.aiSkip = true;
   }
   if (A.step < 4) { A.step++; renderStep(); return; }
+  if (A.aiBusy) { SH.toast('AI 확인이 끝날 때까지 잠깐만 기다려 줘요.'); return; }
+  if (!A.photo_plant || !A.photo_seed) { A.step = 3; renderStep(); SH.toast('📸 식물 전체 사진과 씨앗 사진을 꼭 넣어 주세요.', 3200); return; }
+  if (A.data.ai_sig && A.data.ai_sig !== aiSig()) { ['ai_id', 'ai_level', 'ai_summary', 'ai_at', 'ai_sig'].forEach(k => delete A.data[k]); }
   const btn = $('#accNext'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 저장 중';
   const img = k => A.id ? (A.imgChanged[k] ? (A[k] || '') : null) : (A[k] || null);
   try {
