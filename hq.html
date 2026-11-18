@@ -229,7 +229,7 @@ const schoolOf = id => G.schools.find(s => s.id === id) || {};
 const regOf = a => SH.regionKey(schoolOf(a.school_id).region || a.data?.address) || '기타';
 const zoneOf = a => a.data && a.data.lat ? SH.zoneOf(a.data.lat, a.data.lng, a.data.alt) : null;
 const aiOf = a => a.ai?.result?.level || a.data?.ai_level || '';
-const base = () => location.href.replace(/hq\.html.*$/, '').replace(/[?#].*$/, '');
+let base = () => location.href.replace(/hq\.html.*$/, '').replace(/[?#].*$/, '');
 
 /* ───── 들어가기 ───── */
 $('#loginF').onsubmit = async e => {

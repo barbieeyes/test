@@ -536,7 +536,7 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
 <script>
 const $ = s => document.querySelector(s);
 const S = { token: SH.store.get('sh_token'), code: null, school: null, student: null, recs: {}, accs: [], pub: null };
-const views = ['login', 'onboard', 'home', 'gallery', 'nation', 'acc', 'detail', 'note', 'vault', 'form'];
+const views = ['login', 'onboard', 'home', 'gallery', 'nation', 'acc', 'detail', 'note', 'vault', 'form', 'book'];
 function show(id) { views.forEach(v => $('#' + v).classList.toggle('hidden', v !== id)); window.scrollTo(0, 0); document.body.style.overflow = ''; }
 document.querySelectorAll('[data-home]').forEach(b => b.onclick = () => { renderHome(); show('home'); });
 $('#lgLogo').innerHTML = SH.logo(36); $('#hLogo').innerHTML = SH.logo(36); $('#lgToli').innerHTML = SH.toli(110, true); $('#hToli').innerHTML = SH.toli(96, true);
