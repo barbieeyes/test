@@ -625,6 +625,7 @@ SH.demo = function (fn, a) {
       Object.assign(db.schools.find(x => x.id === adm.school_id), { name: a.p_name, region: a.p_region, site_name: a.p_site_name, site_lat: a.p_site_lat, site_lng: a.p_site_lng, contact: a.p_contact }); save(); return { ok: true };
     }
   }
+  if (SH.demoExpert) { const r = SH.demoExpert(fn, a, { db, sess, sid, adm, save }); if (r) return r; }
   return { ok: false, error: '알 수 없는 요청이에요.' };
 };
 

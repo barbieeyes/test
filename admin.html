@@ -183,6 +183,7 @@
 <script src="common.js"></script>
 <script src="plants.js"></script>
 <script src="geo.js"></script>
+<script src="expert.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -328,7 +329,7 @@ function renderAcc() {
       <td class="num">${d.seedCount ? Number(d.seedCount).toLocaleString() : ''}</td>
       <td>${flags(a).map(([c, t]) => `<span class="flag ${c}">${t}</span>`).join('')}</td>
       <td><span class="rd"><i style="--w:${rd.score / rd.total * 100}%"></i>${rd.score}/${rd.total}</span></td>
-      <td>${d.ai_level && SH.AI_LEVEL[d.ai_level] ? `<span title="${SH.esc(SH.AI_LEVEL[d.ai_level].label)}">${SH.AI_LEVEL[d.ai_level].emoji}</span>` : '<span class="muted small">-</span>'}</td>
+      <td>${d.ai_level && SH.AI_LEVEL[d.ai_level] ? `<span title="${SH.esc(SH.AI_LEVEL[d.ai_level].label)}">${SH.AI_LEVEL[d.ai_level].emoji}</span>` : '<span class="muted small">-</span>'}${SH.expertTag(d) ? '<br>' + SH.expertTag(d) : ''}</td>
       <td><span class="tag st-${a.status}">${SH.ST[a.status].label}</span></td></tr>`;
   }).join('') || `<tr><td colspan="10" class="muted" style="text-align:center;padding:36px;cursor:default">${list.length ? '조건에 맞는 기록이 없어요.' : '아직 학생 채종 기록이 없어요. 학교 설정에서 학교 코드를 학생들에게 안내해 주세요.'}</td></tr>`;
   $('#accFoot').textContent = `${rows.length}점 표시, 전체 ${list.length}점, 씨앗 약 ${list.reduce((n, a) => n + (parseInt(a.data.seedCount) || 0), 0).toLocaleString()}개`;
@@ -416,6 +417,7 @@ async function openAcc(id) {
     <div class="panel"><h2>사진과 그림</h2><div class="imgs" id="dImgs"><span class="muted small"><span class="spin"></span> 불러오는 중</span></div></div>
     <div class="panel"><h2>기탁 준비도 ${rd.score}/${rd.total}</h2><ul class="ready-list">${rd.items.map(([t, ok]) => `<li class="${ok ? '' : 'n'}">${t}</li>`).join('')}</ul></div>
     <div class="panel"><h2>채종 정보</h2><dl class="kv">${rows.filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${SH.esc(v)}</dd>`).join('')}</dl></div>
+    <div class="panel" id="dEx"></div>
     <div class="panel" id="dAi"><h2>🤖 AI 검토</h2><p class="muted small" style="margin:0">${d.ai_id ? '불러오는 중…' : '학생이 AI 검토를 받지 않았어요.'}</p></div>
     ${d.lat ? `<div class="panel"><h2>채종지 식생대</h2>${SH.zoneCard(SH.zoneOf(d.lat, d.lng, d.alt), { short: true, month: +String(d.date || '').slice(5, 7) || null })}</div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn line sm" id="dPrint">이 씨앗 라벨 인쇄</button><button class="btn danger sm" id="dDel">이 기록 지우기</button></div></div>`;
@@ -424,6 +426,7 @@ async function openAcc(id) {
   bg.onclick = e => { if (e.target === bg) close(); }; bg.querySelector('[data-x]').onclick = close;
   bg.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
   bg.querySelector('#dPrint').onclick = () => printLabels([a]);
+  SH.expertBox(bg.querySelector('#dEx'), { acc: a, token: G.token, role: 'teacher', onChange: x => { a.data = x.data; } });
   bg.querySelector('#dDel').onclick = async () => {
     if (!(await SH.dialog({ title: '이 기록을 지울까요?', msg: `${a.acc_no} ${d.plant || ''} 기록과 사진이 영구히 지워져요. 되돌릴 수 없어요.`, ok: '영구 삭제', danger: true }))) return;
     const r = await SH.rpc('seedhands_admin_acc_delete', { p_token: G.token, p_ids: [a.id] }); if (!r.ok) return SH.toast(r.error || '지우지 못했어요');

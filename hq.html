@@ -21,6 +21,9 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="admin.css">
 <style>
+.exhero { display:flex; gap:20px; align-items:center; justify-content:space-between; background:linear-gradient(135deg,#EAF2EC,#FFF6E3); border-radius:var(--r-lg); padding:20px 24px; margin-bottom:16px; flex-wrap:wrap; }
+.nvbadge:not(:empty) { background:#C4472A; color:#fff; border-radius:999px; font-size:11.5px; padding:1px 7px; margin-left:4px; font-weight:700; }
+.aimeter { margin:10px 0 16px; } .aimeter .bar { height:12px; border-radius:6px; background:#EEE9DC; overflow:hidden; } .aimeter .bar i { display:block; height:100%; background:var(--moss); }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
 .kpi { background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 16px 18px; position: relative; overflow: hidden; }
 .kpi .e { position: absolute; right: 10px; top: 8px; font-size: 26px; opacity: .85; }
@@ -92,6 +95,7 @@
     <button class="nv on" data-v="home">📊 한눈에 보기</button>
     <button class="nv" data-v="map">🗺️ 전국 지도</button>
     <button class="nv" data-v="arc">🗂️ 채종 아카이브</button>
+    <button class="nv" data-v="exp">🔬 전문가 검토 <span class="nvbadge" id="expBadge"></span></button>
     <button class="nv" data-v="book">📗 시드핸즈 도감</button>
     <button class="nv" data-v="notes">📒 관찰 노트</button>
     <button class="nv" data-v="sch">🏫 참여 학교</button>
@@ -188,6 +192,21 @@
         <div class="tbl"><table id="depTable"></table></div></div>
     </section>
 
+    <section data-view="exp" class="hidden">
+      <div class="exhero"><div><h2 style="margin:0 0 6px">AI가 1차로 거르고, 전문가가 확정해요</h2>
+        <p class="muted" style="margin:0;max-width:52em">학생·교사가 사진 3장 이상으로 보낸 검토 요청이 한곳에 모여요. 전문가가 확인한 기록은 기탁 양식의 <b>동정자</b>에 전문가 이름이 들어가고, 바로잡은 이름은 국명·학명에 바로 반영돼요. 시드볼트에 보내는 기록의 신뢰도가 올라가요.</p></div>
+        <a class="btn seed" id="expOpen" href="expert.html">🔬 검토 화면 열기</a></div>
+      <div class="kpis" id="exKpis"></div>
+      <div class="grid2">
+        <div class="panel"><h2>판정 결과</h2><div class="bars" id="exBars"></div></div>
+        <div class="panel"><h2>AI는 얼마나 믿을 만할까요? <small>전문가 판정과 비교</small></h2><div id="exAi"></div></div>
+      </div>
+      <div class="panel"><h2>대기 중인 요청 <small>오래 기다린 순서</small></h2><div class="tbl"><table><thead><tr><th>요청</th><th>학교</th><th>적은 이름</th><th>AI</th><th class="num">사진</th><th>기다린 시간</th><th>상태</th></tr></thead><tbody id="exQ"></tbody></table></div></div>
+      <div class="panel"><h2>전문가 계정 <small>전문가는 이메일과 비밀번호로 검토 화면에 들어가요</small></h2>
+        <div class="toolbar"><button class="btn sm" id="exNew">＋ 전문가 추가</button><span class="sp"></span><span class="small muted">검토 화면 주소: <code id="exUrl"></code></span></div>
+        <div class="tbl"><table><thead><tr><th>이름</th><th>소속</th><th>분야</th><th>이메일(아이디)</th><th class="num">맡은 일</th><th class="num">검토 완료</th><th>상태</th><th></th></tr></thead><tbody id="exList"></tbody></table></div></div>
+    </section>
+
     <section data-view="roles" class="hidden">
       <p class="muted" style="margin:0 0 16px;max-width:60em">시드핸즈는 세 주체가 함께 움직여요. 각 역할이 해야 할 일을 순서대로 정리했어요. 자세한 내용은 운영 매뉴얼(Word)과 안내 영상에 있어요.</p>
       <div class="roles" id="rolesBox"></div>
@@ -216,13 +235,14 @@
 <script src="common.js"></script>
 <script src="plants.js"></script>
 <script src="geo.js"></script>
+<script src="expert.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 document.querySelectorAll('.lg').forEach(e => e.innerHTML = SH.logo(36));
 const G = { token: sessionStorage.getItem('sh_hq'), schools: [], accs: [], view: 'home', sel: new Set(), year: '', color: 'status' };
 const STC = { collected: '#6E9A5B', drying: '#D9982B', cleaned: '#7262A8', packed: '#2F5D7C', deposited: '#143A2E', rejected: '#B5452F' };
-const TITLE = { book: '시드핸즈 도감', home: '전국 한눈에 보기', map: '전국 채종 지도', arc: '채종 아카이브', notes: '관찰 노트 아카이브', sch: '참여 학교', dep: '기탁 양식', roles: '역할별 할 일', set: '설정' };
+const TITLE = { exp: '전문가 검토', book: '시드핸즈 도감', home: '전국 한눈에 보기', map: '전국 채종 지도', arc: '채종 아카이브', notes: '관찰 노트 아카이브', sch: '참여 학교', dep: '기탁 양식', roles: '역할별 할 일', set: '설정' };
 const num = v => { const n = parseFloat(String(v ?? '').replace(/[^\d.]/g, '')); return isFinite(n) ? n : 0; };
 const fmt = n => Number(n || 0).toLocaleString('ko-KR');
 const schoolOf = id => G.schools.find(s => s.id === id) || {};
@@ -266,10 +286,11 @@ async function load() {
   $('#bulkSt').innerHTML = [...SH.STATUS, SH.STATUS_REJ].map(s => `<option value="${s.id}">${s.label}</option>`).join('');
   $('#nM').innerHTML = '<option value="">모든 노트</option>' + SH.MISSIONS.map(m => `<option value="${m.id}">${m.emoji || ''} ${m.title}</option>`).join('');
   go(G.view);
+  SH.rpc('seedhands_hq_experts', { p_token: G.token }).then(x => { if (x.ok) $('#expBadge').textContent = (x.stats.waiting + x.stats.claimed) || ''; }).catch(() => {});
 }
 $('#fYear').onchange = () => { G.year = $('#fYear').value; applyYear(); render(); };
 function applyYear() { G.accs = G.allAccs.filter(a => !G.year || (a.data?.date || a.created_at || '').startsWith(G.year)); }
-function render() { ({ book: rBook, home: rHome, map: rMap, arc: rArc, notes: rNotes, sch: rSch, dep: rDep, roles: rRoles, set: rSet })[G.view](); }
+function render() { ({ exp: rExp, book: rBook, home: rHome, map: rMap, arc: rArc, notes: rNotes, sch: rSch, dep: rDep, roles: rRoles, set: rSet })[G.view](); }
 
 function bars(el, rows, color = 'var(--moss)', unit = '') {
   const max = Math.max(1, ...rows.map(r => r[1]));
@@ -362,7 +383,7 @@ function pickAcc(a) {
     <button class="btn sm" style="margin-top:12px" id="mOpen">자세히 보기</button></div>` + SH.zoneCard(z, { short: true, month: +String(d.date || '').slice(5, 7) || null }) + regionBox(d.lat, d.lng, d.address);
   $('#mOpen').onclick = () => openAcc(a.id); fillRegion(+d.lat, +d.lng);
 }
-function aiTag(a) { const l = aiOf(a); const L = SH.AI_LEVEL[l]; return L ? `<span class="ailv ${l}">${L.emoji} ${L.label}</span>` : '<span class="ailv">검토 안 함</span>'; }
+function aiTag(a) { const l = aiOf(a); const L = SH.AI_LEVEL[l]; return (L ? `<span class="ailv ${l}">${L.emoji} ${L.label}</span>` : '<span class="ailv">검토 안 함</span>') + (SH.expertTag(a.data || {}) ? ' ' + SH.expertTag(a.data || {}) : ''); }
 
 /* ───── 아카이브 ───── */
 ['#aq', '#aReg', '#aSch', '#aSt', '#aAi'].forEach(id => $(id).addEventListener(id === '#aq' ? 'input' : 'change', () => rArc()));
@@ -402,6 +423,7 @@ async function openAcc(id) {
   bg.innerHTML = `<div class="drawer" role="dialog" aria-modal="true"><div class="dh"><div style="flex:1"><div class="accno">${SH.esc(a.acc_no)} · ${SH.esc(s.name || '')}</div><h2>${SH.esc(d.plant || '이름 모름')}</h2><div class="sci">${SH.esc(d.sci || '')}</div></div><button class="btn line sm" data-x>닫기</button></div>
     <div class="panel"><h2>사진</h2><div class="imgs" id="dImgs"><p class="muted small">사진을 불러오는 중…</p></div></div>
     ${a.ai?.result ? `<div class="panel"><h2>🤖 AI 검토</h2>${SH.aiCard(a.ai.result, { teacher: true })}<p class="small muted" style="margin-top:6px">${SH.esc(a.ai.model || '')} · ${a.ai.created_at ? new Date(a.ai.created_at).toLocaleString('ko-KR') : ''}</p></div>` : '<div class="panel"><h2>🤖 AI 검토</h2><p class="muted small" style="margin:0">AI 검토를 받지 않은 기록이에요.</p></div>'}
+    <div class="panel" id="dEx"></div>
     <div class="panel"><h2>진행 단계</h2><div class="stbtns">${[...SH.STATUS, SH.STATUS_REJ].map(x => `<button data-st="${x.id}" class="${x.id === a.status ? 'on' : ''} ${x.id === 'rejected' ? 'rej' : ''}">${x.label}</button>`).join('')}</div>
       <label class="field" style="margin-top:12px"><span class="lbl">학교·학생에게 남길 메모</span><textarea class="inp" id="dNote" rows="2">${SH.esc(a.teacher_note || '')}</textarea></label><button class="btn line sm" id="dNoteSave">메모 저장</button></div>
     <div class="panel"><h2>채종 정보 고치기 <small>기탁 양식에 그대로 들어가요</small></h2>
@@ -413,6 +435,7 @@ async function openAcc(id) {
     <div class="dangerzone"><b style="color:var(--alert)">기록 삭제</b><p class="small muted" style="margin:4px 0 8px">사진과 함께 영구히 지워져요.</p><button class="btn line sm" id="dDel" style="color:var(--alert)">이 기록 지우기</button></div></div>`;
   document.body.appendChild(bg);
   const close = () => bg.remove(); bg.querySelector('[data-x]').onclick = close; bg.onclick = e => { if (e.target === bg) close(); };
+  SH.expertBox(bg.querySelector('#dEx'), { acc: a, token: G.token, role: 'hq', onChange: x => { a.data = x.data; } });
   bg.querySelectorAll('[data-st]').forEach(b => b.onclick = async () => { const r = await SH.rpc('seedhands_admin_acc_update', { p_token: G.token, p_ids: [a.id], p_status: b.dataset.st, p_note: null }); if (!r.ok) return SH.toast('바꾸지 못했어요'); a.status = b.dataset.st; bg.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b)); SH.toast('단계를 바꿨어요'); render(); });
   bg.querySelector('#dNoteSave').onclick = async () => { const r = await SH.rpc('seedhands_admin_acc_update', { p_token: G.token, p_ids: [a.id], p_status: null, p_note: bg.querySelector('#dNote').value }); SH.toast(r.ok ? '메모를 저장했어요' : '저장하지 못했어요'); if (r.ok) a.teacher_note = bg.querySelector('#dNote').value; };
   bg.querySelector('#dSave').onclick = async () => {
@@ -535,10 +558,10 @@ $('#xDep').onclick = () => { const L = depList(); if (!L.length) return SH.toast
   const rows = depRows(L).map(r => r.map((v, i) => i === 0 || i === 7 || i === 15 || i === 16 || i === 23 ? (v === '' ? '' : +v || v) : v));
   SH.download(SH.xlsx([{ name: '기탁목록', rows }, { name: '상세정보', rows: arcRows(L) }]), `시드볼트_기탁목록_${SH.today()}.xlsx`); };
 function arcRows(L) {
-  const h = ['채종 번호', '학교', '지역', '채종자', '학번', '국명', '학명', '과', '채종일', '씨앗 수(립)', '점수', '무게(g)', '위도', '경도', '고도', '채집지', '식생대', '백두대간 거리(km)', '자라는 곳', '무리 크기', '받은 그루', '받은 비율', '익은 정도', '동정자', 'AI 판정', 'AI 확신(%)', 'AI 의견', '단계', '선생님 메모', '등록일'];
+  const h = ['채종 번호', '학교', '지역', '채종자', '학번', '국명', '학명', '과', '채종일', '씨앗 수(립)', '점수', '무게(g)', '위도', '경도', '고도', '채집지', '식생대', '백두대간 거리(km)', '자라는 곳', '무리 크기', '받은 그루', '받은 비율', '익은 정도', '동정자', 'AI 판정', 'AI 확신(%)', 'AI 의견', '전문가 판정', '전문가 확인 국명', '전문가 확인 학명', '전문가 의견', '전문가', '처음 적은 이름', '단계', '선생님 메모', '등록일'];
   return [h, ...L.map(a => { const d = a.data || {}, z = zoneOf(a), R = a.ai?.result || {};
     return [a.acc_no, schoolOf(a.school_id).name || '', regOf(a), a.student || '', a.student_no || '', d.plant || '', d.sci || '', d.family || '', d.date || '', num(d.seedCount) || '', d.lots || '', d.weight || '', d.lat ? +d.lat : '', d.lng ? +d.lng : '', d.alt !== '' && d.alt != null ? +d.alt : '', d.address || '',
-      z?.name || '', z ? z.ridgeKm : '', d.habitat || '', d.popSize || '', d.plantsSampled || '', d.share || '', d.ripe || '', d.identifier || '', SH.AI_LEVEL[aiOf(a)]?.label || '', R.score ?? '', R.summary || d.ai_summary || '', SH.ST[a.status]?.label || '', a.teacher_note || '', SH.dayOf(a.created_at)]; })];
+      z?.name || '', z ? z.ridgeKm : '', d.habitat || '', d.popSize || '', d.plantsSampled || '', d.share || '', d.ripe || '', d.identifier || '', SH.AI_LEVEL[aiOf(a)]?.label || '', R.score ?? '', R.summary || d.ai_summary || '', SH.EXP_VERDICT[d.expert_verdict]?.label || (d.expert_status === 'waiting' ? '검토 중' : ''), d.expert_ko || '', d.expert_sci || '', d.expert_comment || '', d.expert_name || '', d.plant_orig || '', SH.ST[a.status]?.label || '', a.teacher_note || '', SH.dayOf(a.created_at)]; })];
 }
 function xlsxArc(L, nm) { if (!L.length) return SH.toast('내려받을 기록이 없어요'); SH.download(SH.xlsx([{ name: nm, rows: arcRows(L) }, { name: '기탁목록', rows: depRows(L) }]), `시드핸즈_${nm}_${SH.today()}.xlsx`); }
 
@@ -546,19 +569,62 @@ function xlsxArc(L, nm) { if (!L.length) return SH.toast('내려받을 기록이
 function rRoles() {
   const R = [
     { c: '#143A2E', t: '① 운영국', w: '서울여대 시드핸즈 총괄팀', s: [
-      ['시작 전', ['운영국 비밀번호를 정하고(설정 메뉴) 팀 안에서만 공유해요.', '참여 학교를 모집하고 담당 교사에게 선생님 화면 주소와 운영 매뉴얼·안내 영상을 보내요.', 'AI 검토 방식을 정해요: 공용 AI를 켜 둘지, 학교가 자기 키를 넣을지(설정 → AI 공용 연결).']],
-      ['활동 중', ['「한눈에 보기」에서 학교별 참여와 기록 수를 매주 확인해요.', '「채종 아카이브」에서 AI가 ⚠️·🤔로 표시한 기록을 먼저 살펴보고, 필요하면 담당 교사에게 메모를 남겨요.', '「참여 학교」에서 코드 분실·비밀번호 분실 문의를 처리해요(코드 확인, 비밀번호 다시 정하기).']],
+      ['시작 전', ['운영국 비밀번호를 정하고(설정 메뉴) 팀 안에서만 공유해요.', '참여 학교를 모집하고 담당 교사에게 선생님 화면 주소와 운영 매뉴얼·안내 영상을 보내요.', 'AI 검토 방식을 정해요: 공용 AI를 켜 둘지, 학교가 자기 키를 넣을지(설정 → AI 공용 연결).', '「전문가 검토」에서 식물분류 전문가 계정(이메일·비밀번호)을 만들고, 검토 화면 주소를 전문가에게 보내요.']],
+      ['활동 중', ['「한눈에 보기」에서 학교별 참여와 기록 수를 매주 확인해요.', '「채종 아카이브」에서 AI가 ⚠️·🤔로 표시한 기록을 먼저 살펴보고, 필요하면 담당 교사에게 메모를 남겨요.', '「참여 학교」에서 코드 분실·비밀번호 분실 문의를 처리해요(코드 확인, 비밀번호 다시 정하기).', '「전문가 검토」에서 대기 요청과 오래 기다린 요청을 확인하고, AI와 전문가 판정 일치율을 살펴요.']],
       ['마무리', ['학교에서 「정선 완료」이후로 올린 기록을 「기탁 양식」에서 엑셀로 내려받아요.', '시드볼트와 기탁 일정을 협의하고, 도착한 씨앗과 목록을 맞춰 본 뒤 「시드볼트 입고」로 바꿔요.', '연말에 전체 아카이브를 엑셀로 내려받아 보관해요.']]] },
     { c: '#2F5D7C', t: '② 담당 교사', w: '전국 참여 학교 선생님', s: [
       ['시작 전', ['선생님 화면에서 「새 학교 등록」을 하고 학교 코드를 받아요. 코드를 잊으면 「학교 코드 찾기」를 눌러요.', '「학교 설정」에서 채종 지역 위치·기탁기관명을 넣고, QR 안내문을 인쇄해 학생에게 나눠 줘요.', '교사 학습안으로 채종할 식물과 안전 수칙을 미리 정해요.']],
-      ['활동 중', ['현장에서 학생에게 안전 수칙을 안내하고, 씨앗 찾기와 식물 이름(동정)을 직접 설명해요.', '학생 기록을 「기탁 준비」에서 검토하고, AI 의견과 사진을 보고 학명·무게·점수를 마무리해요.', '씨앗을 건조 → 정선 → 포장 단계로 옮기며 단계를 바꿔요.']],
+      ['활동 중', ['현장에서 학생에게 안전 수칙을 안내하고, 씨앗 찾기와 식물 이름(동정)을 직접 설명해요.', '학생 기록을 「기탁 준비」에서 검토하고, AI 의견과 사진을 보고 학명·무게·점수를 마무리해요.', '씨앗을 건조 → 정선 → 포장 단계로 옮기며 단계를 바꿔요.', '이름이 헷갈리는 기록은 사진을 3장 이상 모아 「🔬 전문가에게 검토 요청」을 보내요. 결과는 동정자에 자동으로 들어가요.']],
       ['마무리', ['포장한 씨앗에 라벨을 붙이고 「포장·라벨 완료」로 바꿔요.', '운영국 안내에 따라 씨앗을 보내요.', '학생 기록 중 잘못된 것은 고치거나 지워요.']]] },
     { c: '#D9982B', t: '③ 학생', w: '참여 초·중학생', s: [
       ['처음 한 번', ['QR을 찍고 학번·이름·비밀번호 4자리로 들어가요(다음부터 자동 로그인).', '톨이의 인사와 안전 수칙을 읽어요.']],
       ['산에서', ['선생님 안내에 따라 다 익은 열매를 찾아요. 한 식물에서 조금만(20% 이하) 받아요.', '「씨앗 찾았어요!」를 눌러 위치(GPS), 식물 이름, 식물·씨앗 사진을 남겨요.', '헷갈리면 꼭 선생님께 물어봐요.']],
-      ['교실에서', ['사진이 다 있으면 🤖 AI에게 한 번 더 확인받고, 선생님께 기록을 보내요.', '씨앗을 종이봉투에 담아 그늘에서 말리고, 관찰 노트와 그림도 남겨요.', '내 씨앗이 시드볼트까지 가는 단계를 앱에서 확인해요.']]] },
+      ['교실에서', ['사진이 다 있으면 🤖 AI에게 한 번 더 확인받고, 선생님께 기록을 보내요.', '씨앗을 종이봉투에 담아 그늘에서 말리고, 관찰 노트와 그림도 남겨요.', '내 씨앗이 시드볼트까지 가는 단계를 앱에서 확인해요.', '이름이 헷갈리면 자세한 사진을 더 넣고 🔬 전문가 선생님께 물어봐요.']]] },
   ];
   $('#rolesBox').innerHTML = R.map(r => `<div class="role" style="--rc:${r.c}"><h2>${r.t}</h2><div class="who">${r.w}</div>${r.s.map(([h, L]) => `<h3>${h}</h3><ol>${L.map(x => `<li>${x}</li>`).join('')}</ol>`).join('')}</div>`).join('');
+}
+
+/* ───── 전문가 검토 ───── */
+async function rExp() {
+  $('#exUrl').textContent = base() + 'expert.html';
+  const [r, q] = await Promise.all([SH.rpc('seedhands_hq_experts', { p_token: G.token }), SH.rpc('seedhands_expert_queue', { p_token: G.token, p_status: 'open' })]);
+  if (!r.ok) { $('#exKpis').innerHTML = '<p class="muted">불러오지 못했어요.</p>'; return; }
+  const S = r.stats || {}, pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '-';
+  G.expOpen = S.waiting + S.claimed; $('#expBadge').textContent = G.expOpen || '';
+  const K = [['🔬', fmt(S.total || 0), '전체 요청', ''], ['⏳', fmt(S.waiting || 0), '기다리는 중', S.oldest_hours ? `가장 오래: ${S.oldest_hours}시간` : ''], ['🧑‍🔬', fmt(S.claimed || 0), '전문가가 보는 중', ''],
+    ['📸', fmt(S.more || 0), '사진 더 필요', '학교가 보완하면 다시 와요'], ['✅', fmt(S.done || 0), '검토 완료', S.hours != null ? `평균 ${S.hours}시간 걸림` : ''], ['🎯', pct(S.correct || 0, S.decided || 0), '학생 이름이 맞은 비율', `확정 ${S.decided || 0}건 중`]];
+  $('#exKpis').innerHTML = K.map(([e, b, t, sm]) => `<div class="kpi"><span class="e">${e}</span><b>${b}</b><span>${t}</span>${sm ? `<small>${sm}</small>` : ''}</div>`).join('');
+  bars($('#exBars'), [['✅ 맞아요', S.correct || 0], ['✏️ 바로잡음', S.corrected || 0], ['❓ 판단 어려움', S.uncertain || 0], ['📸 사진 더 필요', S.need_photo || 0]], 'var(--moss)', '건');
+  const m1 = S.ai_match_total ? S.ai_match_ok / S.ai_match_total : null, m2 = S.ai_flag_total ? S.ai_flag_ok / S.ai_flag_total : null;
+  $('#exAi').innerHTML = `<div class="aimeter"><b>AI가 ✅ 맞다고 한 기록</b> · 전문가도 맞다고 한 비율 <b>${m1 == null ? '-' : Math.round(m1 * 100) + '%'}</b> <span class="small muted">(${S.ai_match_ok || 0}/${S.ai_match_total || 0})</span><div class="bar"><i style="width:${(m1 || 0) * 100}%"></i></div></div>
+    <div class="aimeter"><b>AI가 🤔·⚠️ 경고한 기록</b> · 실제로 이름이 틀렸던 비율 <b>${m2 == null ? '-' : Math.round(m2 * 100) + '%'}</b> <span class="small muted">(${S.ai_flag_ok || 0}/${S.ai_flag_total || 0})</span><div class="bar"><i style="width:${(m2 || 0) * 100}%;background:var(--seed)"></i></div></div>
+    <p class="small muted" style="margin:0">전문가 판정이 쌓일수록 AI를 어디까지 믿어도 되는지 알 수 있어요. 첫 번째 비율이 높으면 AI가 맞다고 한 기록은 빠르게 넘기고, 경고한 기록에 전문가 시간을 집중하면 돼요.</p>`;
+  const it = (q.items || []);
+  $('#exQ').innerHTML = it.length ? it.map(x => `<tr data-q="${x.id}"><td class="small">${SH.esc(x.requester || '')}${x.rounds > 1 ? ` · ${x.rounds}번째` : ''}</td><td>${SH.esc(x.school || '')}<div class="small muted">${SH.esc(x.region || '')}</div></td>
+    <td><b>${SH.esc(x.plant || '')}</b><div class="small muted"><i>${SH.esc(x.sci || '')}</i></div></td><td>${SH.AI_LEVEL[x.ai_level]?.emoji || '-'}</td><td class="num">${x.photos}</td><td>${SH.ago(x.created_at).replace(' 전', '')}</td>
+    <td>${x.status === 'claimed' ? `🧑‍🔬 ${SH.esc(x.expert || '')}` : '⏳ 대기'}</td></tr>`).join('') : '<tr><td colspan="7" class="muted" style="text-align:center;padding:24px">기다리는 요청이 없어요 🎉</td></tr>';
+  $$('#exQ [data-q]').forEach(tr => tr.onclick = () => location.href = 'expert.html#' + tr.dataset.q);
+  $('#exList').innerHTML = (r.experts || []).length ? r.experts.map(e => `<tr><td><b>${SH.esc(e.name)}</b></td><td>${SH.esc(e.org || '')}</td><td>${SH.esc(e.field || '')}</td><td class="small">${SH.esc(e.email)}</td><td class="num">${e.claimed}</td><td class="num">${e.done}</td>
+    <td>${e.active ? '<span class="tag st-packed">사용 중</span>' : '<span class="tag">멈춤</span>'}</td><td><button class="btn line sm" data-ex="${e.id}">고치기</button></td></tr>`).join('') : '<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">아직 전문가가 없어요. 「전문가 추가」로 계정을 만들어 주세요.</td></tr>';
+  G.experts = r.experts || [];
+  $$('#exList [data-ex]').forEach(b => b.onclick = () => editExpert(G.experts.find(e => e.id === b.dataset.ex)));
+}
+$('#exNew').onclick = () => editExpert(null);
+function editExpert(e) {
+  const bg = document.createElement('div'); bg.className = 'drawer-bg';
+  bg.innerHTML = `<div class="drawer"><div class="dh"><h2>${e ? '전문가 고치기' : '전문가 추가'}</h2><button class="btn line sm" data-x>닫기</button></div>
+    <div class="panel">${[['name', '이름', '예: 김식물'], ['org', '소속', '예: 국립수목원'], ['field', '전문 분야', '예: 목본, 초본, 양치식물'], ['email', '이메일 (로그인 아이디)', 'name@example.org']].map(([k, l, ph]) => `<label class="field"><span class="lbl">${l}</span><input class="inp" data-f="${k}" placeholder="${ph}" value="${SH.esc(e?.[k] || '')}"></label>`).join('')}
+      <label class="field"><span class="lbl">${e ? '새 비밀번호 (바꿀 때만)' : '비밀번호 (8자 이상)'}</span><input class="inp" data-f="pw" type="text" autocomplete="off" placeholder="${e ? '비워 두면 그대로' : ''}"></label>
+      <label style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><input type="checkbox" data-f="active" ${!e || e.active ? 'checked' : ''}> 사용 중 (끄면 바로 로그인이 막혀요)</label>
+      <button class="btn" id="exSave">저장</button>
+      <p class="small muted" style="margin:12px 0 0">비밀번호는 문서에 적지 말고 전문가에게 따로 전해 주세요.</p></div></div>`;
+  document.body.appendChild(bg);
+  const close = () => bg.remove(); bg.querySelector('[data-x]').onclick = close; bg.onclick = ev => { if (ev.target === bg) close(); };
+  bg.querySelector('#exSave').onclick = async () => {
+    const v = k => bg.querySelector(`[data-f=${k}]`);
+    const r = await SH.rpc('seedhands_hq_expert_save', { p_token: G.token, p_id: e?.id || null, p_name: v('name').value, p_org: v('org').value, p_field: v('field').value, p_email: v('email').value, p_pw: v('pw').value, p_active: v('active').checked });
+    if (!r.ok) return SH.toast(r.error || '저장하지 못했어요', 3500); SH.toast('저장했어요'); close(); rExp();
+  };
 }
 
 /* ───── 설정 ───── */

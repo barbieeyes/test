@@ -539,6 +539,7 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
 <script src="common.js"></script>
 <script src="plants.js"></script>
 <script src="geo.js"></script>
+<script src="expert.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -683,14 +684,16 @@ function renderHome() {
   $('#hGreet').innerHTML = `<b class="g1">${greets[0]}</b><span>${greets[1]}</span>`;
   $('#journey').innerHTML = SH.STATUS.map((s, i) => `<div class="${counts[i] ? 'on' : ''}"><b><span aria-hidden="true">${SH.STAGE_EMO[s.id]}</span>${counts[i] ? `<em>${counts[i]}</em>` : ''}</b>${SH.STAGE_KID[s.id]}</div>`).join('');
   const rej = S.accs.find(a => a.status === 'rejected');
-  $('#homeSay').innerHTML = rej ? SH.say(`✏️ 선생님이 <b>${SH.esc(rej.data.plant || '')}</b> 기록에 고칠 점을 남겼어. 눌러서 확인해 볼래?`, { cls: 'soft' })
+  const exSeen = SH.store.get('sh_ex_seen') || {}, exNew = S.accs.find(a => a.data.expert_at && exSeen[a.id] !== a.data.expert_at);
+  $('#homeSay').innerHTML = exNew ? SH.say(exNew.data.expert_status === 'more' ? `📸 전문가 선생님이 <b>${SH.esc(exNew.data.plant || '')}</b> 사진을 더 보고 싶대. 눌러서 사진을 더 넣어 볼래?` : `🔬 전문가 선생님이 <b>${SH.esc(exNew.data.plant || '')}</b> 기록을 확인해 줬어! 눌러서 볼래?`, { cls: 'soft' }) : rej ? SH.say(`✏️ 선생님이 <b>${SH.esc(rej.data.plant || '')}</b> 기록에 고칠 점을 남겼어. 눌러서 확인해 볼래?`, { cls: 'soft' })
     : counts[4] ? SH.say(`🎉 씨앗 <b>${counts[4]}개</b>가 시드볼트에 도착했어! 정말 멋져.`, { cls: 'soft' }) : '';
   $('#accCount').textContent = S.accs.length ? `${S.accs.length}개` : '';
+  const hs = $('#homeSay'), go = exNew || rej; hs.style.cursor = go ? 'pointer' : ''; hs.onclick = go ? () => { if (exNew) { exSeen[exNew.id] = exNew.data.expert_at; SH.store.set('sh_ex_seen', exSeen); } openDetail(go.id); } : null;
   drawHomeMap();
   $('#accList').innerHTML = S.accs.length ? S.accs.map(a => {
     const d = a.data || {}, st = SH.ST[a.status];
     return `<button class="spec" data-st="${a.status}" data-id="${a.id}"><div style="display:flex;gap:12px;align-items:center"><span class="spec-e" aria-hidden="true">${SH.formEmo(d)}</span><div><div class="no">${SH.esc(a.acc_no)}</div><div class="nm">${SH.esc(d.plant || '이름 미정')}</div>${d.sci ? `<div class="sci">${SH.esc(d.sci)}</div>` : ''}</div></div>
-      <span class="tag st-${a.status}">${SH.STAGE_EMO[a.status]} ${st.label}</span><div class="meta">${SH.esc(SH.dot(d.date))}${d.address || d.place ? ', ' + SH.esc(d.address || d.place) : ''}</div>
+      <span class="tag st-${a.status}">${SH.STAGE_EMO[a.status]} ${st.label}</span>${SH.expertTag(d)}<div class="meta">${SH.esc(SH.dot(d.date))}${d.address || d.place ? ', ' + SH.esc(d.address || d.place) : ''}</div>
       ${a.status === 'rejected' && a.teacher_note ? `<div class="note">선생님: ${SH.esc(a.teacher_note)}</div>` : ''}</button>`;
   }).join('') : '<div class="empty-box"><span style="font-size:40px">🫙</span><br>아직 모은 씨앗이 없어요</div>';
   $('#accList').querySelectorAll('.spec').forEach(b => b.onclick = () => openDetail(b.dataset.id));
@@ -951,6 +954,7 @@ function aiBoxHTML() {
   if (fresh) {
     const R = A.aiRes, alt = (R.candidates || []).filter(c => c.ko && c.ko !== A.data.plant);
     return `<h3>🤖 AI 한 번 더 확인</h3>${SH.aiCard(R)}${['mismatch', 'check'].includes(R.level) && alt.length ? `<div style="margin-top:10px"><p class="small" style="margin:0 0 6px">이름을 바꿔 볼까요? <b>선생님께 먼저 여쭤봐요!</b></p><div style="display:flex;gap:6px;flex-wrap:wrap">${alt.map((c, i) => `<button type="button" class="btn line sm" data-alt="${i}">${SH.esc(c.ko)}(으)로 바꾸기</button>`).join('')}</div></div>` : ''}
+      <p class="small" style="margin:10px 0 0;background:#F3F6F4;border-radius:10px;padding:8px 10px">🔬 ${['mismatch', 'check', 'photo'].includes(R.level) ? '헷갈리면' : '더 확실하게 하고 싶으면'} 보낸 뒤 <b>내 씨앗</b>에서 <b>전문가에게 검토 요청</b>을 할 수 있어요. 사진이 3장 이상 있어야 해요.</p>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn ghost sm" id="aiAgain">사진 바꾸고 다시 확인</button></div>`;
   }
   if (A.data.ai_level && A.data.ai_sig === aiSig()) return `<h3>🤖 AI 한 번 더 확인</h3>${SH.aiCard({ level: A.data.ai_level, summary: A.data.ai_summary || '' }, { full: false })}`;
@@ -1134,10 +1138,12 @@ async function openDetail(id, fresh) {
       <dl class="kv" style="border-top:1px solid var(--line)">${kvRows(d)}</dl>
       <div class="ready"><h3>시드볼트 준비도 ${rd.score}/${rd.total}</h3><div class="meter"><i style="width:${rd.score / rd.total * 100}%"></i></div></div>
     </div>
+    <div class="card" id="dExpert"></div>
     <div class="card"><h3>씨앗 봉투 라벨</h3>${labelHTML(a)}</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 30px">${editable ? '<button class="btn" id="dEdit">고치기</button>' : ''}<button class="btn line" id="dPrint">라벨 인쇄</button>${editable ? '<button class="btn danger" id="dDel">지우기</button>' : ''}</div>
     ${!editable ? '<p class="small muted">선생님이 씨앗을 처리하고 있어서 지금은 고칠 수 없어요.</p>' : ''}`;
   $('#dPrint').onclick = () => printLabels([a]);
+  SH.expertBox($('#dExpert'), { acc: a, token: S.token, role: 'student', onChange: x => { const m = S.accs.find(y => y.id === x.id); if (m) m.data = { ...m.data, ...x.data }; } });
   if (editable) {
     $('#dEdit').onclick = () => openAcc(a.id);
     $('#dDel').onclick = async () => { if (!(await SH.dialog({ title: '기록을 지울까요?', msg: `${a.acc_no} 기록과 사진이 모두 지워져요.`, ok: '지우기', danger: true }))) return; const r = await SH.rpc('seedhands_acc_delete', { p_token: S.token, p_id: a.id }); if (!r.ok) return SH.toast(r.error); await loadMe(); SH.toast('지웠어요'); };

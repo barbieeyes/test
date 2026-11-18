@@ -80,7 +80,7 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
 .bars { display: grid; gap: 9px; }
 .bar { display: grid; grid-template-columns: 140px 1fr 60px; gap: 10px; align-items: center; font-size: 14px; }
 .bar .tr { height: 14px; background: #ECF0EB; border-radius: 4px; overflow: hidden; }
-.bar .fl { height: 100%; background: var(--moss); border-radius: 4px; }
+.bar .fl { display: block; height: 100%; background: var(--moss); border-radius: 4px; }
 .bar .n { text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .bar .lb { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #map { height: 520px; border-radius: var(--r); }

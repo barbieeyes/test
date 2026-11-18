@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시드핸즈 전문가 검토</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#143A2E">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poor+Story&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="admin.css">
+<style>
+body { background: #EEF2EE; }
+.xtop { background: var(--spruce); color: #DCEAE1; padding: 14px 24px; display: flex; gap: 16px; align-items: center; position: sticky; top: 0; z-index: 20; }
+.xtop b { color: #fff; font-size: 18px; } .xtop .sp { flex: 1; } .xtop .who { font-size: 14px; }
+.xwrap { display: grid; grid-template-columns: 380px 1fr; gap: 18px; padding: 18px 24px; max-width: 1500px; margin: 0 auto; }
+@media (max-width: 980px) { .xwrap { grid-template-columns: 1fr; } .xlist.hide-m { display: none; } }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.tabs button { border: 0; background: #fff; border-radius: 999px; padding: 8px 14px; font-weight: 600; color: var(--ink-2); cursor: pointer; box-shadow: var(--shadow); }
+.tabs button.on { background: var(--spruce); color: #fff; } .tabs em { font-style: normal; background: #C4472A; color: #fff; border-radius: 999px; padding: 0 7px; margin-left: 4px; font-size: 12px; }
+.tabs button.on em { background: var(--seed); color: var(--spruce); }
+.xfilter { display: flex; gap: 8px; margin-bottom: 10px; } .xfilter .inp { min-height: 40px; }
+.qcard { display: block; width: 100%; text-align: left; background: #fff; border: 2px solid transparent; border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; box-shadow: var(--shadow); font: inherit; }
+.qcard.on { border-color: var(--seed); } .qcard .nm { font-weight: 700; font-size: 16px; color: var(--spruce); } .qcard .sci { font-style: italic; color: var(--ink-2); font-size: 13px; }
+.qcard .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: 12.5px; color: var(--ink-2); } .qcard .meta span { background: #F1F3EF; border-radius: 999px; padding: 2px 8px; }
+.qcard .meta .old { background: #FDECE6; color: #A3341C; font-weight: 700; }
+.pgal { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.pgal figure { margin: 0; border-radius: 14px; overflow: hidden; background: #E8EBE6; position: relative; aspect-ratio: 1; cursor: zoom-in; }
+.pgal img { width: 100%; height: 100%; object-fit: cover; display: block; } .pgal figcaption { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.55); color: #fff; font-size: 12.5px; padding: 4px 8px; }
+.pgal .main { grid-column: span 2; grid-row: span 2; }
+.zoom { position: fixed; inset: 0; background: rgba(5,15,10,.92); z-index: 99; display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
+.zoom img { max-width: 94vw; max-height: 88vh; border-radius: 10px; } .zoom p { position: absolute; bottom: 18px; color: #fff; left: 0; right: 0; text-align: center; }
+.vgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } @media (max-width: 700px) { .vgrid { grid-template-columns: 1fr 1fr; } }
+.vbtn { border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 12px 8px; cursor: pointer; font: inherit; text-align: center; }
+.vbtn b { display: block; font-size: 22px; } .vbtn span { font-size: 13.5px; font-weight: 600; }
+.vbtn.on { border-color: var(--spruce); background: #EAF2EC; }
+.tpl { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; } .tpl button { border: 1px solid var(--line); background: #FBF9F3; border-radius: 999px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; }
+.qbox { background: #FFF6E3; border-radius: 12px; padding: 10px 14px; margin: 0 0 12px; }
+.empty-x { text-align: center; padding: 60px 20px; color: var(--ink-2); }
+#gateX { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+#gateX .card { background: #fff; border-radius: 22px; padding: 30px; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
+</style>
+</head>
+<body>
+<div id="gateX">
+  <form class="card" id="xLogin" autocomplete="on">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px"><span id="xLogo"></span><div><b style="font-size:18px">시드핸즈 전문가 검토</b><div class="small muted">전국 학생 채종 기록의 동정 확인</div></div></div>
+    <p class="small" style="margin:0 0 16px;line-height:1.6">운영국(서울여대 시드핸즈 총괄팀)이 만든 전문가 계정으로 들어와요. 확인해 주신 이름은 시드볼트 기탁 양식의 <b>동정자</b>에 선생님 이름으로 들어가요.</p>
+    <label class="field"><span class="lbl">이메일</span><input class="inp" id="xEmail" type="email" autocomplete="username" required></label>
+    <label class="field"><span class="lbl">비밀번호</span><input class="inp" id="xPw" type="password" autocomplete="current-password" required></label>
+    <div class="err" id="xErr" role="alert"></div>
+    <button class="btn block" id="xBtn">들어가기</button>
+    <p class="small muted" style="margin:14px 0 0">운영국은 운영국 화면에서 「전문가 검토 → 검토 화면 열기」로 바로 들어올 수 있어요.</p>
+  </form>
+</div>
+<div id="appX" class="hidden">
+  <div class="xtop"><span id="xLogo2"></span><b>전문가 검토</b><span class="sp"></span><span class="who" id="xWho"></span><button class="btn ghost sm" id="xRefresh" style="color:#fff">새로고침</button><button class="btn ghost sm" id="xOut" style="color:#fff">나가기</button></div>
+  <div class="xwrap">
+    <div class="xlist" id="xListCol">
+      <div class="tabs" id="xTabs"></div>
+      <div class="xfilter"><input class="inp" id="xQ" placeholder="식물·학교·지역으로 찾기"></div>
+      <div id="xList"></div>
+    </div>
+    <div id="xDetail"><div class="panel empty-x">왼쪽에서 검토할 요청을 골라 주세요.</div></div>
+  </div>
+</div>
+<script src="common.js"></script>
+<script src="plants.js"></script>
+<script src="geo.js"></script>
+<script src="expert.js"></script>
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const X = { token: sessionStorage.getItem('sh_ex') || sessionStorage.getItem('sh_hq'), tab: 'open', items: [], cur: null, me: null };
+$('#xLogo').innerHTML = SH.logo(44); $('#xLogo2').innerHTML = SH.logo(30, '#1E4D3C');
+const TABS = [['open', '검토할 요청', c => c.waiting + c.claimed], ['more', '사진 더 필요', c => c.more], ['done', '검토 완료', c => c.done], ['mine', '내가 한 검토', c => c.mine]];
+$('#xLogin').onsubmit = async e => {
+  e.preventDefault(); $('#xErr').textContent = ''; const b = $('#xBtn'); b.disabled = true;
+  try { const r = await SH.rpc('seedhands_expert_login', { p_email: $('#xEmail').value, p_pw: $('#xPw').value }); if (!r.ok) return $('#xErr').textContent = r.error;
+    X.token = r.token; sessionStorage.setItem('sh_ex', r.token); $('#xPw').value = ''; load(); } catch (err) { $('#xErr').textContent = err.message; } finally { b.disabled = false; }
+};
+$('#xOut').onclick = async () => { if (sessionStorage.getItem('sh_ex')) { try { await SH.rpc('seedhands_logout', { p_token: X.token }); } catch {} sessionStorage.removeItem('sh_ex'); location.href = 'expert.html'; } else location.href = 'hq.html'; };
+$('#xRefresh').onclick = () => load();
+$('#xQ').oninput = () => drawList();
+async function load(keep) {
+  const st = X.tab === 'mine' ? '' : X.tab;
+  const r = await SH.rpc('seedhands_expert_queue', { p_token: X.token, p_status: st });
+  if (!r.ok) { sessionStorage.removeItem('sh_ex'); X.token = null; $('#gateX').classList.remove('hidden'); $('#appX').classList.add('hidden'); return; }
+  X.me = r.me; X.counts = r.counts; X.items = X.tab === 'mine' ? r.items.filter(x => x.mine && ['done', 'more'].includes(x.status)) : r.items;
+  if (X.tab === 'done' || X.tab === 'mine') X.items.reverse();
+  $('#gateX').classList.add('hidden'); $('#appX').classList.remove('hidden');
+  $('#xWho').textContent = `${r.me.name}${r.me.org ? ' · ' + r.me.org : ''}${r.me.field ? ' · ' + r.me.field : ''}`;
+  $('#xTabs').innerHTML = TABS.map(([k, t, f]) => `<button data-t="${k}" class="${X.tab === k ? 'on' : ''}">${t}${f(r.counts) ? `<em>${f(r.counts)}</em>` : ''}</button>`).join('');
+  $$('#xTabs [data-t]').forEach(b => b.onclick = () => { X.tab = b.dataset.t; X.cur = null; load(); });
+  drawList();
+  const want = keep || (location.hash || '').slice(1);
+  if (want && X.items.some(x => x.id === want)) openReq(want); else if (!keep) $('#xDetail').innerHTML = `<div class="panel empty-x">${X.items.length ? '왼쪽에서 검토할 요청을 골라 주세요.' : '이 칸에는 요청이 없어요 🎉'}</div>`;
+}
+function drawList() {
+  const q = $('#xQ').value.trim().toLowerCase();
+  const L = X.items.filter(x => !q || [x.plant, x.sci, x.school, x.region, x.family, x.acc_no].join(' ').toLowerCase().includes(q));
+  $('#xList').innerHTML = L.length ? L.map(x => { const h = (Date.now() - new Date(x.created_at)) / 36e5, v = SH.EXP_VERDICT[x.verdict];
+    return `<button class="qcard ${X.cur === x.id ? 'on' : ''}" data-q="${x.id}"><div class="nm">${SH.esc(x.plant || '이름 모름')} ${v ? v.emo : ''}</div><div class="sci">${SH.esc(x.sci || '')}${x.family ? ' · ' + SH.esc(x.family) : ''}</div>
+      <div class="meta"><span>🏫 ${SH.esc(x.school || '')}</span><span>📍 ${SH.esc(SH.regionKey ? SH.regionKey(x.region || '') : x.region || '')}</span><span>📷 ${x.photos}장</span>${x.ai_level ? `<span>${SH.AI_LEVEL[x.ai_level]?.emoji || ''} AI</span>` : ''}
+      ${['waiting', 'claimed'].includes(x.status) ? `<span class="${h > 48 ? 'old' : ''}">⏱ ${SH.ago(x.created_at)}</span>` : `<span>${SH.dot(String(x.done_at || '').slice(0, 10))}</span>`}${x.status === 'claimed' ? `<span>🧑‍🔬 ${SH.esc(x.mine ? '내가 맡음' : x.expert || '')}</span>` : ''}${x.question ? '<span>💬 질문</span>' : ''}</div></button>`; }).join('')
+    : '<div class="panel empty-x" style="padding:30px">요청이 없어요.</div>';
+  $$('#xList [data-q]').forEach(b => b.onclick = () => openReq(b.dataset.q));
+}
+const KIND = { photo_plant: '🌳 식물 전체', photo_fruit: '🍒 열매', photo_seed: '🌰 씨앗', sketch: '✏️ 학생 그림' };
+async function openReq(id) {
+  X.cur = id; history.replaceState(null, '', '#' + id); drawList();
+  $('#xDetail').innerHTML = '<div class="panel empty-x"><span class="spin"></span></div>';
+  if (innerWidth < 980) $('#xListCol').classList.add('hide-m');
+  const r = await SH.rpc('seedhands_expert_get', { p_token: X.token, p_req: id }); if (!r.ok) { $('#xDetail').innerHTML = `<div class="panel empty-x">${SH.esc(r.error)}</div>`; return; }
+  const q = r.req, a = r.acc, d = a.data || {}, sc = r.school || {}, z = d.lat ? SH.zoneOf(+d.lat, +d.lng, d.alt) : null;
+  const pics = [...Object.keys(KIND).filter(k => a[k]).map(k => ({ src: a[k], t: KIND[k] })), ...(r.photos || []).map(p => ({ src: p.img, t: SH.EXP_KIND[p.kind] || '' }))];
+  const canEdit = ['waiting', 'claimed', 'more'].includes(q.status) || X.me.hq || q.expert_id === X.me.id;
+  const mineClaim = q.status === 'claimed' && q.expert_id === X.me.id, otherClaim = q.status === 'claimed' && q.expert_id && q.expert_id !== X.me.id;
+  const rows = [['채종 번호', a.acc_no], ['학교', `${sc.name || ''} (${sc.region || ''})`], ['채종일', d.date], ['채집지', d.address || d.place], ['위도·경도', d.lat ? `${(+d.lat).toFixed(5)}, ${(+d.lng).toFixed(5)}` : ''], ['고도', d.alt != null && d.alt !== '' ? d.alt + 'm' : ''],
+    ['식생대', z ? `${z.emoji} ${z.name}` : ''], ['자라는 곳', d.habitat], ['생활형', d.form], ['열매 모양', d.fruit], ['무리 크기', d.popSize], ['받은 그루', d.plantsSampled], ['익은 정도', d.ripe], ['요청한 사람', q.requester], ['검토 횟수', q.rounds > 1 ? q.rounds + '번째' : '']].filter(x => x[1]);
+  $('#xDetail').innerHTML = `
+    ${innerWidth < 980 ? '<button class="btn line sm" id="xBack" style="margin-bottom:10px">← 목록</button>' : ''}
+    <div class="panel"><div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:240px"><div class="small muted">${SH.esc(a.acc_no)} · ${SH.EXP_STATUS[q.status] || ''}</div>
+      <h2 style="font-size:26px;margin:4px 0 2px">${SH.esc(q.claimed_plant || d.plant || '이름 모름')}</h2><div class="sci" style="font-style:italic;color:var(--ink-2)">${SH.esc(q.claimed_sci || '')}${d.family ? ' · ' + SH.esc(d.family) : ''}</div></div>
+      <div style="display:flex;gap:8px">${q.status === 'waiting' && X.me.id ? '<button class="btn seed sm" id="xClaim">🙋 제가 맡을게요</button>' : ''}${mineClaim ? '<button class="btn line sm" id="xUnclaim">맡기 취소</button>' : ''}${otherClaim ? `<span class="tag">🧑‍🔬 ${SH.esc(r.expert || '다른 전문가')} 검토 중</span>` : ''}</div></div>
+      ${q.question ? `<div class="qbox" style="margin-top:12px"><b>💬 질문</b> ${SH.esc(q.question)}</div>` : ''}
+      <div class="pgal" style="margin-top:12px">${pics.map((p, i) => `<figure class="${i === 0 ? 'main' : ''}" data-z="${i}"><img src="${p.src}" alt="${SH.esc(p.t)}" loading="lazy"><figcaption>${SH.esc(p.t)}</figcaption></figure>`).join('')}</div>
+      <p class="small muted" style="margin:8px 0 0">사진을 누르면 크게 볼 수 있어요. 사진 ${pics.filter(p => !p.t.includes('그림')).length}장</p></div>
+    <div class="grid2" style="align-items:start">
+      <div class="panel"><h2>채종 정보</h2><dl class="kv">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${SH.esc(v)}</dd>`).join('')}</dl>${z ? `<div style="margin-top:10px">${SH.zoneCard(z, { short: true, month: +String(d.date || '').slice(5, 7) || null })}</div>` : ''}</div>
+      <div class="panel"><h2>🤖 AI 1차 의견</h2>${r.ai ? SH.aiCard(r.ai.result, { teacher: true }) + `<p class="small muted" style="margin-top:6px">${SH.esc(r.ai.model || '')}</p>` : '<p class="muted small">AI 검토를 받지 않은 기록이에요.</p>'}</div></div>
+    <div class="panel" id="xAns"><h2>전문가 판정 ${q.status === 'done' || q.status === 'more' ? '<small>이미 판정했어요. 고쳐서 다시 저장할 수 있어요</small>' : ''}</h2>
+      ${q.verdict ? SH.expertResult({ expert_verdict: q.verdict, expert_ko: q.ko, expert_sci: q.sci, expert_comment: q.comment, plant_orig: d.plant_orig || q.claimed_plant, expert_name: r.expert || '', expert_at: q.done_at }) : ''}
+      ${canEdit && !otherClaim ? `<div class="vgrid" id="xV">${Object.entries(SH.EXP_VERDICT).map(([k, v]) => `<button type="button" class="vbtn ${q.verdict === k ? 'on' : ''}" data-v="${k}"><b>${v.emo}</b><span>${v.label}</span></button>`).join('')}</div>
+      <div class="grid2" style="gap:10px;margin-top:12px" id="xNames">
+        <label class="field" style="margin:0"><span class="lbl">국명</span><input class="inp" id="xKo" value="${SH.esc(q.ko || q.claimed_plant || '')}"></label>
+        <label class="field" style="margin:0"><span class="lbl">학명</span><input class="inp" id="xSci" value="${SH.esc(q.sci || q.claimed_sci || '')}" placeholder="예: Rubus crataegifolius Bunge"></label>
+        <label class="field" style="margin:0"><span class="lbl">과명</span><input class="inp" id="xFam" value="${SH.esc(q.family || d.family || '')}"></label></div>
+      <label class="field" style="margin:12px 0 0"><span class="lbl">의견 <span class="muted small">학생·선생님이 함께 읽어요. 쉬운 말로 써 주세요</span></span>
+        <div class="tpl">${['잎 가장자리와 털로 보아 맞아요.', '열매와 씨앗 모양이 이 종의 특징과 같아요.', '비슷한 종과 구분하려면 잎 뒷면 사진이 필요해요.', '꽃이나 열매가 함께 찍힌 사진이 있으면 더 정확해요.', '재배종이나 조경수일 가능성이 있어요. 자생지인지 확인해 주세요.'].map(t => `<button type="button" data-tpl="${SH.esc(t)}">${t}</button>`).join('')}</div>
+        <textarea class="inp" id="xCm" rows="3" maxlength="1500">${SH.esc(q.comment || '')}</textarea></label>
+      <div class="err" id="xAErr"></div>
+      <button class="btn" id="xSave" style="margin-top:8px">판정 보내기</button>
+      <p class="small muted" style="margin:8px 0 0">✅·✏️로 보내면 기탁 양식의 동정자에 선생님 이름이 들어가고, ✏️는 국명·학명이 바로 바뀌어요(처음 적은 이름은 따로 남아요). 📸는 학교에 사진 보완을 요청해요.</p>` : otherClaim ? '<p class="muted">다른 전문가가 검토하고 있어요.</p>' : ''}
+    </div>`;
+  if ($('#xBack')) $('#xBack').onclick = () => { $('#xListCol').classList.remove('hide-m'); $('#xDetail').innerHTML = ''; };
+  $$('#xDetail [data-z]').forEach(f => f.onclick = () => { const p = pics[+f.dataset.z]; const z = document.createElement('div'); z.className = 'zoom'; z.innerHTML = `<img src="${p.src}" alt=""><p>${SH.esc(p.t)}</p>`; z.onclick = () => z.remove(); document.body.appendChild(z); });
+  const claim = async on => { const x = await SH.rpc('seedhands_expert_claim', { p_token: X.token, p_req: id, p_on: on }); if (!x.ok) SH.toast(x.error || '바꾸지 못했어요'); load(id); };
+  if ($('#xClaim')) $('#xClaim').onclick = () => claim(true); if ($('#xUnclaim')) $('#xUnclaim').onclick = () => claim(false);
+  let V = q.verdict || '';
+  const syncV = () => { $$('#xV .vbtn').forEach(b => b.classList.toggle('on', b.dataset.v === V)); if ($('#xNames')) $('#xNames').style.opacity = ['correct', 'corrected'].includes(V) || !V ? 1 : .55; };
+  $$('#xV .vbtn').forEach(b => b.onclick = () => { V = b.dataset.v; if (V === 'corrected' && $('#xKo').value === (q.claimed_plant || '')) { $('#xKo').value = ''; $('#xKo').focus(); } syncV(); });
+  $$('#xDetail [data-tpl]').forEach(b => b.onclick = () => { const t = $('#xCm'); t.value = (t.value ? t.value.trim() + ' ' : '') + b.dataset.tpl; t.focus(); });
+  syncV();
+  if ($('#xSave')) $('#xSave').onclick = async () => {
+    $('#xAErr').textContent = ''; if (!V) return $('#xAErr').textContent = '위에서 판정을 골라 주세요.';
+    const b = $('#xSave'); b.disabled = true; b.innerHTML = '<span class="spin"></span> 보내는 중';
+    const x = await SH.rpc('seedhands_expert_answer', { p_token: X.token, p_req: id, p_verdict: V, p_ko: $('#xKo').value, p_sci: $('#xSci').value, p_family: $('#xFam').value, p_comment: $('#xCm').value });
+    b.disabled = false; b.textContent = '판정 보내기';
+    if (!x.ok) return $('#xAErr').textContent = x.error || '보내지 못했어요';
+    SH.toast(V === 'need_photo' ? '📸 학교에 사진 보완을 요청했어요' : '✅ 판정을 보냈어요. 고맙습니다!');
+    const next = X.items.findIndex(y => y.id === id); await load(); const nx = X.items[next] || X.items[0]; if (nx && X.tab === 'open') openReq(nx.id);
+  };
+}
+if (X.token) load(); else { $('#gateX').classList.remove('hidden'); }
+</script>
+</body>
+</html>
