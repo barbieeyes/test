@@ -38,6 +38,12 @@ function okImg(u) { return typeof u === 'string' && /^data:image\/(jpeg|png|webp
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  if (req.method === 'GET' && req.query && req.query.diag === '2e166e3176c58f85') {
+    const a = process.env.AI_GATEWAY_API_KEY || req.headers['x-vercel-oidc-token'] || process.env.VERCEL_OIDC_TOKEN;
+    let probe = null;
+    if (a) { try { const r = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${a}` }, body: JSON.stringify({ model: MODELS[0], max_tokens: 20, messages: [{ role: 'user', content: '산딸기의 학명만 답해' }] }) }); probe = { status: r.status, body: (await r.text()).slice(0, 400) }; } catch (e) { probe = { err: e.message }; } }
+    return res.status(200).json({ auth: !!a, src: process.env.AI_GATEWAY_API_KEY ? 'key' : req.headers['x-vercel-oidc-token'] ? 'header' : process.env.VERCEL_OIDC_TOKEN ? 'env' : 'none', probe });
+  }
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
   const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
   const anon = b.anon;
