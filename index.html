@@ -596,7 +596,7 @@ async function lookupCode(code) {
   if (!r.ok) throw new Error(r.error);
   S.code = r.school.code; S.school = r.school; SH.store.set('sh_code', S.code);
   $('#lgSchool').textContent = r.school.name;
-  $('#lgSite').textContent = [r.school.region, r.school.site_name && '채종 지역 ' + r.school.site_name].filter(Boolean).join(', ');
+  $('#lgSite').textContent = r.school.site_name ? '채종 지역: ' + r.school.site_name : (r.school.region || '');
   $('#lgTitle').textContent = r.school.name + ' 시드핸즈';
   $('#codeForm').classList.add('hidden'); $('#loginForm').classList.remove('hidden');
 }

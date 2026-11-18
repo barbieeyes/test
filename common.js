@@ -52,7 +52,7 @@ SH.enterDemo = function () {
   const b = document.createElement('div'); b.className = 'demo-bar';
   const isAdmin = /admin\.html/.test(location.pathname);
   b.innerHTML = `<div class="demo-switch" role="tablist" aria-label="화면 바꾸기"><a href="index.html" class="${isAdmin ? '' : 'on'}">학생 화면</a><a href="admin.html" class="${isAdmin ? 'on' : ''}">선생님 화면</a></div>
-    <div><b>미리보기</b>: 기록은 이 브라우저에만 저장돼요. ${isAdmin ? '학교 코드 <b>SR2026</b>, 관리자 비밀번호 <b>songrye-seed26</b>' : '아무 학번·이름·비밀번호로 새로 가입해 보세요. 예시 학생(20103 김하늘)의 비밀번호는 <b>0000</b>'}</div>`;
+    <div><b>미리보기</b>: 기록은 이 브라우저에만 저장돼요. ${isAdmin ? '학교 코드 <b>새싹중2026</b>, 관리자 비밀번호 <b>saessak-demo</b>' : '아무 학번·이름·비밀번호로 새로 가입해 보세요. 예시 학생(20103 김하늘)의 비밀번호는 <b>0000</b>'}</div>`;
   document.body.prepend(b);
 };
 /* 처음 열 때 서버 연결이 막혀 있는지 확인 (Claude 미리보기 감지) */
@@ -412,10 +412,10 @@ SH.openPlantPicker = function ({ fix, prefer = 'any', onPick, onNeedGPS }) {
 SH._db = null;
 SH._demoDB = function () {
   if (SH._db) return SH._db;
-  let db = SH.store.get('sh_demo_v5');
+  let db = SH.store.get('sh_demo_v6');
   if (!db) {
     const now = Date.now(), iso = t => new Date(t).toISOString();
-    db = { superPw: 'seedvault-demo', schools: [{ id: 'sc1', code: 'SR2026', name: '송례중학교', inst_name: '송례중학교', region: '서울특별시', site_name: '대모산', site_lat: 37.4772, site_lng: 127.0789, contact: '', pw: 'songrye-seed26', acc_seq: 0, created_at: iso(now - 864e6) }], students: [], records: [], accs: [], sessions: {} };
+    db = { superPw: 'seedvault-demo', schools: [{ id: 'sc1', code: '새싹중2026', name: '새싹중학교', inst_name: '새싹중학교', region: '서울특별시', site_name: '서울특별시 강남구 일원동', site_lat: 37.4772, site_lng: 127.0789, contact: '', pw: 'saessak-demo', acc_seq: 0, created_at: iso(now - 864e6) }], students: [], records: [], accs: [], sessions: {} };
     const names = ['김하늘', '이도윤', '박서연', '최지우', '정민준', '한예린', '오시우'];
     const picks = [['노박덩굴', 'Celastrus orbiculatus', '노박덩굴과', '덩굴', '여러 갈래로 터짐 (삭과)'], ['산국', 'Chrysanthemum boreale', '국화과', '풀', '딱딱한 열매 (견과·수과)'], ['팥배나무', 'Sorbus alnifolia', '장미과', '큰키나무', '사과 모양 (이과)'], ['싸리', 'Lespedeza bicolor', '콩과', '작은키나무·관목', '꼬투리 (협과)'], ['당단풍나무', 'Acer pseudosieboldianum', '무환자나무과', '큰키나무', '날개 열매 (시과)'], ['쑥부쟁이', 'Aster yomena', '국화과', '풀', '딱딱한 열매 (견과·수과)'], ['화살나무', 'Euonymus alatus', '노박덩굴과', '작은키나무·관목', '여러 갈래로 터짐 (삭과)']];
     const sts = ['deposited', 'packed', 'cleaned', 'drying', 'collected', 'rejected', 'collected'];
@@ -423,9 +423,9 @@ SH._demoDB = function () {
       const id = 'st' + i; db.students.push({ id, school_id: 'sc1', no: `2${SH.pad(i % 3 + 1)}${SH.pad(i + 3)}`, name: n, pin: '0000', created_at: iso(now - 7 * 864e5), last_login: iso(now - i * 36e5) });
       const p = picks[i];
       db.schools[0].acc_seq++;
-      db.accs.push({ id: 'a' + i, school_id: 'sc1', student_id: id, acc_no: `SR2026-2026-${String(db.schools[0].acc_seq).padStart(3, '0')}`, status: sts[i],
+      db.accs.push({ id: 'a' + i, school_id: 'sc1', student_id: id, acc_no: `새싹중2026-2026-${String(db.schools[0].acc_seq).padStart(3, '0')}`, status: sts[i],
         teacher_note: sts[i] === 'rejected' ? '열매가 덜 익었어요. 다음 채종 때 다 익은 열매로 다시 받아 볼까요?' : null,
-        data: { date: SH.dayOf(now - (i + 1) * 864e5 * 3), place: '대모산 불국사 가는 길', country: '대한민국', address: '서울특별시 강남구 일원동 대모산', identifier: n + ', 담당 교사', lat: 37.4752 + 0.0012 * i, lng: 127.0742 + 0.0015 * (i % 4), acc: 8, alt: 120 + i * 18, plant: p[0], sci: p[1], family: p[2], idConf: SH.ACC.idConf[i % 2], origin: SH.ACC.origin[0], habitat: SH.ACC.habitat[i % 4], form: p[3], popSize: SH.ACC.popSize[i % 2 ? 3 : 2], plantsSampled: String(10 + i * 4), share: SH.ACC.share[i === 6 ? 2 : 0], fruit: p[4], ripe: SH.ACC.ripe[sts[i] === 'rejected' ? 2 : 0], fruitState: SH.ACC.fruitState[0], seedCount: String(120 + i * 85), seedNote: '', health: SH.ACC.health[0], drying: true, team: '' },
+        data: { date: SH.dayOf(now - (i + 1) * 864e5 * 3), place: '일원동 숲길 산책로', country: '대한민국', address: '서울특별시 강남구 일원동', identifier: n + ', 담당 교사', lat: 37.4752 + 0.0012 * i, lng: 127.0742 + 0.0015 * (i % 4), acc: 8, alt: 120 + i * 18, plant: p[0], sci: p[1], family: p[2], idConf: SH.ACC.idConf[i % 2], origin: SH.ACC.origin[0], habitat: SH.ACC.habitat[i % 4], form: p[3], popSize: SH.ACC.popSize[i % 2 ? 3 : 2], plantsSampled: String(10 + i * 4), share: SH.ACC.share[i === 6 ? 2 : 0], fruit: p[4], ripe: SH.ACC.ripe[sts[i] === 'rejected' ? 2 : 0], fruitState: SH.ACC.fruitState[0], seedCount: String(120 + i * 85), seedNote: '', health: SH.ACC.health[0], drying: true, team: '' },
         photo_plant: null, photo_fruit: null, photo_seed: null, sketch: null, created_at: iso(now - (i + 1) * 864e5 * 3), updated_at: iso(now - i * 36e5) });
       const cols = ['#6E9A5B', '#C76A8C', '#9A6B45', '#7262A8', '#D9982B', '#2F5D7C', '#22543F'], ms = ['leaf', 'flower', 'bark', 'hair', 'leaf', 'flower', 'leaf'];
       const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 700'><rect width='1000' height='700' fill='white'/><path d='M500 620 C${300 + i * 20} 520 ${260 + i * 10} 260 500 90 C${740 - i * 10} 260 ${700 - i * 20} 520 500 620Z' fill='none' stroke='${cols[i]}' stroke-width='14' stroke-linecap='round'/><path d='M500 600 L500 130' stroke='${cols[i]}' stroke-width='8'/>${[0, 1, 2, 3].map(k => `<path d='M500 ${520 - k * 95} L${400 - k * 8} ${450 - k * 95}M500 ${520 - k * 95} L${600 + k * 8} ${450 - k * 95}' stroke='${cols[i]}' stroke-width='6' stroke-linecap='round'/>`).join('')}</svg>`;
@@ -454,7 +454,7 @@ SH._demoDB = function () {
   }
   return SH._db = db;
 };
-SH._save = () => SH.store.set('sh_demo_v5', SH._db);
+SH._save = () => SH.store.set('sh_demo_v6', SH._db);
 SH.demo = function (fn, a) {
   const db = SH._demoDB(), save = SH._save, tok = () => Math.random().toString(36).slice(2) + Date.now().toString(36), now = () => new Date().toISOString();
   const sess = db.sessions[a.p_token] || {}, sid = sess.sid, adm = sess.admin ? sess : null;
@@ -463,7 +463,7 @@ SH.demo = function (fn, a) {
   const pub = s => ({ id: s.id, code: s.code, name: s.name, region: s.region, site_name: s.site_name, site_lat: s.site_lat, site_lng: s.site_lng, contact: s.contact, inst_name: s.inst_name, created_at: s.created_at });
   const accLite = x => ({ id: x.id, school_id: x.school_id, student_id: x.student_id, acc_no: x.acc_no, data: x.data, status: x.status, teacher_note: x.teacher_note, has_plant: !!x.photo_plant, has_fruit: !!x.photo_fruit, has_seed: !!x.photo_seed, has_sketch: !!x.sketch, created_at: x.created_at, updated_at: x.updated_at });
   switch (fn) {
-    case 'seedhands_school_info': { const s = school(a.p_code); return s ? { ok: true, school: pub(s) } : { ok: false, error: '학교 코드를 찾지 못했어요. 미리보기 코드는 SR2026이에요.' }; }
+    case 'seedhands_school_info': { const s = school(a.p_code); return s ? { ok: true, school: pub(s) } : { ok: false, error: '학교 코드를 찾지 못했어요. 미리보기 코드는 새싹중2026이에요.' }; }
     case 'seedhands_school_create': {
       if ((a.p_name || '').trim().length < 2) return { ok: false, error: '학교 이름을 입력해 주세요.' };
       if ((a.p_pw || '').length < 6) return { ok: false, error: '관리자 비밀번호는 6자 이상으로 정해 주세요.' };
@@ -601,7 +601,7 @@ SH.demo = function (fn, a) {
     }
     case 'seedhands_hq_school_pw': { if (!adm || !adm.super) return { ok: false, error: 'session' }; const x = db.schools.find(y => y.id === a.p_school); if ((a.p_pw || '').length < 6) return { ok: false, error: '6자 이상으로 정해 주세요.' }; x.pw = a.p_pw; save(); return { ok: true }; }
     case 'seedhands_hq_school_delete': {
-      if (!adm || !adm.super) return { ok: false, error: 'session' }; const x = db.schools.find(y => y.id === a.p_school); if (!x) return { ok: false }; if (x.code === 'SR2026') return { ok: false, error: '기본 학교는 지울 수 없어요.' };
+      if (!adm || !adm.super) return { ok: false, error: 'session' }; const x = db.schools.find(y => y.id === a.p_school); if (!x) return { ok: false }; 
       const ids = new Set(db.students.filter(s => s.school_id === x.id).map(s => s.id));
       db.records = db.records.filter(r => !ids.has(r.student_id)); db.accs = db.accs.filter(y => y.school_id !== x.id); db.students = db.students.filter(s => s.school_id !== x.id); db.schools = db.schools.filter(y => y.id !== x.id); save(); return { ok: true };
     }
