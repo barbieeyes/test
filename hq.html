@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시드핸즈 운영국 대시보드</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#143A2E">
+<meta name="apple-mobile-web-app-title" content="시드핸즈">
+<meta property="og:title" content="시드핸즈 프로젝트">
+<meta property="og:description" content="우리 산의 야생식물 씨앗을 기록해 백두대간 글로벌 시드볼트로 보내요.">
+<meta property="og:image" content="icons/icon-512.png"><rect width='64' height='64' rx='16' fill='%23143A2E'/><path d='M32 14c-9 6-12 16-9 27 2 7 7 10 9 10s7-3 9-10c3-11 0-21-9-27z' fill='%23D9982B'/><path d='M32 22v28' stroke='%23143A2E' stroke-width='3'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poor+Story&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="admin.css">
+<style>
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.kpi { background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 16px 18px; position: relative; overflow: hidden; }
+.kpi .e { position: absolute; right: 10px; top: 8px; font-size: 26px; opacity: .85; }
+.kpi b { display: block; font-size: 32px; font-weight: 700; color: var(--spruce); font-variant-numeric: tabular-nums; line-height: 1.1; font-family: Pretendard, sans-serif; }
+.kpi span { font-size: 13.5px; color: var(--ink-2); }
+.kpi small { display: block; font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+@media (max-width: 1200px) { .grid3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 800px) { .grid3 { grid-template-columns: 1fr; } }
+.mapwrap2 { display: grid; grid-template-columns: 1fr 360px; gap: 16px; }
+@media (max-width: 1100px) { .mapwrap2 { grid-template-columns: 1fr; } }
+#hqMap { height: 640px; border-radius: var(--r); background: #EAF0EA; }
+#hqMap svg { width: 100%; height: 100%; }
+.side-info { display: grid; gap: 12px; align-content: start; max-height: 640px; overflow: auto; }
+.chipbar { display: flex; flex-wrap: wrap; gap: 6px; }
+.chipbar button { border: 1.5px solid var(--line); background: var(--paper); border-radius: 999px; padding: 6px 12px; font-size: 13.5px; }
+.chipbar button.on { background: var(--spruce); color: #fff; border-color: var(--spruce); }
+.zleg { display: flex; flex-wrap: wrap; gap: 10px; font-size: 13px; margin-top: 10px; }
+.zleg span i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.ailv { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; padding: 2px 8px; border-radius: 999px; background: #EEF2EE; white-space: nowrap; }
+.ailv.match { background: #E5F2DE; color: #3E6A2F; } .ailv.check { background: #FFF1D6; color: #8A5B0C; } .ailv.mismatch { background: #FBE1DE; color: #B5452F; } .ailv.photo { background: #E3EDF5; color: #2F5D7C; }
+.roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 1100px) { .roles { grid-template-columns: 1fr; } }
+.role { background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 20px; border-top: 6px solid var(--rc); }
+.role h2 { font-size: 21px; margin-bottom: 4px; } .role .who { color: var(--ink-2); font-size: 13.5px; margin-bottom: 12px; }
+.role ol { padding-left: 1.3em; margin: 0; display: grid; gap: 8px; font-size: 14.5px; line-height: 1.6; }
+.role h3 { font-size: 15px; margin: 14px 0 6px; color: var(--rc); }
+.dangerzone { border: 1.5px solid var(--alert-soft); border-radius: var(--r); padding: 12px; margin-top: 14px; }
+.recent { display: grid; gap: 8px; }
+.recent div { display: flex; gap: 10px; align-items: center; font-size: 14px; padding: 8px 10px; background: var(--frost); border-radius: 10px; }
+.recent b { font-family: var(--serif); color: var(--spruce); }
+.recent span.t { margin-left: auto; color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<section id="gate">
+  <div class="side">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px"><span class="lg"></span><span>시드핸즈 프로젝트</span></div>
+      <h1>운영국 대시보드</h1>
+      <p>전국 참여 학교가 기록한 채종 정보를 한곳에서 봐요. 어떤 식물의 씨앗을 몇 립, 어디에서, 누가 받았는지 지도와 표로 확인하고, 백두대간 글로벌 시드볼트 기탁 양식으로 내려받을 수 있어요.</p>
+      <ol>
+        <li>전국 현황: 학교·학생·종·씨앗 수, 지역별·식생대별 통계</li>
+        <li>지도: 채종 위치, 식생대, 지역 특성, 이 지역에서 자랄 수 있는 종</li>
+        <li>아카이브: 모든 기록·사진·AI 검토 결과, 수정과 삭제</li>
+        <li>학교 관리: 코드·비밀번호·정보 수정, 학교 삭제</li>
+      </ol>
+    </div>
+    <svg class="rg" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 80 L40 58 L70 70 L110 38 L150 54 L190 28 L230 46 L270 20 L310 40 L350 26 L400 44 V120 H0Z" fill="#1B4A3A"/><path d="M0 100 L50 82 L90 92 L140 66 L180 80 L230 60 L280 78 L330 58 L400 74 V120 H0Z" fill="#22543F"/></svg>
+  </div>
+  <div class="main">
+    <div class="gbox">
+      <form id="loginF" autocomplete="on">
+        <h2>운영국 로그인</h2>
+        <input type="hidden" id="gCode" value="HQ">
+        <label class="field"><span class="lbl">운영국 비밀번호</span><input class="inp" id="gPw" type="password" autocomplete="current-password" required></label>
+        <div class="err" id="gErr" role="alert"></div>
+        <button class="btn block">들어가기</button>
+      </form>
+      <p class="small" style="margin-top:22px;text-align:center"><a href="admin.html">학교 선생님 화면</a> · <a href="index.html">학생 화면</a></p>
+    </div>
+  </div>
+</section>
+
+<div id="app" class="hidden">
+  <nav class="side" aria-label="메뉴">
+    <div class="logo"><span class="lg"></span><div>시드핸즈<small>운영국 대시보드</small></div></div>
+    <button class="nv on" data-v="home">📊 한눈에 보기</button>
+    <button class="nv" data-v="map">🗺️ 전국 지도</button>
+    <button class="nv" data-v="arc">🗂️ 채종 아카이브</button>
+    <button class="nv" data-v="book">📗 시드핸즈 도감</button>
+    <button class="nv" data-v="notes">📒 관찰 노트</button>
+    <button class="nv" data-v="sch">🏫 참여 학교</button>
+    <button class="nv" data-v="dep">📋 기탁 양식</button>
+    <button class="nv" data-v="roles">✅ 역할별 할 일</button>
+    <button class="nv" data-v="set">⚙️ 설정</button>
+    <div class="grow"></div>
+    <div class="who">운영국 계정</div>
+    <button class="nv" id="logout">↩️ 로그아웃</button>
+  </nav>
+  <main>
+    <div class="mhead"><h1 id="pgTitle"></h1>
+      <select class="inp" id="fYear" style="width:auto;min-height:42px" aria-label="연도"></select>
+      <button class="btn line sm" id="refresh">새로고침</button></div>
+
+    <section data-view="home">
+      <div class="kpis" id="kpis"></div>
+      <div class="flow" id="flow"></div>
+      <div class="grid3">
+        <div class="panel"><h2>지역별 채종 기록</h2><div class="bars" id="bReg"></div></div>
+        <div class="panel"><h2>많이 채종한 식물</h2><div class="bars" id="bSp"></div></div>
+        <div class="panel"><h2>식생대별 채종</h2><div class="bars" id="bZone"></div></div>
+        <div class="panel"><h2>학교별 채종 기록</h2><div class="bars" id="bSch"></div></div>
+        <div class="panel"><h2>월별 채종</h2><div class="bars" id="bMon"></div></div>
+        <div class="panel"><h2>AI 검토 결과</h2><div class="bars" id="bAi"></div><p class="small muted" style="margin-top:10px">AI 의견은 참고용이에요. 최종 동정은 담당 교사와 전문가가 확인해요.</p></div>
+      </div>
+      <div class="panel"><h2>최근 기록 <small>새로 들어온 순서</small></h2><div class="recent" id="recent"></div></div>
+    </section>
+
+    <section data-view="map" class="hidden">
+      <div class="panel">
+        <div class="toolbar">
+          <div class="chipbar" id="mColor"><button data-c="status" class="on">단계별 색</button><button data-c="zone">식생대별 색</button></div>
+          <select class="inp" id="mSchool"><option value="">모든 학교</option></select>
+          <input class="inp" id="mQ" placeholder="식물 이름으로 거르기" style="min-width:180px">
+          <span class="sp"></span><span class="small muted" id="mN"></span>
+        </div>
+        <div class="mapwrap2">
+          <div><div id="hqMap"></div><div class="zleg" id="mLeg"></div></div>
+          <div class="side-info" id="mInfo"></div>
+        </div>
+      </div>
+    </section>
+
+    <section data-view="arc" class="hidden">
+      <div class="panel">
+        <div class="toolbar">
+          <input class="inp" id="aq" placeholder="번호·식물·학명·학생·학교 찾기" style="min-width:240px">
+          <select class="inp" id="aReg"><option value="">모든 지역</option></select>
+          <select class="inp" id="aSch"><option value="">모든 학교</option></select>
+          <select class="inp" id="aSt"><option value="">모든 단계</option></select>
+          <select class="inp" id="aAi"><option value="">AI 검토 전체</option><option value="match">✅ 잘 맞음</option><option value="check">🤔 확인 필요</option><option value="mismatch">⚠️ 다른 식물 의심</option><option value="photo">📸 사진 부족</option><option value="none">검토 안 함</option></select>
+          <span class="sp"></span>
+          <button class="btn line sm" id="xArc">이 목록 엑셀로</button>
+        </div>
+        <div class="bulk hidden" id="bulk"><b id="bulkN"></b>
+          <select class="inp" id="bulkSt"></select><button class="btn seed sm" id="bulkApply">단계 바꾸기</button>
+          <button class="btn line sm" id="bulkX">선택만 엑셀</button>
+          <button class="btn line sm" id="bulkDel" style="color:#fff">선택 삭제</button>
+          <button class="btn ghost sm" id="bulkClear" style="color:#fff">선택 해제</button></div>
+        <div class="tbl"><table>
+          <thead><tr><th><input type="checkbox" id="chkAll" aria-label="모두 선택"></th><th>채종 번호</th><th>식물</th><th>학교</th><th>지역</th><th>채종자</th><th>채종일</th><th class="num">씨앗(립)</th><th>AI 검토</th><th>단계</th></tr></thead>
+          <tbody id="arcBody"></tbody></table></div>
+        <div class="small muted" id="arcFoot" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <section data-view="book" class="hidden">
+      <div class="panel"><div class="toolbar"><input class="inp" id="bkQ" placeholder="식물 이름·학명·과 찾기" style="min-width:220px">
+        <select class="inp" id="bkSort"><option value="seeds">씨앗 많은 순</option><option value="recs">기록 많은 순</option><option value="name">가나다 순</option><option value="dep">입고 많은 순</option></select>
+        <select class="inp" id="bkSt"><option value="">모든 단계</option><option value="deposited">시드볼트 입고만</option></select>
+        <span class="sp"></span><span class="small muted" id="bkN"></span><button class="btn line sm" id="xBook">도감 엑셀로</button></div>
+        <div class="bookgrid" id="bookGrid"></div></div>
+    </section>
+
+    <section data-view="notes" class="hidden">
+      <div class="panel"><div class="toolbar"><select class="inp" id="nSch"><option value="">모든 학교</option></select><select class="inp" id="nM"></select><span class="sp"></span><span class="muted small" id="nN"></span></div>
+        <div class="gal" id="nGal"></div></div>
+    </section>
+
+    <section data-view="sch" class="hidden">
+      <div class="panel"><h2>참여 학교 <small id="schN"></small></h2>
+        <div class="toolbar"><input class="inp" id="sq" placeholder="학교 이름·코드 찾기"><span class="sp"></span><button class="btn line sm" id="xSch">학교 목록 엑셀로</button></div>
+        <div class="tbl"><table><thead><tr><th>학교</th><th>코드</th><th>지역</th><th>탐사지</th><th>식생대</th><th class="num">학생</th><th class="num">기록</th><th class="num">씨앗(립)</th><th class="num">입고</th><th>등록일</th><th></th></tr></thead><tbody id="schBody"></tbody></table></div></div>
+    </section>
+
+    <section data-view="dep" class="hidden">
+      <div class="panel"><h2>백두대간 글로벌 시드볼트 기탁 목록 <small>24개 항목, 엑셀(.xlsx)로 내려받아요</small></h2>
+        <div class="toolbar">
+          <select class="inp" id="dSch"><option value="">모든 학교</option></select>
+          <select class="inp" id="dSt"><option value="ready">정선 완료 이후만</option><option value="">모든 단계</option><option value="deposited">시드볼트 입고만</option></select>
+          <span class="sp"></span><span class="small muted" id="dN"></span>
+          <button class="btn sm" id="xDep">기탁 목록 엑셀(.xlsx)</button></div>
+        <div class="tbl"><table id="depTable"></table></div></div>
+    </section>
+
+    <section data-view="roles" class="hidden">
+      <p class="muted" style="margin:0 0 16px;max-width:60em">시드핸즈는 세 주체가 함께 움직여요. 각 역할이 해야 할 일을 순서대로 정리했어요. 자세한 내용은 운영 매뉴얼(Word)과 안내 영상에 있어요.</p>
+      <div class="roles" id="rolesBox"></div>
+    </section>
+
+    <section data-view="set" class="hidden">
+      <div class="grid2">
+        <div class="panel"><h2>🤖 AI 검토 공용 연결</h2>
+          <p class="muted" style="margin:0 0 12px">켜 두면 자기 AI 키가 없는 학교도 운영국 공용 AI로 검토를 받아요(비용은 운영국 Vercel 계정에 청구). 끄면 학교가 키를 넣은 경우에만 AI 검토가 돼요.</p>
+          <label style="display:flex;gap:10px;align-items:center;font-size:16px"><input type="checkbox" id="sharedAi"> 운영국 공용 AI 허용</label>
+          <p class="small muted" id="aiStat" style="margin-top:10px"></p></div>
+        <div class="panel"><h2>운영국 비밀번호 바꾸기</h2>
+          <label class="field"><span class="lbl">지금 비밀번호</span><input class="inp" id="pOld" type="password"></label>
+          <label class="field"><span class="lbl">새 비밀번호</span><input class="inp" id="pNew" type="password"><span class="hint">8자 이상 권장</span></label>
+          <button class="btn" id="pSave">비밀번호 바꾸기</button></div>
+        <div class="panel prose"><h2>주소 모음</h2>
+          <p>학생: <code id="uStu"></code><br>선생님: <code id="uTea"></code><br>운영국: <code id="uHq"></code></p>
+          <p class="small muted">학교마다 학생 주소 뒤에 <code>?s=학교코드</code>가 붙어요. 학교 선생님 화면의 「학교 설정」에서 QR 안내문을 인쇄할 수 있어요.</p></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="printArea"></div>
+
+<script src="qr.js"></script>
+<script src="common.js"></script>
+<script src="plants.js"></script>
+<script src="geo.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+document.querySelectorAll('.lg').forEach(e => e.innerHTML = SH.logo(36));
+const G = { token: sessionStorage.getItem('sh_hq'), schools: [], accs: [], view: 'home', sel: new Set(), year: '', color: 'status' };
+const STC = { collected: '#6E9A5B', drying: '#D9982B', cleaned: '#7262A8', packed: '#2F5D7C', deposited: '#143A2E', rejected: '#B5452F' };
+const TITLE = { book: '시드핸즈 도감', home: '전국 한눈에 보기', map: '전국 채종 지도', arc: '채종 아카이브', notes: '관찰 노트 아카이브', sch: '참여 학교', dep: '기탁 양식', roles: '역할별 할 일', set: '설정' };
+const num = v => { const n = parseFloat(String(v ?? '').replace(/[^\d.]/g, '')); return isFinite(n) ? n : 0; };
+const fmt = n => Number(n || 0).toLocaleString('ko-KR');
+const schoolOf = id => G.schools.find(s => s.id === id) || {};
+const regOf = a => SH.regionKey(schoolOf(a.school_id).region || a.data?.address) || '기타';
+const zoneOf = a => a.data && a.data.lat ? SH.zoneOf(a.data.lat, a.data.lng, a.data.alt) : null;
+const aiOf = a => a.ai?.result?.level || a.data?.ai_level || '';
+const base = () => location.href.replace(/hq\.html.*$/, '').replace(/[?#].*$/, '');
+
+/* ───── 들어가기 ───── */
+$('#loginF').onsubmit = async e => {
+  e.preventDefault(); $('#gErr').textContent = '';
+  try {
+    const r = await SH.rpc('seedhands_admin_login2', { p_code: 'HQ', p_pw: $('#gPw').value });
+    if (!r.ok) return $('#gErr').textContent = r.error;
+    if (!r.super) return $('#gErr').textContent = '운영국 계정이 아니에요.';
+    G.token = r.token; sessionStorage.setItem('sh_hq', r.token); $('#gPw').value = ''; await load();
+  } catch (err) { $('#gErr').textContent = err.message; }
+};
+$('#logout').onclick = () => { sessionStorage.removeItem('sh_hq'); location.reload(); };
+$('#refresh').onclick = () => load();
+$$('nav.side .nv[data-v]').forEach(b => b.onclick = () => go(b.dataset.v));
+function go(v) {
+  G.view = v; $$('nav.side .nv[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  $$('main section[data-view]').forEach(s => s.classList.toggle('hidden', s.dataset.view !== v));
+  $('#pgTitle').innerHTML = `<small>시드핸즈 운영국</small>${TITLE[v]}`; render();
+}
+
+async function load() {
+  const r = await SH.rpc('seedhands_hq_overview', { p_token: G.token });
+  if (!r.ok) { sessionStorage.removeItem('sh_hq'); G.token = null; $('#gate').classList.remove('hidden'); $('#app').classList.add('hidden'); if (r.error !== 'session') SH.toast(r.error); return; }
+  G.schools = r.schools; G.allAccs = r.accessions; G.aiCount = r.ai_count;
+  const years = [...new Set(G.allAccs.map(a => (a.data?.date || a.created_at || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+  $('#fYear').innerHTML = '<option value="">모든 해</option>' + years.map(y => `<option ${y === G.year ? 'selected' : ''}>${y}</option>`).join('');
+  applyYear();
+  $('#gate').classList.add('hidden'); $('#app').classList.remove('hidden');
+  const so = '<option value="">모든 학교</option>' + G.schools.map(s => `<option value="${s.id}">${SH.esc(s.name)}</option>`).join('');
+  ['#mSchool', '#aSch', '#nSch', '#dSch'].forEach(id => { const v = $(id).value; $(id).innerHTML = so; $(id).value = v; });
+  const regs = [...new Set(G.schools.map(s => SH.regionKey(s.region)).filter(Boolean))].sort();
+  $('#aReg').innerHTML = '<option value="">모든 지역</option>' + regs.map(r => `<option>${r}</option>`).join('');
+  $('#aSt').innerHTML = '<option value="">모든 단계</option>' + [...SH.STATUS, SH.STATUS_REJ].map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+  $('#bulkSt').innerHTML = [...SH.STATUS, SH.STATUS_REJ].map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+  $('#nM').innerHTML = '<option value="">모든 노트</option>' + SH.MISSIONS.map(m => `<option value="${m.id}">${m.emoji || ''} ${m.title}</option>`).join('');
+  go(G.view);
+}
+$('#fYear').onchange = () => { G.year = $('#fYear').value; applyYear(); render(); };
+function applyYear() { G.accs = G.allAccs.filter(a => !G.year || (a.data?.date || a.created_at || '').startsWith(G.year)); }
+function render() { ({ book: rBook, home: rHome, map: rMap, arc: rArc, notes: rNotes, sch: rSch, dep: rDep, roles: rRoles, set: rSet })[G.view](); }
+
+function bars(el, rows, color = 'var(--moss)', unit = '') {
+  const max = Math.max(1, ...rows.map(r => r[1]));
+  el.innerHTML = rows.length ? rows.map(([k, v, c]) => `<div class="bar"><span class="lb" title="${SH.esc(k)}">${SH.esc(k)}</span><span class="tr"><span class="fl" style="width:${v / max * 100}%;background:${c || color}"></span></span><span class="n">${fmt(v)}${unit}</span></div>`).join('') : '<p class="muted small">아직 기록이 없어요.</p>';
+}
+const count = (arr, f) => { const m = {}; arr.forEach(x => { const k = f(x); if (k) m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+
+/* ───── 한눈에 ───── */
+function rHome() {
+  const A = G.accs, sch = new Set(A.map(a => a.school_id)), species = new Set(A.map(a => a.data?.sci || a.data?.plant).filter(Boolean));
+  const seeds = A.reduce((s, a) => s + num(a.data?.seedCount), 0), dep = A.filter(a => a.status === 'deposited').length;
+  const ai = A.filter(a => aiOf(a)).length, stu = new Set(A.map(a => a.student_no + '@' + a.school_id)).size;
+  const k = [['🏫', G.schools.length, '참여 학교', `기록 있는 학교 ${sch.size}곳`], ['🧒', G.schools.reduce((s, x) => s + (+x.students || 0), 0), '참여 학생', `채종한 학생 ${stu}명`], ['🌰', A.length, '채종 기록', `${G.year || '전체'} 기준`],
+    ['🌿', species.size, '채종한 종', '학명·국명 기준'], ['🫘', seeds, '씨앗 수(립)', '학생이 센 값의 합'], ['🏔️', dep, '시드볼트 입고', A.length ? `${Math.round(dep / A.length * 100)}%` : ''], ['🤖', ai, 'AI 검토 완료', A.length ? `${Math.round(ai / A.length * 100)}%` : '']];
+  $('#kpis').innerHTML = k.map(([e, v, l, s]) => `<div class="kpi"><span class="e">${e}</span><b>${fmt(v)}</b><span>${l}</span><small>${s}</small></div>`).join('');
+  $('#flow').innerHTML = [...SH.STATUS, SH.STATUS_REJ].map(s => `<button class="${s.id === 'rejected' ? 'rej' : s.id === 'deposited' ? 'dep' : ''}" data-st="${s.id}"><b>${A.filter(a => a.status === s.id).length}</b><span>${s.label}</span></button>`).join('');
+  $$('#flow button').forEach(b => b.onclick = () => { $('#aSt').value = b.dataset.st; go('arc'); });
+  bars($('#bReg'), count(A, regOf), '#2F5D7C');
+  bars($('#bSp'), count(A, a => a.data?.plant).slice(0, 10));
+  const zc = Object.fromEntries(Object.values(SH.ZONES).map(z => [z.name, z.color]));
+  bars($('#bZone'), count(A, a => zoneOf(a)?.name).map(([k, v]) => [k, v, zc[k]]));
+  bars($('#bSch'), count(A, a => schoolOf(a.school_id).name).slice(0, 12), '#7262A8');
+  const mon = count(A, a => (a.data?.date || '').slice(0, 7)).sort((a, b) => a[0].localeCompare(b[0]));
+  bars($('#bMon'), mon.map(([k, v]) => [k.replace('-', '년 ') + '월', v]), '#D9982B');
+  const AL = { match: ['✅ 잘 맞음', '#6E9A5B'], check: ['🤔 확인 필요', '#D9982B'], mismatch: ['⚠️ 다른 식물 의심', '#D9534F'], photo: ['📸 사진 부족', '#2F5D7C'] };
+  bars($('#bAi'), [...Object.entries(AL).map(([k, [l, c]]) => [l, A.filter(a => aiOf(a) === k).length, c]), ['검토 안 함', A.filter(a => !aiOf(a)).length, '#B9C3BC']]);
+  $('#recent').innerHTML = A.slice(0, 8).map(a => `<div><span>${SH.STAGE_EMO?.[a.status] || '🌰'}</span><b>${SH.esc(a.data?.plant || '이름 모름')}</b><span>${SH.esc(schoolOf(a.school_id).name || '')} · ${SH.esc(a.student || '')}</span><span class="t">${SH.dot(a.data?.date || '')}</span></div>`).join('') || '<p class="muted small">아직 기록이 없어요.</p>';
+}
+
+/* ───── 지도 ───── */
+$$('#mColor button').forEach(b => b.onclick = () => { G.color = b.dataset.c; $$('#mColor button').forEach(x => x.classList.toggle('on', x === b)); rMap(); });
+$('#mSchool').onchange = () => rMap(); $('#mQ').oninput = () => { clearTimeout(G.mt); G.mt = setTimeout(rMap, 250); };
+function mapPts() {
+  const q = $('#mQ').value.trim(), sc = $('#mSchool').value;
+  return G.accs.filter(a => a.data?.lat && (!sc || a.school_id === sc) && (!q || (a.data.plant || '').includes(q) || (a.data.sci || '').toLowerCase().includes(q.toLowerCase())));
+}
+function colorOf(a) { return G.color === 'zone' ? (zoneOf(a)?.color || '#888') : STC[a.status] || '#6E9A5B'; }
+function rMap() {
+  const P = mapPts(); $('#mN').textContent = `지도에 ${P.length}점`;
+  $('#mLeg').innerHTML = G.color === 'zone' ? Object.values(SH.ZONES).map(z => `<span><i style="background:${z.color}"></i>${z.emoji} ${z.name}</span>`).join('') + '<span>🏫 학교 탐사지 · 🏔️ 시드볼트 · 점선: 백두대간</span>'
+    : [...SH.STATUS, SH.STATUS_REJ].map(s => `<span><i style="background:${STC[s.id]}"></i>${s.label}</span>`).join('') + '<span>🏫 학교 탐사지 · 🏔️ 시드볼트 · 점선: 백두대간</span>';
+  const el = $('#hqMap');
+  if (!SH.leaflet()) {
+    el.innerHTML = SH.koreaSVG({ points: P.map(a => ({ lat: +a.data.lat, lng: +a.data.lng, plant: a.data.plant, status: a.status, color: colorOf(a), school: schoolOf(a.school_id).name })), dark: false, id: 'hqSvg' });
+    el.querySelectorAll('.kr-dot').forEach((d, i) => { if (P[i]) { d.setAttribute('fill', colorOf(P[i])); d.style.cursor = 'pointer'; d.onclick = () => pickAcc(P[i]); } });
+    if (!G.infoSet) { pickPlace(37.4772, 127.0789, '서울 대모산 (예시)'); G.infoSet = true; }
+    return;
+  }
+  if (!G.map) {
+    G.map = L.map(el, { scrollWheelZoom: true }).setView([36.2, 127.8], 7); SH.tiles(G.map);
+    L.polyline(SH.RIDGE.map(([x, y]) => [y, x]), { color: '#D9982B', weight: 4, opacity: .8, dashArray: '8 6' }).addTo(G.map).bindTooltip('백두대간');
+    L.marker([SH.VAULT.lat, SH.VAULT.lng], { icon: L.divIcon({ className: '', html: '<div class="mk-emo">🏔️</div>', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(G.map).bindPopup(`<b>${SH.VAULT.name}</b><br>${SH.VAULT.place}`);
+    G.layer = L.layerGroup().addTo(G.map);
+    G.map.on('click', e => pickPlace(e.latlng.lat, e.latlng.lng));
+    pickPlace(36.2, 127.8, '지도를 눌러 보세요');
+  }
+  G.layer.clearLayers();
+  G.schools.filter(s => s.site_lat).forEach(s => L.marker([s.site_lat, s.site_lng], { icon: L.divIcon({ className: '', html: '<div class="mk-emo" style="font-size:20px">🏫</div>', iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(G.layer).bindTooltip(`${s.name} · ${s.site_name || ''}`));
+  P.forEach(a => L.circleMarker([+a.data.lat, +a.data.lng], { radius: 8, color: '#143A2E', weight: 1.5, fillColor: colorOf(a), fillOpacity: .9 }).addTo(G.layer)
+    .bindTooltip(`${a.data.plant || ''} · ${schoolOf(a.school_id).name || ''}`).on('click', ev => { L.DomEvent.stopPropagation(ev); pickAcc(a); }));
+  setTimeout(() => G.map.invalidateSize(), 60);
+}
+function regionBox(lat, lng, label) {
+  return `<div class="panel" style="margin:0"><h2 style="font-size:17px">📍 ${SH.esc(label || `${(+lat).toFixed(3)}, ${(+lng).toFixed(3)}`)}</h2><div id="regTxt" class="small muted">지역 정보를 찾는 중…</div></div>`;
+}
+async function fillRegion(lat, lng) {
+  let rk = '', addr = '', elev = null;
+  if (SH.mode !== 'demo') { try { const g = await SH.gis(lat, lng); addr = g.address || ''; rk = SH.regionKey(addr); elev = g.elev; } catch {} }
+  if (elev != null && G.pickZone) { const z = SH.zoneOf(lat, lng, elev); const zc = document.querySelector('#mInfo .zonecard'); if (zc && z) { zc.outerHTML = SH.zoneCard(z, { month: new Date().getMonth() + 1 }); } }
+  if (!rk) rk = SH.regionKey($('#regTxt')?.dataset.hint || '');
+  const t = $('#regTxt'); if (!t) return;
+  t.innerHTML = `${elev != null ? `<p style="margin:0 0 4px">해발 약 ${elev}m</p>` : ''}${addr ? `<p style="margin:0 0 6px">${SH.esc(addr)}</p>` : ''}${rk && SH.REGIONS[rk] ? `<p style="margin:0;color:var(--ink)"><b>${rk}</b> · ${SH.REGIONS[rk]}</p>` : '<p style="margin:0">바다이거나 지역 정보를 찾지 못했어요.</p>'}`;
+}
+function pickPlace(lat, lng, label) {
+  G.pickZone = true;
+  const z = SH.zoneOf(lat, lng, null);
+  $('#mInfo').innerHTML = regionBox(lat, lng, label) + SH.zoneCard(z, { month: new Date().getMonth() + 1 })
+    + `<p class="small muted">지도 아무 곳이나 누르면 그 지역의 식생대와 자랄 수 있는 나무를 보여 줘요. 식생대는 위도·고도로 나눈 참고값이에요.</p>`;
+  if ($('#regTxt') && label) $('#regTxt').dataset.hint = label;
+  fillRegion(lat, lng);
+}
+function pickAcc(a) {
+  G.pickZone = false;
+  const d = a.data, z = zoneOf(a), s = schoolOf(a.school_id);
+  $('#mInfo').innerHTML = `<div class="panel" style="margin:0"><h2 style="font-size:20px">${SH.esc(d.plant || '이름 모름')}</h2>
+    <p class="sci" style="margin:-8px 0 10px">${SH.esc(d.sci || '')}</p>
+    <dl class="kv"><dt>학교</dt><dd>${SH.esc(s.name || '')}</dd><dt>채종자</dt><dd>${SH.esc(a.student || '')}</dd><dt>채종일</dt><dd>${SH.dot(d.date || '')}</dd>
+    <dt>씨앗 수</dt><dd>${d.seedCount ? fmt(num(d.seedCount)) + '립' : '-'}</dd><dt>고도</dt><dd>${d.alt ? d.alt + 'm' : '-'}</dd><dt>단계</dt><dd>${SH.ST[a.status]?.label || ''}</dd>
+    <dt>AI</dt><dd>${aiTag(a)}</dd></dl>
+    <button class="btn sm" style="margin-top:12px" id="mOpen">자세히 보기</button></div>` + SH.zoneCard(z, { short: true, month: +String(d.date || '').slice(5, 7) || null }) + regionBox(d.lat, d.lng, d.address);
+  $('#mOpen').onclick = () => openAcc(a.id); fillRegion(+d.lat, +d.lng);
+}
+function aiTag(a) { const l = aiOf(a); const L = SH.AI_LEVEL[l]; return L ? `<span class="ailv ${l}">${L.emoji} ${L.label}</span>` : '<span class="ailv">검토 안 함</span>'; }
+
+/* ───── 아카이브 ───── */
+['#aq', '#aReg', '#aSch', '#aSt', '#aAi'].forEach(id => $(id).addEventListener(id === '#aq' ? 'input' : 'change', () => rArc()));
+function arcList() {
+  const q = $('#aq').value.trim().toLowerCase(), rg = $('#aReg').value, sc = $('#aSch').value, st = $('#aSt').value, ai = $('#aAi').value;
+  return G.accs.filter(a => (!rg || regOf(a) === rg) && (!sc || a.school_id === sc) && (!st || a.status === st) && (!ai || (ai === 'none' ? !aiOf(a) : aiOf(a) === ai))
+    && (!q || [a.acc_no, a.data?.plant, a.data?.sci, a.student, schoolOf(a.school_id).name].join(' ').toLowerCase().includes(q)));
+}
+function rArc() {
+  const L = arcList();
+  $('#arcBody').innerHTML = L.map(a => `<tr data-id="${a.id}" class="${G.sel.has(a.id) ? 'sel' : ''}"><td><input type="checkbox" data-c="${a.id}" ${G.sel.has(a.id) ? 'checked' : ''}></td><td class="small">${SH.esc(a.acc_no)}</td>
+    <td><div class="nm">${SH.esc(a.data?.plant || '이름 모름')}</div><div class="sci">${SH.esc(a.data?.sci || '')}</div></td><td>${SH.esc(schoolOf(a.school_id).name || '')}</td><td>${regOf(a)}</td>
+    <td>${SH.esc(a.student || '')}</td><td>${SH.dot(a.data?.date || '')}</td><td class="num">${a.data?.seedCount ? fmt(num(a.data.seedCount)) : ''}</td><td>${aiTag(a)}</td>
+    <td><span class="tag st-${a.status}">${SH.ST[a.status]?.label || a.status}</span></td></tr>`).join('') || '<tr><td colspan="10" class="muted">조건에 맞는 기록이 없어요.</td></tr>';
+  $('#arcFoot').textContent = `${L.length}건 · 씨앗 ${fmt(L.reduce((s, a) => s + num(a.data?.seedCount), 0))}립 · 행을 누르면 사진과 모든 정보를 보고 고칠 수 있어요.`;
+  $$('#arcBody tr[data-id]').forEach(tr => tr.onclick = e => { if (e.target.matches('input')) return; openAcc(tr.dataset.id); });
+  $$('#arcBody [data-c]').forEach(c => c.onchange = () => { c.checked ? G.sel.add(c.dataset.c) : G.sel.delete(c.dataset.c); bulkBar(); c.closest('tr').classList.toggle('sel', c.checked); });
+  bulkBar();
+}
+$('#chkAll').onchange = e => { arcList().forEach(a => e.target.checked ? G.sel.add(a.id) : G.sel.delete(a.id)); rArc(); };
+function bulkBar() { $('#bulk').classList.toggle('hidden', !G.sel.size); $('#bulkN').textContent = `${G.sel.size}건 선택`; }
+$('#bulkClear').onclick = () => { G.sel.clear(); rArc(); };
+$('#bulkApply').onclick = async () => { const r = await SH.rpc('seedhands_admin_acc_update', { p_token: G.token, p_ids: [...G.sel], p_status: $('#bulkSt').value, p_note: null }); if (!r.ok) return SH.toast(r.error || '바꾸지 못했어요'); SH.toast(`${r.updated}건 단계를 바꿨어요`); await load(); };
+$('#bulkDel').onclick = async () => {
+  const n = G.sel.size; const v = await SH.dialog({ title: `${n}건을 지울까요?`, msg: '지운 기록과 사진은 되돌릴 수 없어요. 확인하려면 "삭제"라고 적어 주세요.', input: '', ok: '영구 삭제', danger: true });
+  if (v !== '삭제') { if (v !== false) SH.toast('"삭제"라고 적어야 지워져요.'); return; }
+  const r = await SH.rpc('seedhands_admin_acc_delete', { p_token: G.token, p_ids: [...G.sel] }); if (!r.ok) return SH.toast(r.error || '지우지 못했어요');
+  SH.toast(`${r.deleted}건을 지웠어요`); G.sel.clear(); await load();
+};
+$('#xArc').onclick = () => xlsxArc(arcList(), '채종아카이브');
+$('#bulkX').onclick = () => xlsxArc(G.accs.filter(a => G.sel.has(a.id)), '선택기록');
+
+async function openAcc(id) {
+  const a = G.accs.find(x => x.id === id) || G.allAccs.find(x => x.id === id); if (!a) return;
+  const d = a.data || {}, s = schoolOf(a.school_id), z = zoneOf(a), R = SH.readiness(a);
+  const bg = document.createElement('div'); bg.className = 'drawer-bg';
+  bg.innerHTML = `<div class="drawer" role="dialog" aria-modal="true"><div class="dh"><div style="flex:1"><div class="accno">${SH.esc(a.acc_no)} · ${SH.esc(s.name || '')}</div><h2>${SH.esc(d.plant || '이름 모름')}</h2><div class="sci">${SH.esc(d.sci || '')}</div></div><button class="btn line sm" data-x>닫기</button></div>
+    <div class="panel"><h2>사진</h2><div class="imgs" id="dImgs"><p class="muted small">사진을 불러오는 중…</p></div></div>
+    ${a.ai?.result ? `<div class="panel"><h2>🤖 AI 검토</h2>${SH.aiCard(a.ai.result, { teacher: true })}<p class="small muted" style="margin-top:6px">${SH.esc(a.ai.model || '')} · ${a.ai.created_at ? new Date(a.ai.created_at).toLocaleString('ko-KR') : ''}</p></div>` : '<div class="panel"><h2>🤖 AI 검토</h2><p class="muted small" style="margin:0">AI 검토를 받지 않은 기록이에요.</p></div>'}
+    <div class="panel"><h2>진행 단계</h2><div class="stbtns">${[...SH.STATUS, SH.STATUS_REJ].map(x => `<button data-st="${x.id}" class="${x.id === a.status ? 'on' : ''} ${x.id === 'rejected' ? 'rej' : ''}">${x.label}</button>`).join('')}</div>
+      <label class="field" style="margin-top:12px"><span class="lbl">학교·학생에게 남길 메모</span><textarea class="inp" id="dNote" rows="2">${SH.esc(a.teacher_note || '')}</textarea></label><button class="btn line sm" id="dNoteSave">메모 저장</button></div>
+    <div class="panel"><h2>채종 정보 고치기 <small>기탁 양식에 그대로 들어가요</small></h2>
+      <div class="grid2" style="gap:10px">${[['plant', '국명'], ['sci', '학명'], ['sciFull', '학명(저자 포함)'], ['family', '과국명'], ['famLa', '과명(라틴어)'], ['genus', '속명'], ['genusKo', '속국명'], ['date', '채집일'], ['seedCount', '씨앗 수(립)'], ['lots', '점수'], ['weight', '무게(g)'], ['identifier', '동정자'], ['team', '함께 채집한 사람'], ['address', '채집지'], ['lat', '위도'], ['lng', '경도'], ['alt', '고도(m)']]
+        .map(([k, l]) => `<label class="field" style="margin:0"><span class="lbl">${l}</span><input class="inp" data-e="${k}" value="${SH.esc(d[k] ?? '')}"></label>`).join('')}</div>
+      <button class="btn sm" id="dSave" style="margin-top:12px">고친 내용 저장</button></div>
+    ${z ? `<div class="panel"><h2>채종지 식생대</h2>${SH.zoneCard(z, { month: +String(d.date || '').slice(5, 7) || null })}</div>` : ''}
+    <div class="panel"><h2>기탁 준비도 ${R.score}/${R.items.length}</h2><ul class="ready-list">${R.items.map(([l, ok]) => `<li class="${ok ? '' : 'n'}">${l}</li>`).join('')}</ul></div>
+    <div class="dangerzone"><b style="color:var(--alert)">기록 삭제</b><p class="small muted" style="margin:4px 0 8px">사진과 함께 영구히 지워져요.</p><button class="btn line sm" id="dDel" style="color:var(--alert)">이 기록 지우기</button></div></div>`;
+  document.body.appendChild(bg);
+  const close = () => bg.remove(); bg.querySelector('[data-x]').onclick = close; bg.onclick = e => { if (e.target === bg) close(); };
+  bg.querySelectorAll('[data-st]').forEach(b => b.onclick = async () => { const r = await SH.rpc('seedhands_admin_acc_update', { p_token: G.token, p_ids: [a.id], p_status: b.dataset.st, p_note: null }); if (!r.ok) return SH.toast('바꾸지 못했어요'); a.status = b.dataset.st; bg.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b)); SH.toast('단계를 바꿨어요'); render(); });
+  bg.querySelector('#dNoteSave').onclick = async () => { const r = await SH.rpc('seedhands_admin_acc_update', { p_token: G.token, p_ids: [a.id], p_status: null, p_note: bg.querySelector('#dNote').value }); SH.toast(r.ok ? '메모를 저장했어요' : '저장하지 못했어요'); if (r.ok) a.teacher_note = bg.querySelector('#dNote').value; };
+  bg.querySelector('#dSave').onclick = async () => {
+    const patch = {}; bg.querySelectorAll('[data-e]').forEach(i => { if (String(d[i.dataset.e] ?? '') !== i.value) patch[i.dataset.e] = i.value.trim(); });
+    if (!Object.keys(patch).length) return SH.toast('바뀐 내용이 없어요');
+    const r = await SH.rpc('seedhands_admin_acc_patch', { p_token: G.token, p_id: a.id, p_patch: patch }); if (!r.ok) return SH.toast(r.error || '저장하지 못했어요');
+    Object.assign(a.data, patch); SH.toast('저장했어요'); render();
+  };
+  bg.querySelector('#dDel').onclick = async () => {
+    const ok = await SH.dialog({ title: '이 기록을 지울까요?', msg: `${a.acc_no} ${d.plant || ''} 기록과 사진이 영구히 지워져요.`, ok: '영구 삭제', danger: true }); if (!ok) return;
+    const r = await SH.rpc('seedhands_admin_acc_delete', { p_token: G.token, p_ids: [a.id] }); if (!r.ok) return SH.toast(r.error || '지우지 못했어요');
+    close(); SH.toast('지웠어요'); await load();
+  };
+  const im = await SH.rpc('seedhands_admin_acc_images', { p_token: G.token, p_ids: [a.id] }); const x = (im.items || [])[0] || {};
+  const box = bg.querySelector('#dImgs'); if (!box) return;
+  const ph = [['photo_plant', '🌳 식물 전체'], ['photo_fruit', '🍎 열매'], ['photo_seed', '🌰 씨앗'], ['sketch', '✏️ 그림']].filter(([k]) => x[k]);
+  box.innerHTML = ph.length ? ph.map(([k, l]) => `<figure><a href="${x[k]}" target="_blank" rel="noopener"><img src="${x[k]}" alt="${l}"></a><figcaption>${l}</figcaption></figure>`).join('') : '<p class="muted small">사진이 없어요.</p>';
+}
+
+/* ───── 시드핸즈 도감 ───── */
+['#bkQ', '#bkSort', '#bkSt'].forEach(id => $(id).addEventListener(id === '#bkQ' ? 'input' : 'change', () => rBook()));
+function bookData(list) {
+  const m = {};
+  list.forEach(a => { const d = a.data || {}; const k = (d.sci || d.plant || '').trim(); if (!k) return;
+    const e = m[k] || (m[k] = { key: k, plant: d.plant || '', sci: d.sci || '', family: d.family || '', recs: 0, seeds: 0, dep: 0, depSeeds: 0, schools: new Set(), regions: new Set(), zones: new Set(), photoId: null, months: new Set(), alts: [] });
+    e.recs++; e.seeds += num(d.seedCount); if (a.status === 'deposited') { e.dep++; e.depSeeds += num(d.seedCount); }
+    e.schools.add(schoolOf(a.school_id).name || ''); e.regions.add(regOf(a)); const z = zoneOf(a); if (z) e.zones.add(z.emoji + ' ' + z.name);
+    if (d.date) e.months.add(+d.date.slice(5, 7)); if (d.alt !== '' && d.alt != null) e.alts.push(+d.alt);
+    if (!e.photoId && a.has_plant) e.photoId = a.id; if (!e.plant && d.plant) e.plant = d.plant; if (!e.family && d.family) e.family = d.family; });
+  return Object.values(m);
+}
+function rBook() {
+  const q = $('#bkQ').value.trim().toLowerCase(), so = $('#bkSort').value;
+  let L = bookData(G.accs.filter(a => !$('#bkSt').value || a.status === $('#bkSt').value)).filter(e => !q || [e.plant, e.sci, e.family].join(' ').toLowerCase().includes(q));
+  L.sort((x, y) => so === 'name' ? x.plant.localeCompare(y.plant, 'ko') : so === 'recs' ? y.recs - x.recs : so === 'dep' ? y.dep - x.dep : y.seeds - x.seeds);
+  $('#bkN').textContent = `${L.length}종 · 씨앗 ${fmt(L.reduce((t, e) => t + e.seeds, 0))}립`;
+  const P = SH.findPlant ? SH.findPlant : () => null;
+  $('#bookGrid').innerHTML = L.map(e => { const bp = P(e.plant); const al = e.alts.length ? `${Math.min(...e.alts)}~${Math.max(...e.alts)}m` : '';
+    return `<article class="bookcard"><div class="bimg" data-ph="${e.photoId || ''}">${e.photoId ? '<span class="spin"></span>' : `<span class="bemo">${SH.plantEmo(bp)}</span>`}</div>
+      <div class="bbody"><h3>${SH.esc(e.plant || '이름 미정')}</h3><div class="sci">${SH.esc(e.sci)}</div><div class="small muted">${SH.esc(e.family)}</div>
+      <div class="bnum"><div><b>${fmt(e.seeds)}</b><span>씨앗(립)</span></div><div><b>${e.recs}</b><span>기록</span></div><div><b>${e.dep}</b><span>입고</span></div></div>
+      <dl class="bkv"><dt>학교</dt><dd>${[...e.schools].filter(Boolean).map(SH.esc).join(', ')}</dd><dt>지역</dt><dd>${[...e.regions].join(', ')}</dd>${e.zones.size ? `<dt>식생대</dt><dd>${[...e.zones].join(', ')}</dd>` : ''}${al ? `<dt>고도</dt><dd>${al}</dd>` : ''}<dt>채종 시기</dt><dd>${[...e.months].sort((a, b) => a - b).map(m => m + '월').join(', ')}</dd></dl>
+      ${bp?.tip ? `<p class="small" style="margin:6px 0 0">💡 ${SH.esc(bp.tip)}</p>` : ''}</div></article>`; }).join('') || '<p class="muted">아직 채종한 식물이 없어요.</p>';
+  bookPhotos();
+}
+async function bookPhotos() {
+  const els = $$('#bookGrid .bimg[data-ph]').filter(e => e.dataset.ph); if (!els.length) return;
+  G.bkImg = G.bkImg || {};
+  const need = els.map(e => e.dataset.ph).filter(id => !(id in G.bkImg));
+  for (let i = 0; i < need.length; i += 6) { try { const r = await SH.rpc('seedhands_admin_acc_images', { p_token: G.token, p_ids: need.slice(i, i + 6) }); (r.items || []).forEach(x => G.bkImg[x.id] = x.photo_plant || x.photo_seed || ''); } catch {} }
+  els.forEach(e => { const u = G.bkImg[e.dataset.ph]; e.innerHTML = u ? `<img src="${u}" alt="" loading="lazy">` : '<span class="bemo">🌱</span>'; });
+}
+$('#xBook').onclick = () => { const L = bookData(G.accs); const rows = [['국명', '학명', '과', '씨앗 수(립)', '기록 수', '시드볼트 입고 기록', '입고 씨앗(립)', '학교', '지역', '식생대', '채종 월']];
+  L.sort((x, y) => y.seeds - x.seeds).forEach(e => rows.push([e.plant, e.sci, e.family, e.seeds, e.recs, e.dep, e.depSeeds, [...e.schools].join(', '), [...e.regions].join(', '), [...e.zones].join(', '), [...e.months].sort((a, b) => a - b).join(', ')]));
+  SH.download(SH.xlsx([{ name: '시드핸즈도감', rows }]), `시드핸즈_도감_${G.year || '전체'}_${SH.today()}.xlsx`); };
+
+/* ───── 관찰 노트 ───── */
+$('#nSch').onchange = () => rNotes(); $('#nM').onchange = () => rNotes();
+async function rNotes() {
+  $('#nGal').innerHTML = '<p class="muted small">불러오는 중…</p>';
+  const r = await SH.rpc('seedhands_admin_images', { p_token: G.token, p_student: null, p_mission: $('#nM').value || null });
+  const ov = G.stuMap || (G.stuMap = await stuMap());
+  let items = (r.items || []).map(x => ({ ...x, st: ov[x.student_id] || {} }));
+  if ($('#nSch').value) items = items.filter(x => x.st.school_id === $('#nSch').value);
+  $('#nN').textContent = `${items.length}장`;
+  $('#nGal').innerHTML = items.slice(0, 120).map(x => { const m = SH.MISSIONS.find(m => m.id === x.mission) || {}; return `<figure><img src="${x.photo || x.sketch}" alt="" loading="lazy"><figcaption>${m.emoji || ''} ${SH.esc(m.title || x.mission)} · ${SH.esc(x.st.name || '')}<br><span class="muted">${SH.esc(schoolOf(x.st.school_id).name || '')}</span></figcaption></figure>`; }).join('') || '<p class="muted small">관찰 노트가 아직 없어요.</p>';
+  $$('#nGal figure img').forEach(i => i.onclick = () => window.open(i.src, '_blank'));
+}
+async function stuMap() { const r = await SH.rpc('seedhands_admin_overview', { p_token: G.token }); return Object.fromEntries((r.students || []).map(s => [s.id, s])); }
+
+/* ───── 학교 ───── */
+$('#sq').oninput = () => rSch();
+function rSch() {
+  const q = $('#sq').value.trim();
+  const L = G.schools.filter(s => !q || (s.name + s.code).includes(q) || s.code.includes(q.toUpperCase()));
+  $('#schN').textContent = `${G.schools.length}곳`;
+  $('#schBody').innerHTML = L.map(s => { const A = G.accs.filter(a => a.school_id === s.id), z = s.site_lat ? SH.zoneOf(s.site_lat, s.site_lng) : null;
+    return `<tr data-id="${s.id}"><td><b>${SH.esc(s.name)}</b></td><td><code>${SH.esc(s.code)}</code></td><td>${SH.esc(SH.regionKey(s.region) || s.region || '')}</td><td>${SH.esc(s.site_name || '')}</td><td>${z ? `<span style="color:${z.color}">${z.emoji} ${z.name}</span>` : ''}</td>
+      <td class="num">${s.students || 0}</td><td class="num">${A.length}</td><td class="num">${fmt(A.reduce((t, a) => t + num(a.data?.seedCount), 0))}</td><td class="num">${A.filter(a => a.status === 'deposited').length}</td><td class="small">${SH.dayOf(s.created_at)}</td>
+      <td><button class="btn line sm" data-ed="${s.id}">관리</button></td></tr>`; }).join('') || '<tr><td colspan="11" class="muted">학교가 없어요.</td></tr>';
+  $$('#schBody [data-ed]').forEach(b => b.onclick = e => { e.stopPropagation(); editSchool(b.dataset.ed); });
+  $$('#schBody tr[data-id]').forEach(tr => tr.onclick = () => editSchool(tr.dataset.id));
+}
+$('#xSch').onclick = () => { const rows = [['학교', '코드', '지역', '탐사지', '위도', '경도', '기탁기관명', '연락처', '학생 수', '기록 수', '씨앗(립)', '입고', '등록일']];
+  G.schools.forEach(s => { const A = G.accs.filter(a => a.school_id === s.id); rows.push([s.name, s.code, s.region || '', s.site_name || '', s.site_lat ?? '', s.site_lng ?? '', s.inst_name || '', s.contact || '', +s.students || 0, A.length, A.reduce((t, a) => t + num(a.data?.seedCount), 0), A.filter(a => a.status === 'deposited').length, SH.dayOf(s.created_at)]); });
+  SH.download(SH.xlsx([{ name: '참여학교', rows }]), `시드핸즈_참여학교_${SH.today()}.xlsx`); };
+function editSchool(id) {
+  const s = schoolOf(id); const bg = document.createElement('div'); bg.className = 'drawer-bg';
+  bg.innerHTML = `<div class="drawer"><div class="dh"><h2>${SH.esc(s.name)}</h2><button class="btn line sm" data-x>닫기</button></div>
+    <div class="panel"><h2>학교 정보·코드 고치기</h2>
+      ${[['name', '학교 이름'], ['code', '학교 코드 (학생이 입력하는 코드)'], ['region', '지역'], ['site_name', '탐사지'], ['site_lat', '탐사지 위도'], ['site_lng', '탐사지 경도'], ['inst_name', '기탁기관명'], ['contact', '담당 연락처']]
+        .map(([k, l]) => `<label class="field"><span class="lbl">${l}</span><input class="inp" data-e="${k}" value="${SH.esc(s[k] ?? '')}"></label>`).join('')}
+      <p class="small muted">코드를 바꾸면 이전에 나눠 준 QR·주소는 더 이상 쓸 수 없어요. 학생들은 다시 로그인하지 않아도 돼요.</p>
+      <button class="btn sm" id="sSave">저장</button></div>
+    <div class="panel"><h2>관리자 비밀번호 다시 정하기</h2><p class="small muted" style="margin:0 0 10px">담당 교사가 비밀번호를 잊었을 때 써요. 새 비밀번호를 담당 교사에게 따로 알려 주세요.</p>
+      <div style="display:flex;gap:8px"><input class="inp" id="sPw" placeholder="새 비밀번호 (6자 이상)"><button class="btn line sm" id="sPwBtn">바꾸기</button></div></div>
+    <div class="panel"><h2>바로가기</h2><p class="small">학생 주소: <code>${SH.esc(base() + (s.code === SH.DEFAULT_CODE ? '' : '?s=' + s.code))}</code></p><div id="sQr"></div></div>
+    <div class="dangerzone"><b style="color:var(--alert)">학교 삭제</b><p class="small muted" style="margin:4px 0 8px">학생, 채종 기록, 사진, 관찰 노트가 모두 영구히 지워져요.</p><button class="btn line sm" id="sDel" style="color:var(--alert)">이 학교 지우기</button></div></div>`;
+  document.body.appendChild(bg); const close = () => bg.remove(); bg.querySelector('[data-x]').onclick = close; bg.onclick = e => { if (e.target === bg) close(); };
+  bg.querySelector('#sQr').innerHTML = SH.qrSVG(base() + (s.code === SH.DEFAULT_CODE ? '' : '?s=' + encodeURIComponent(s.code)), { size: 160 });
+  bg.querySelector('#sSave').onclick = async () => { const patch = {}; bg.querySelectorAll('[data-e]').forEach(i => { if (String(s[i.dataset.e] ?? '') !== i.value) patch[i.dataset.e] = i.value.trim(); });
+    if (!Object.keys(patch).length) return SH.toast('바뀐 내용이 없어요');
+    const r = await SH.rpc('seedhands_hq_school_update', { p_token: G.token, p_school: s.id, p_patch: patch }); if (!r.ok) return SH.toast(r.error || '저장하지 못했어요'); SH.toast('저장했어요'); close(); await load(); };
+  bg.querySelector('#sPwBtn').onclick = async () => { const r = await SH.rpc('seedhands_hq_school_pw', { p_token: G.token, p_school: s.id, p_pw: bg.querySelector('#sPw').value }); SH.toast(r.ok ? '비밀번호를 바꿨어요. 담당 교사에게 알려 주세요.' : r.error || '바꾸지 못했어요'); };
+  bg.querySelector('#sDel').onclick = async () => { const v = await SH.dialog({ title: '학교를 지울까요?', msg: `되돌릴 수 없어요. 확인하려면 학교 이름 "${s.name}"을 그대로 적어 주세요.`, input: '', ok: '영구 삭제', danger: true });
+    if (v !== s.name) { if (v !== false) SH.toast('학교 이름이 맞지 않아요.'); return; }
+    const r = await SH.rpc('seedhands_hq_school_delete', { p_token: G.token, p_school: s.id }); if (!r.ok) return SH.toast(r.error || '지우지 못했어요'); close(); SH.toast('학교를 지웠어요'); await load(); };
+}
+
+/* ───── 기탁 양식 ───── */
+$('#dSch').onchange = () => rDep(); $('#dSt').onchange = () => rDep();
+function depList() { const sc = $('#dSch').value, st = $('#dSt').value;
+  return G.accs.filter(a => (!sc || a.school_id === sc) && (st === 'ready' ? ['cleaned', 'packed', 'deposited'].includes(a.status) : !st || a.status === st)).sort((x, y) => x.acc_no.localeCompare(y.acc_no)); }
+function depRows(L) { return [SH.DEPOSIT_COLS.map(c => c[0]), ...L.map((a, i) => SH.depositRow(i + 1, a, { name: a.student }, schoolOf(a.school_id)))]; }
+function rDep() {
+  const L = depList(), rows = depRows(L); $('#dN').textContent = `${L.length}건`;
+  $('#depTable').innerHTML = `<thead><tr>${rows[0].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.slice(1).map(r => `<tr>${r.map(v => `<td class="small">${SH.esc(v)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="24" class="muted">해당하는 기록이 없어요. 위에서 단계를 "모든 단계"로 바꿔 보세요.</td></tr>`}</tbody>`;
+}
+$('#xDep').onclick = () => { const L = depList(); if (!L.length) return SH.toast('내려받을 기록이 없어요');
+  const rows = depRows(L).map(r => r.map((v, i) => i === 0 || i === 7 || i === 15 || i === 16 || i === 23 ? (v === '' ? '' : +v || v) : v));
+  SH.download(SH.xlsx([{ name: '기탁목록', rows }, { name: '상세정보', rows: arcRows(L) }]), `시드볼트_기탁목록_${SH.today()}.xlsx`); };
+function arcRows(L) {
+  const h = ['채종 번호', '학교', '지역', '채종자', '학번', '국명', '학명', '과', '채종일', '씨앗 수(립)', '점수', '무게(g)', '위도', '경도', '고도', '채집지', '식생대', '백두대간 거리(km)', '자라는 곳', '무리 크기', '받은 그루', '받은 비율', '익은 정도', '동정자', 'AI 판정', 'AI 확신(%)', 'AI 의견', '단계', '선생님 메모', '등록일'];
+  return [h, ...L.map(a => { const d = a.data || {}, z = zoneOf(a), R = a.ai?.result || {};
+    return [a.acc_no, schoolOf(a.school_id).name || '', regOf(a), a.student || '', a.student_no || '', d.plant || '', d.sci || '', d.family || '', d.date || '', num(d.seedCount) || '', d.lots || '', d.weight || '', d.lat ? +d.lat : '', d.lng ? +d.lng : '', d.alt !== '' && d.alt != null ? +d.alt : '', d.address || '',
+      z?.name || '', z ? z.ridgeKm : '', d.habitat || '', d.popSize || '', d.plantsSampled || '', d.share || '', d.ripe || '', d.identifier || '', SH.AI_LEVEL[aiOf(a)]?.label || '', R.score ?? '', R.summary || d.ai_summary || '', SH.ST[a.status]?.label || '', a.teacher_note || '', SH.dayOf(a.created_at)]; })];
+}
+function xlsxArc(L, nm) { if (!L.length) return SH.toast('내려받을 기록이 없어요'); SH.download(SH.xlsx([{ name: nm, rows: arcRows(L) }, { name: '기탁목록', rows: depRows(L) }]), `시드핸즈_${nm}_${SH.today()}.xlsx`); }
+
+/* ───── 역할별 할 일 ───── */
+function rRoles() {
+  const R = [
+    { c: '#143A2E', t: '① 운영국', w: '서울여대 시드핸즈 총괄팀', s: [
+      ['시작 전', ['운영국 비밀번호를 정하고(설정 메뉴) 팀 안에서만 공유해요.', '참여 학교를 모집하고 담당 교사에게 선생님 화면 주소와 운영 매뉴얼·안내 영상을 보내요.', 'AI 검토 방식을 정해요: 공용 AI를 켜 둘지, 학교가 자기 키를 넣을지(설정 → AI 공용 연결).']],
+      ['활동 중', ['「한눈에 보기」에서 학교별 참여와 기록 수를 매주 확인해요.', '「채종 아카이브」에서 AI가 ⚠️·🤔로 표시한 기록을 먼저 살펴보고, 필요하면 담당 교사에게 메모를 남겨요.', '「참여 학교」에서 코드 분실·비밀번호 분실 문의를 처리해요(코드 확인, 비밀번호 다시 정하기).']],
+      ['마무리', ['학교에서 「정선 완료」이후로 올린 기록을 「기탁 양식」에서 엑셀로 내려받아요.', '시드볼트와 기탁 일정을 협의하고, 도착한 씨앗과 목록을 맞춰 본 뒤 「시드볼트 입고」로 바꿔요.', '연말에 전체 아카이브를 엑셀로 내려받아 보관해요.']]] },
+    { c: '#2F5D7C', t: '② 담당 교사', w: '전국 참여 학교 선생님', s: [
+      ['시작 전', ['선생님 화면에서 「새 학교 등록」을 하고 학교 코드를 받아요. 코드를 잊으면 「학교 코드 찾기」를 눌러요.', '「학교 설정」에서 탐사지 위치·기탁기관명을 넣고, QR 안내문을 인쇄해 학생에게 나눠 줘요.', '교사 학습안으로 채종할 식물과 안전 수칙을 미리 정해요.']],
+      ['활동 중', ['현장에서 학생에게 안전 수칙을 안내하고, 씨앗 찾기와 식물 이름(동정)을 직접 설명해요.', '학생 기록을 「기탁 준비」에서 검토하고, AI 의견과 사진을 보고 학명·무게·점수를 마무리해요.', '씨앗을 건조 → 정선 → 포장 단계로 옮기며 단계를 바꿔요.']],
+      ['마무리', ['포장한 씨앗에 라벨을 붙이고 「포장·라벨 완료」로 바꿔요.', '운영국 안내에 따라 씨앗을 보내요.', '학생 기록 중 잘못된 것은 고치거나 지워요.']]] },
+    { c: '#D9982B', t: '③ 학생', w: '참여 초·중학생', s: [
+      ['처음 한 번', ['QR을 찍고 학번·이름·비밀번호 4자리로 들어가요(다음부터 자동 로그인).', '톨이의 인사와 안전 수칙을 읽어요.']],
+      ['산에서', ['선생님 안내에 따라 다 익은 열매를 찾아요. 한 식물에서 조금만(20% 이하) 받아요.', '「씨앗 찾았어요!」를 눌러 위치(GPS), 식물 이름, 식물·씨앗 사진을 남겨요.', '헷갈리면 꼭 선생님께 물어봐요.']],
+      ['교실에서', ['사진이 다 있으면 🤖 AI에게 한 번 더 확인받고, 선생님께 기록을 보내요.', '씨앗을 종이봉투에 담아 그늘에서 말리고, 관찰 노트와 그림도 남겨요.', '내 씨앗이 시드볼트까지 가는 단계를 앱에서 확인해요.']]] },
+  ];
+  $('#rolesBox').innerHTML = R.map(r => `<div class="role" style="--rc:${r.c}"><h2>${r.t}</h2><div class="who">${r.w}</div>${r.s.map(([h, L]) => `<h3>${h}</h3><ol>${L.map(x => `<li>${x}</li>`).join('')}</ol>`).join('')}</div>`).join('');
+}
+
+/* ───── 설정 ───── */
+async function rSet() {
+  $('#uStu').textContent = base(); $('#uTea').textContent = base() + 'admin.html'; $('#uHq').textContent = base() + 'hq.html';
+  const r = await SH.rpc('seedhands_hq_shared_ai', { p_token: G.token, p_on: null }); if (r.ok) $('#sharedAi').checked = r.shared_ai;
+  $('#aiStat').textContent = `지금까지 AI 검토 ${fmt(G.aiCount || 0)}회`;
+}
+$('#sharedAi').onchange = async () => { const r = await SH.rpc('seedhands_hq_shared_ai', { p_token: G.token, p_on: $('#sharedAi').checked }); SH.toast(r.ok ? (r.shared_ai ? '공용 AI를 켰어요' : '공용 AI를 껐어요') : '바꾸지 못했어요'); };
+$('#pSave').onclick = async () => { const r = await SH.rpc('seedhands_admin_change_pw', { p_token: G.token, p_old: $('#pOld').value, p_new: $('#pNew').value }); SH.toast(r.ok ? '비밀번호를 바꿨어요' : r.error || '바꾸지 못했어요'); if (r.ok) { $('#pOld').value = $('#pNew').value = ''; } };
+
+if (G.token) load().catch(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1F5A45"/><stop offset="1" stop-color="#123528"/></linearGradient>
+    <linearGradient id="seed" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2C15A"/><stop offset=".55" stop-color="#D9982B"/><stop offset="1" stop-color="#A9701A"/></linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B7E08F"/><stop offset="1" stop-color="#6E9A5B"/></linearGradient>
+  </defs>
+  <clipPath id="cp"><rect width="512" height="512" rx="112"/></clipPath>
+  <g clip-path="url(#cp)">
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <path d="M0 400 L70 352 L120 378 L190 318 L250 356 L318 300 L380 344 L440 312 L512 350 L512 512 L0 512Z" fill="#17453A" opacity=".9"/>
+  <path d="M0 440 L90 404 L170 428 L250 392 L340 424 L420 398 L512 420 L512 512 L0 512Z" fill="#0E2C22" opacity=".9"/>
+  </g>
+  <g transform="translate(0,0) scale(1.0)">
+    <!-- 씨앗 -->
+    <path d="M256 92 C206 128 190 190 206 244 C216 278 238 296 256 296 C274 296 296 278 306 244 C322 190 306 128 256 92Z" fill="url(#seed)"/>
+    <path d="M256 120 V262" stroke="#7A4E10" stroke-width="10" stroke-linecap="round" opacity=".55"/>
+    <ellipse cx="232" cy="170" rx="12" ry="30" fill="#FFF3D1" opacity=".55" transform="rotate(-14 232 170)"/>
+    <!-- 새싹 -->
+    <path d="M256 96 C254 76 258 62 266 50" stroke="#8CC06A" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M266 52 C286 30 320 30 336 40 C322 64 292 72 266 52Z" fill="url(#leaf)"/>
+    <path d="M262 60 C244 40 214 40 200 50 C214 72 242 76 262 60Z" fill="url(#leaf)" opacity=".9"/>
+    <!-- 두 손 -->
+    <path d="M86 236 C96 318 160 372 256 376 C214 350 182 318 168 276 C160 252 140 236 118 232 C104 230 92 230 86 236Z" fill="#F6EBD7"/>
+    <path d="M426 236 C416 318 352 372 256 376 C298 350 330 318 344 276 C352 252 372 236 394 232 C408 230 420 230 426 236Z" fill="#F6EBD7"/>
+    <path d="M168 276 C184 318 214 350 256 376" stroke="#D9C7A6" stroke-width="6" fill="none"/>
+    <path d="M344 276 C328 318 298 350 256 376" stroke="#D9C7A6" stroke-width="6" fill="none"/>
+  </g>
+</svg>

@@ -4,157 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>시드핸즈 선생님 화면</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23143A2E'/><path d='M32 14c-9 6-12 16-9 27 2 7 7 10 9 10s7-3 9-10c3-11 0-21-9-27z' fill='%23D9982B'/><path d='M32 22v28' stroke='%23143A2E' stroke-width='3'/></svg>">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#143A2E">
+<meta name="apple-mobile-web-app-title" content="시드핸즈">
+<meta property="og:title" content="시드핸즈 프로젝트">
+<meta property="og:description" content="우리 산의 야생식물 씨앗을 기록해 백두대간 글로벌 시드볼트로 보내요.">
+<meta property="og:image" content="icons/icon-512.png"><rect width='64' height='64' rx='16' fill='%23143A2E'/><path d='M32 14c-9 6-12 16-9 27 2 7 7 10 9 10s7-3 9-10c3-11 0-21-9-27z' fill='%23D9982B'/><path d='M32 22v28' stroke='%23143A2E' stroke-width='3'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Poor+Story&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="style.css">
-<style>
-body { font-size: 15px; }
-/* 들어가기 */
-#gate { min-height: 100vh; display: grid; grid-template-columns: 1.1fr 1fr; }
-#gate .side { background: var(--spruce); color: #CFE0D6; padding: 56px 48px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
-#gate .side h1 { color: #fff; font-size: 40px; font-weight: 700; margin: 20px 0 14px; }
-#gate .side p { max-width: 28em; font-size: 16px; line-height: 1.7; }
-#gate .side ol { padding-left: 1.2em; font-size: 15px; line-height: 1.8; max-width: 30em; }
-#gate .side svg.rg { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 140px; }
-#gate .main { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
-.gbox { width: 100%; max-width: 420px; }
-.gbox h2 { font-size: 26px; margin-bottom: 18px; }
-.err { color: var(--alert); font-size: 14px; min-height: 20px; margin: 4px 0 10px; }
-.donebox { background: var(--moss-soft); border-radius: var(--r-lg); padding: 24px; text-align: center; }
-.donebox .code { font-family: var(--serif); font-size: 48px; font-weight: 700; color: var(--spruce); letter-spacing: .12em; margin: 8px 0; }
-@media (max-width: 860px) { #gate { grid-template-columns: 1fr; } #gate .side { padding: 36px 24px 150px; } #gate .side h1 { font-size: 30px; } }
-
-/* 앱 틀 */
-#app { display: grid; grid-template-columns: 236px 1fr; min-height: 100vh; }
-nav.side { background: var(--spruce); color: #CFE0D6; padding: 22px 14px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 4px; }
-nav.side .logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 18px; color: #fff; font-weight: 700; font-size: 15px; line-height: 1.3; }
-nav.side .logo small { display: block; font-weight: 400; color: #9DB6A8; font-size: 12.5px; }
-nav.side button.nv { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: transparent; border: 0; color: #CFE0D6; padding: 11px 12px; border-radius: 10px; font-size: 15px; font-weight: 500; }
-nav.side button.nv:hover { background: rgba(255,255,255,.06); color: #fff; }
-nav.side button.nv.on { background: rgba(217,152,43,.16); color: #fff; box-shadow: inset 3px 0 0 var(--seed); }
-nav.side button.nv svg { flex: none; opacity: .9; }
-nav.side .grow { flex: 1; }
-nav.side .who { font-size: 13px; color: #9DB6A8; padding: 0 8px 8px; }
-main { padding: 26px 32px 60px; min-width: 0; }
-.mhead { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
-.mhead h1 { font-size: 30px; flex: 1; min-width: 260px; }
-.mhead h1 small { display: block; font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--ink-2); margin-bottom: 4px; letter-spacing: 0; }
-.codebadge { background: var(--paper); border-radius: var(--r); padding: 8px 14px; box-shadow: var(--shadow); font-size: 13px; color: var(--ink-2); }
-.codebadge b { font-family: var(--serif); font-size: 20px; color: var(--spruce); letter-spacing: .1em; margin-left: 6px; }
-@media (max-width: 900px) { #app { grid-template-columns: 1fr; } nav.side { position: sticky; top: 0; height: auto; z-index: 50; flex-direction: row; overflow-x: auto; padding: 8px; gap: 2px; } nav.side .logo, nav.side .grow, nav.side .who { display: none; } nav.side button.nv { white-space: nowrap; padding: 9px 12px; } main { padding: 20px 16px 50px; } }
-
-/* 흐름 */
-.flow { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
-.flow button { border: 0; background: transparent; text-align: left; padding: 16px 18px; position: relative; border-right: 1px solid var(--line); }
-.flow button:last-child { border-right: 0; }
-.flow button:hover { background: var(--frost); }
-.flow button.on { background: var(--frost); box-shadow: inset 0 -3px 0 var(--spruce); }
-.flow b { display: block; font-size: 28px; font-weight: 700; color: var(--spruce); font-variant-numeric: tabular-nums; line-height: 1.15; }
-.flow span { font-size: 13.5px; color: var(--ink-2); }
-.flow .rej b { color: var(--alert); }
-.flow .dep b { color: var(--seed); }
-@media (max-width: 1100px) { .flow { grid-template-columns: repeat(3, 1fr); } .flow button:nth-child(3) { border-right: 0; } .flow button:nth-child(-n+3) { border-bottom: 1px solid var(--line); } }
-
-.panel { background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 18px; }
-.panel > h2 { font-size: 19px; margin-bottom: 14px; display: flex; align-items: baseline; gap: 10px; }
-.panel > h2 small { font-family: var(--sans); font-size: 13.5px; font-weight: 400; color: var(--ink-2); margin-left: auto; letter-spacing: 0; }
-.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-.toolbar .inp { min-height: 40px; padding: 7px 12px; width: auto; }
-.toolbar .sp { flex: 1; }
-.bulk { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--spruce); color: #fff; border-radius: var(--r); padding: 10px 14px; margin-bottom: 12px; }
-.bulk .inp { min-height: 38px; padding: 6px 12px; width: auto; color: var(--ink); }
-.bulk .btn.line { color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.4); }
-.bulk .btn.line:hover { background: rgba(255,255,255,.1); }
-.tbl { overflow: auto; max-height: 70vh; border-radius: 10px; }
-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
-th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid #E8EDE7; vertical-align: middle; }
-th { font-size: 13px; font-weight: 600; color: var(--ink-2); background: #F8FAF7; position: sticky; top: 0; z-index: 1; white-space: nowrap; }
-th.sortable { cursor: pointer; }
-tbody tr { cursor: pointer; }
-tbody tr:hover { background: #F7FAF6; }
-tbody tr.sel { background: #FBF4E4; }
-td .nm { font-family: var(--serif); font-weight: 600; color: var(--spruce); font-size: 15.5px; }
-td .sci { font-size: 13px; }
-td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
-.rd { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; font-size: 13.5px; }
-.rd i { display: inline-block; width: 46px; height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; position: relative; }
-.rd i::after { content: ''; position: absolute; inset: 0; width: var(--w); background: var(--seed); border-radius: 6px; }
-.flag { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 6px; margin-right: 3px; }
-.flag.w { background: var(--seed-soft); color: #8A5B0C; }
-.flag.a { background: var(--alert-soft); color: var(--alert); }
-
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-@media (max-width: 1000px) { .grid2 { grid-template-columns: 1fr; } }
-.bars { display: grid; gap: 9px; }
-.bar { display: grid; grid-template-columns: 140px 1fr 60px; gap: 10px; align-items: center; font-size: 14px; }
-.bar .tr { height: 14px; background: #ECF0EB; border-radius: 4px; overflow: hidden; }
-.bar .fl { height: 100%; background: var(--moss); border-radius: 4px; }
-.bar .n { text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.bar .lb { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#map { height: 520px; border-radius: var(--r); }
-.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink-2); margin-top: 10px; }
-.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
-.gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
-.gal figure { margin: 0; background: var(--frost); border-radius: var(--r); overflow: hidden; cursor: pointer; }
-.gal img { width: 100%; aspect-ratio: 10/7; object-fit: cover; display: block; background: #fff; }
-.gal figcaption { padding: 8px 10px; font-size: 13.5px; }
-
-/* 상세 서랍 */
-.drawer-bg { position: fixed; inset: 0; background: rgba(15,30,24,.35); z-index: 100; display: flex; justify-content: flex-end; }
-.drawer { width: min(640px, 100%); height: 100%; overflow: auto; background: var(--frost); padding: 22px 24px 40px; animation: dIn .2s ease-out; }
-@keyframes dIn { from { transform: translateX(30px); opacity: 0; } }
-.drawer .dh { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
-.drawer .dh h2 { font-size: 27px; flex: 1; }
-.drawer .accno { font-size: 13px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.kv { display: grid; grid-template-columns: 8em 1fr; gap: 7px 14px; margin: 0; font-size: 14.5px; }
-.kv dt { color: var(--ink-2); }
-.kv dd { margin: 0; }
-.imgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
-.imgs figure { margin: 0; }
-.imgs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: #fff; }
-.imgs figcaption { font-size: 12.5px; color: var(--ink-2); }
-.stbtns { display: flex; flex-wrap: wrap; gap: 6px; }
-.stbtns button { border: 1.5px solid var(--line); background: var(--paper); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
-.stbtns button.on { background: var(--spruce); color: #fff; border-color: var(--spruce); }
-.stbtns button.rej.on { background: var(--alert); border-color: var(--alert); }
-.ready-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: 14px; }
-.ready-list li.n { color: var(--ink-3); }
-.ready-list li::before { content: '✓ '; color: var(--spruce); font-weight: 700; }
-.ready-list li.n::before { content: '– '; color: var(--ink-3); }
-.big-code { text-align: center; padding: 30px; }
-.big-code .c { font-family: var(--serif); font-size: clamp(56px, 10vw, 110px); font-weight: 700; color: var(--spruce); letter-spacing: .14em; }
-.prose p, .prose li { line-height: 1.75; max-width: 46em; }
-
-/* 인쇄용 라벨 */
-#printArea { display: none; }
-.qr-box { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 14px 0; padding: 14px; background: #fff; border-radius: 16px; border: 1px solid var(--line, #dde3dc); }
-.qr-box svg { display: block; }
-@media print {
-  @page { size: A4; margin: 10mm; }
-  body > *:not(#printArea) { display: none !important; }
-  #printArea { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6mm; }
-  #printArea.poster { display: block !important; }
-  .qr-poster { text-align: center; padding: 14mm 10mm; font-family: 'Poor Story', Pretendard, sans-serif; color: #143A2E; }
-  .qr-poster .qp-kicker { font-size: 15pt; color: #2F5D7C; margin-top: 4mm; }
-  .qr-poster h1 { font-size: 34pt; line-height: 1.25; margin: 4mm 0 8mm; font-weight: 400; }
-  .qr-poster .qp-qr { display: inline-block; padding: 6mm; border: 2.5mm solid #D9982B; border-radius: 8mm; }
-  .qr-poster ol { text-align: left; display: inline-block; font-size: 17pt; line-height: 1.9; margin: 9mm 0 6mm; }
-  .qr-poster .qp-url { font-family: Pretendard, sans-serif; font-size: 12pt; color: #555; }
-  .plabel { border: 1px solid #999; border-radius: 3mm; padding: 4mm 5mm; font-size: 9.5pt; break-inside: avoid; font-family: var(--sans); }
-  .plabel .t { display: flex; justify-content: space-between; border-bottom: 1px solid #999; padding-bottom: 2mm; margin-bottom: 2mm; }
-  .plabel .t b { font-family: var(--serif); font-size: 13pt; }
-  .plabel dl { display: grid; grid-template-columns: 15mm 1fr; gap: .6mm 3mm; margin: 0; }
-  .plabel dt { color: #555; }
-  .plabel dd { margin: 0; }
-  .plabel .f { margin-top: 2mm; font-size: 8pt; color: #555; }
-  .pdoc { grid-column: 1 / -1; font-family: var(--sans); }
-}
-</style>
+<link rel="stylesheet" href="admin.css">
 </head>
 <body>
 
@@ -165,7 +30,7 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
       <h1>선생님 관리 화면</h1>
       <p>학생들이 기록한 채종 정보를 확인하고, 씨앗이 백두대간 글로벌 시드볼트에 들어갈 때까지 단계를 관리해요.</p>
       <ol>
-        <li>학교를 등록하고 6자리 학교 코드를 받아요.</li>
+        <li>학교를 등록하고 학교 코드를 받아요. (예: 한빛초2026 — 학교 이름과 연도로 만들어져요)</li>
         <li>학생들은 학교 코드, 학번, 이름으로 들어와 채종 기록을 남겨요.</li>
         <li>여기서 기록을 검토하고, 건조·정선·포장 단계를 바꿔 가며 관리해요.</li>
         <li>기탁 목록과 라벨을 내려받아 수목원에 보내요.</li>
@@ -178,11 +43,12 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
       <div class="seg" style="margin-bottom:22px"><button data-g="login" class="on">로그인</button><button data-g="reg">새 학교 등록</button></div>
       <form id="loginF" autocomplete="on">
         <h2>학교 관리자 로그인</h2>
-        <label class="field"><span class="lbl">학교 코드</span><input class="inp" id="gCode" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.15em;font-weight:700" required></label>
+        <label class="field"><span class="lbl">학교 코드</span><input class="inp" id="gCode" autocapitalize="characters" placeholder="예: 송례중2026" style="font-weight:700" required></label>
         <label class="field"><span class="lbl">관리자 비밀번호</span><input class="inp" id="gPw" type="password" autocomplete="current-password" required></label>
         <div class="err" id="gErr" role="alert"></div>
         <button class="btn block">들어가기</button>
-        <p class="small muted" style="margin-top:14px">전체 학교를 관리하는 운영자는 학교 코드에 ALL을 입력해요.</p>
+        <button type="button" class="btn line block" id="findCode" style="margin-top:10px">🔎 우리 학교 코드 찾기</button>
+        <p class="small muted" style="margin-top:14px">비밀번호를 잊었다면 운영국에 문의해 주세요. 운영국은 <a href="hq.html">운영국 대시보드</a>로 들어가요.</p>
       </form>
       <form id="regF" class="hidden" autocomplete="off">
         <h2>새 학교 등록</h2>
@@ -193,6 +59,7 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
         <label class="field"><span class="lbl">담당 선생님 연락처 <span class="muted">(선택)</span></span><input class="inp" id="rContact" placeholder="이메일 또는 학교 전화"></label>
         <div class="err" id="rErr" role="alert"></div>
         <button class="btn block">학교 등록하기</button>
+        <p class="small muted" style="margin-top:10px">이미 등록했는데 코드를 모르겠다면 <a href="#" id="findCode2">학교 코드 찾기</a>를 눌러요. 같은 학교를 두 번 등록하지 않아도 돼요.</p>
       </form>
       <div id="regDone" class="hidden"></div>
       <p class="small" style="margin-top:22px;text-align:center"><a href="index.html">학생 화면으로 가기</a></p>
@@ -232,9 +99,9 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
         <div class="bulk hidden" id="bulk"><b id="bulkN"></b>
           <select class="inp" id="bulkSt"></select><button class="btn seed sm" id="bulkApply">단계 바꾸기</button>
           <button class="btn line sm" id="bulkPrint">라벨 인쇄</button><button class="btn line sm" id="bulkCsv">선택만 CSV</button>
-          <button class="btn ghost sm" id="bulkClear" style="color:#fff">선택 해제</button></div>
+          <button class="btn line sm" id="bulkDel">선택 삭제</button><button class="btn ghost sm" id="bulkClear" style="color:#fff">선택 해제</button></div>
         <div class="tbl"><table>
-          <thead><tr><th><input type="checkbox" id="chkAll" aria-label="모두 선택"></th><th class="sortable" data-s="acc_no">채종 번호</th><th class="sortable" data-s="plant">식물</th><th class="sortable" data-s="student">채종자</th><th class="sortable" data-s="date">채종일</th><th class="num">씨앗 수</th><th>확인할 점</th><th class="sortable" data-s="ready">준비도</th><th class="sortable" data-s="status">단계</th></tr></thead>
+          <thead><tr><th><input type="checkbox" id="chkAll" aria-label="모두 선택"></th><th class="sortable" data-s="acc_no">채종 번호</th><th class="sortable" data-s="plant">식물</th><th class="sortable" data-s="student">채종자</th><th class="sortable" data-s="date">채종일</th><th class="num">씨앗 수</th><th>확인할 점</th><th class="sortable" data-s="ready">준비도</th><th>AI</th><th class="sortable" data-s="status">단계</th></tr></thead>
           <tbody id="accBody"></tbody></table></div>
         <div class="small muted" id="accFoot" style="margin-top:10px"></div>
       </div>
@@ -282,6 +149,22 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
           <label class="field"><span class="lbl">기탁기관명</span><input class="inp" id="eInst" placeholder="예: 송례중학교 과학과"><span class="hint">기탁 목록의 기탁기관명 칸에 들어가요.</span></label>
           <label class="field"><span class="lbl">담당 연락처</span><input class="inp" id="eContact"></label>
           <button class="btn" id="eSave">학교 정보 저장</button></div>
+        <div class="panel" id="aiPanel"><h2>🤖 AI 검토 연결</h2>
+          <p class="muted small" style="margin:0 0 10px">학생이 식물·씨앗 사진을 올리면 AI가 이름이 맞는지 한 번 더 살펴봐요. 비용을 학교에서 부담하려면 우리 학교 키를 넣어요.</p>
+          <label class="field"><span class="lbl">연결 방식</span><select class="inp" id="aiProv">
+            <option value="shared">운영국 공용 AI 쓰기 (운영국이 허용한 경우)</option>
+            <option value="google">우리 학교 Google Gemini 키</option>
+            <option value="anthropic">우리 학교 Anthropic(Claude) 키</option>
+            <option value="gateway">우리 학교 Vercel AI Gateway 키</option>
+            <option value="none">AI 검토 쓰지 않기 (선생님만 확인)</option></select></label>
+          <label class="field hidden" id="aiKeyF"><span class="lbl">API 키</span><input class="inp" id="aiKey" type="password" autocomplete="off" placeholder="붙여 넣기"><span class="hint" id="aiHint"></span></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="aiSave">저장</button><button class="btn line sm" id="aiTest">연결 확인</button></div>
+          <p class="small" id="aiMsg" style="margin:10px 0 0"></p>
+          <details style="margin-top:10px"><summary class="small">키는 어디서 받나요?</summary><ul class="small" style="line-height:1.7">
+            <li><b>Google Gemini</b>: aistudio.google.com → Get API key. 무료 사용량이 있지만 하루 한도가 작고 무료 사용분은 Google 학습에 쓰일 수 있어요. 결제 등록(유료 등급)을 권장해요.</li>
+            <li><b>Anthropic</b>: console.anthropic.com → API Keys. 충전식으로 쓴 만큼 결제돼요.</li>
+            <li><b>Vercel AI Gateway</b>: vercel.com → AI Gateway → API Keys. 카드 등록 후 쓴 만큼 결제돼요.</li>
+            <li>키는 서버에서 암호화해 저장하고, 화면에는 끝 4자리만 보여요.</li></ul></details></div>
         <div class="panel"><h2>비밀번호 바꾸기</h2>
           <label class="field"><span class="lbl">지금 비밀번호</span><input class="inp" id="pOld" type="password"></label>
           <label class="field"><span class="lbl">새 비밀번호</span><input class="inp" id="pNew" type="password"><span class="hint">6자 이상</span></label>
@@ -299,6 +182,7 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
 <script src="qr.js"></script>
 <script src="common.js"></script>
 <script src="plants.js"></script>
+<script src="geo.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -307,6 +191,26 @@ const REGIONS = ['서울특별시', '부산광역시', '대구광역시', '인�
 const G = { token: sessionStorage.getItem('sh_admin2'), super: false, schools: [], students: [], records: [], accs: [], school: '', view: 'acc', stFilter: '', sel: new Set(), sort: { k: 'acc_no', d: 1 } };
 const STC = { collected: '#6E9A5B', drying: '#D9982B', cleaned: '#7262A8', packed: '#2F5D7C', deposited: '#143A2E', rejected: '#B5452F' };
 ['rRegion', 'eRegion'].forEach(id => $('#' + id).innerHTML = '<option value="">고르기</option>' + REGIONS.map(r => `<option>${r}</option>`).join(''));
+
+/* ───── 학교 코드 찾기 ───── */
+async function findCode(q0 = '') {
+  const bg = document.createElement('div');
+  bg.style.cssText = 'position:fixed;inset:0;background:rgba(15,30,24,.42);z-index:180;display:flex;align-items:center;justify-content:center;padding:20px';
+  bg.innerHTML = `<div role="dialog" aria-modal="true" style="background:var(--paper);border-radius:20px;max-width:460px;width:100%;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.2)">
+    <h3 style="font-size:21px;margin-bottom:6px">🔎 우리 학교 코드 찾기</h3><p class="muted small" style="margin:0 0 12px">학교 이름의 일부를 적어요. (예: 송례, 한빛초)</p>
+    <form id="fcF" style="display:flex;gap:8px"><input class="inp" id="fcQ" value="${SH.esc(q0)}" placeholder="학교 이름"><button class="btn">찾기</button></form>
+    <div id="fcR" style="display:grid;gap:8px;margin-top:12px;max-height:50vh;overflow:auto"></div>
+    <div style="text-align:right;margin-top:12px"><button class="btn line sm" data-x>닫기</button></div></div>`;
+  document.body.appendChild(bg);
+  const close = () => bg.remove(); bg.querySelector('[data-x]').onclick = close; bg.onclick = e => { if (e.target === bg) close(); };
+  const run = async e => { e && e.preventDefault(); const box = bg.querySelector('#fcR'); box.innerHTML = '<span class="muted small">찾는 중…</span>';
+    const r = await SH.rpc('seedhands_school_search', { p_q: bg.querySelector('#fcQ').value });
+    if (!r.ok) { box.innerHTML = `<span class="muted small">${SH.esc(r.error)}</span>`; return; }
+    box.innerHTML = r.items.length ? r.items.map(x => `<button type="button" class="addritem" data-c="${SH.esc(x.code)}"><b>${SH.esc(x.name)} <span style="font-family:Pretendard;color:var(--seed)">${SH.esc(x.code)}</span></b><span>${SH.esc(x.region || '')} ${x.site_name ? '· ' + SH.esc(x.site_name) : ''} · ${SH.dayOf(x.created_at)} 등록</span></button>`).join('') : '<span class="muted small">찾는 학교가 없어요. 아직 등록하지 않았다면 「새 학교 등록」을 해 주세요.</span>';
+    box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { close(); document.querySelector('[data-g=login]').click(); $('#gCode').value = b.dataset.c; $('#gPw').focus(); SH.toast('코드를 넣었어요. 관리자 비밀번호를 적어 주세요.'); }); };
+  bg.querySelector('#fcF').onsubmit = run; if (q0) run(); else bg.querySelector('#fcQ').focus();
+}
+$('#findCode').onclick = () => findCode(); $('#findCode2').onclick = e => { e.preventDefault(); findCode($('#rName').value); };
 
 /* ───── 들어가기 ───── */
 document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
@@ -318,6 +222,7 @@ $('#loginF').onsubmit = async e => {
   try {
     const r = await SH.rpc('seedhands_admin_login2', { p_code: $('#gCode').value.trim(), p_pw: $('#gPw').value });
     if (!r.ok) return $('#gErr').textContent = r.error;
+    if (r.super) { sessionStorage.setItem('sh_hq', r.token); location.href = 'hq.html'; return; }
     G.token = r.token; sessionStorage.setItem('sh_admin2', r.token); $('#gPw').value = ''; await load();
   } catch (err) { $('#gErr').textContent = err.message; }
 };
@@ -325,11 +230,11 @@ $('#regF').onsubmit = async e => {
   e.preventDefault(); $('#rErr').textContent = '';
   try {
     const r = await SH.rpc('seedhands_school_create', { p_name: $('#rName').value, p_region: $('#rRegion').value, p_site_name: $('#rSite').value, p_site_lat: null, p_site_lng: null, p_contact: $('#rContact').value, p_pw: $('#rPw').value });
-    if (!r.ok) return $('#rErr').textContent = r.error;
+    if (!r.ok) { $('#rErr').textContent = r.error; if (r.exists) findCode($('#rName').value); return; }
     G.token = r.token; sessionStorage.setItem('sh_admin2', r.token);
     $('#regF').classList.add('hidden');
     $('#regDone').classList.remove('hidden');
-    $('#regDone').innerHTML = `<div class="donebox"><div class="muted">${SH.esc($('#rName').value)} 학교 코드</div><div class="code">${r.code}</div><p class="small muted" style="margin:0 0 16px">학생과 선생님이 쓰는 코드예요. 관리자 비밀번호와 함께 꼭 적어 두세요.</p><button class="btn" id="goApp">관리 화면으로</button></div>`;
+    $('#regDone').innerHTML = `<div class="donebox"><div class="muted">${SH.esc($('#rName').value)} 학교 코드</div><div class="code" style="letter-spacing:.04em;font-size:clamp(30px,6vw,46px)">${SH.esc(r.code)}</div><p class="small muted" style="margin:0 0 16px">학생과 선생님이 쓰는 코드예요. 학교 이름과 올해 연도로 만들어져서 외우기 쉬워요. 띄어쓰기·대소문자는 상관없어요. 관리자 비밀번호와 함께 적어 두세요.</p><button class="btn" id="goApp">관리 화면으로</button></div>`;
     $('#goApp').onclick = load;
   } catch (err) { $('#rErr').textContent = err.message; }
 };
@@ -423,8 +328,9 @@ function renderAcc() {
       <td class="num">${d.seedCount ? Number(d.seedCount).toLocaleString() : ''}</td>
       <td>${flags(a).map(([c, t]) => `<span class="flag ${c}">${t}</span>`).join('')}</td>
       <td><span class="rd"><i style="--w:${rd.score / rd.total * 100}%"></i>${rd.score}/${rd.total}</span></td>
+      <td>${d.ai_level && SH.AI_LEVEL[d.ai_level] ? `<span title="${SH.esc(SH.AI_LEVEL[d.ai_level].label)}">${SH.AI_LEVEL[d.ai_level].emoji}</span>` : '<span class="muted small">-</span>'}</td>
       <td><span class="tag st-${a.status}">${SH.ST[a.status].label}</span></td></tr>`;
-  }).join('') || `<tr><td colspan="9" class="muted" style="text-align:center;padding:36px;cursor:default">${list.length ? '조건에 맞는 기록이 없어요.' : '아직 학생 채종 기록이 없어요. 학교 설정에서 학교 코드를 학생들에게 안내해 주세요.'}</td></tr>`;
+  }).join('') || `<tr><td colspan="10" class="muted" style="text-align:center;padding:36px;cursor:default">${list.length ? '조건에 맞는 기록이 없어요.' : '아직 학생 채종 기록이 없어요. 학교 설정에서 학교 코드를 학생들에게 안내해 주세요.'}</td></tr>`;
   $('#accFoot').textContent = `${rows.length}점 표시, 전체 ${list.length}점, 씨앗 약 ${list.reduce((n, a) => n + (parseInt(a.data.seedCount) || 0), 0).toLocaleString()}개`;
   $('#accBody').querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => openAcc(tr.dataset.id));
   $('#accBody').querySelectorAll('[data-chk]').forEach(c => c.onchange = () => { c.checked ? G.sel.add(c.dataset.chk) : G.sel.delete(c.dataset.chk); c.closest('tr').classList.toggle('sel', c.checked); bulkBar(); });
@@ -446,6 +352,11 @@ $('#bulkApply').onclick = async () => {
   SH.toast(`${r.updated}점을 '${SH.ST[st].label}'(으)로 바꿨어요`); renderAcc();
 };
 $('#bulkPrint').onclick = () => printLabels(G.accs.filter(a => G.sel.has(a.id)));
+$('#bulkDel').onclick = async () => {
+  const n = G.sel.size; if (!(await SH.dialog({ title: `${n}점을 지울까요?`, msg: '선택한 채종 기록과 사진이 영구히 지워져요. 되돌릴 수 없어요.', ok: '영구 삭제', danger: true }))) return;
+  const r = await SH.rpc('seedhands_admin_acc_delete', { p_token: G.token, p_ids: [...G.sel] }); if (!r.ok) return SH.toast(r.error || '지우지 못했어요');
+  SH.toast(`${r.deleted}점을 지웠어요`); G.sel.clear(); load();
+};
 $('#bulkCsv').onclick = () => accCsv(G.accs.filter(a => G.sel.has(a.id)));
 $('#csvAcc').onclick = () => accCsv(filteredAccs());
 function depRows(list) {
@@ -505,12 +416,21 @@ async function openAcc(id) {
     <div class="panel"><h2>사진과 그림</h2><div class="imgs" id="dImgs"><span class="muted small"><span class="spin"></span> 불러오는 중</span></div></div>
     <div class="panel"><h2>기탁 준비도 ${rd.score}/${rd.total}</h2><ul class="ready-list">${rd.items.map(([t, ok]) => `<li class="${ok ? '' : 'n'}">${t}</li>`).join('')}</ul></div>
     <div class="panel"><h2>채종 정보</h2><dl class="kv">${rows.filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${SH.esc(v)}</dd>`).join('')}</dl></div>
-    <button class="btn line sm" id="dPrint">이 씨앗 라벨 인쇄</button></div>`;
+    <div class="panel" id="dAi"><h2>🤖 AI 검토</h2><p class="muted small" style="margin:0">${d.ai_id ? '불러오는 중…' : '학생이 AI 검토를 받지 않았어요.'}</p></div>
+    ${d.lat ? `<div class="panel"><h2>채종지 식생대</h2>${SH.zoneCard(SH.zoneOf(d.lat, d.lng, d.alt), { short: true, month: +String(d.date || '').slice(5, 7) || null })}</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn line sm" id="dPrint">이 씨앗 라벨 인쇄</button><button class="btn danger sm" id="dDel">이 기록 지우기</button></div></div>`;
   document.body.appendChild(bg);
   const close = () => { bg.remove(); renderAcc(); };
   bg.onclick = e => { if (e.target === bg) close(); }; bg.querySelector('[data-x]').onclick = close;
   bg.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
   bg.querySelector('#dPrint').onclick = () => printLabels([a]);
+  bg.querySelector('#dDel').onclick = async () => {
+    if (!(await SH.dialog({ title: '이 기록을 지울까요?', msg: `${a.acc_no} ${d.plant || ''} 기록과 사진이 영구히 지워져요. 되돌릴 수 없어요.`, ok: '영구 삭제', danger: true }))) return;
+    const r = await SH.rpc('seedhands_admin_acc_delete', { p_token: G.token, p_ids: [a.id] }); if (!r.ok) return SH.toast(r.error || '지우지 못했어요');
+    bg.remove(); SH.toast('지웠어요'); load();
+  };
+  if (d.ai_id) SH.rpc('seedhands_admin_ai', { p_token: G.token, p_ids: [d.ai_id] }).then(r => { const it = (r.items || [])[0]; const box = bg.querySelector('#dAi'); if (box) box.innerHTML = '<h2>🤖 AI 검토</h2>' + (it ? SH.aiCard(it.result, { teacher: true }) + `<p class="small muted" style="margin-top:6px">${SH.esc(it.model || '')} · ${new Date(it.created_at).toLocaleString('ko-KR')}</p>` : '<p class="muted small" style="margin:0">검토 기록을 찾지 못했어요.</p>'); });
+  else if (d.ai_level) bg.querySelector('#dAi').innerHTML = '<h2>🤖 AI 검토</h2>' + SH.aiCard({ level: d.ai_level, summary: d.ai_summary || '' }, { full: false });
   bg.querySelectorAll('.stbtns button').forEach(b => b.onclick = async () => {
     const st = b.dataset.st; let note = null;
     if (st === 'rejected' && !bg.querySelector('#dNote').value.trim()) { SH.toast('보완 필요로 바꿀 때는 학생에게 남길 메모를 먼저 적어 주세요.'); bg.querySelector('#dNote').focus(); return; }
@@ -548,11 +468,16 @@ function renderStu() {
     const last = [s.last_login, ...my.map(a => a.updated_at)].filter(Boolean).sort().pop();
     return `<tr data-id="${s.id}" style="cursor:default"><td class="num" style="text-align:left">${SH.esc(s.no)}</td><td><b>${SH.esc(s.name)}</b>${G.super && !G.school ? `<div class="small muted">${SH.esc(G.schById[s.school_id]?.name || '')}</div>` : ''}</td><td>${clsOf(s.no)}</td>
       <td class="num">${my.length}</td><td class="num">${my.filter(a => a.status === 'deposited').length}</td><td>${notes.map(m => m.title).join(', ') || '<span class="muted">-</span>'}</td><td class="small muted">${SH.fmt(last)}</td>
-      <td style="white-space:nowrap"><button class="btn line sm" data-pin="${s.id}">비밀번호 다시 정하기</button> <button class="btn danger sm" data-del="${s.id}">삭제</button></td></tr>`;
+      <td style="white-space:nowrap"><button class="btn line sm" data-ed="${s.id}">수정</button> <button class="btn line sm" data-pin="${s.id}">비밀번호 다시 정하기</button> <button class="btn danger sm" data-del="${s.id}">삭제</button></td></tr>`;
   }).join('') || '<tr><td colspan="8" class="muted" style="text-align:center;padding:30px">아직 들어온 학생이 없어요.</td></tr>';
   $('#stuBody').querySelectorAll('[data-pin]').forEach(b => b.onclick = async () => {
     const s = G.stuById[b.dataset.pin]; const pin = await SH.dialog({ title: '비밀번호 다시 정하기', msg: `${s.no} ${s.name} 학생의 새 비밀번호 (숫자 4자리)`, input: '0000', ok: '바꾸기' }); if (pin === false) return;
     const r = await SH.rpc('seedhands_admin_reset_pin', { p_token: G.token, p_student: s.id, p_pin: String(pin).trim() }); SH.toast(r.ok ? `비밀번호를 ${pin}(으)로 바꿨어요` : r.error);
+  });
+  $('#stuBody').querySelectorAll('[data-ed]').forEach(b => b.onclick = async () => {
+    const s = G.stuById[b.dataset.ed]; const no = await SH.dialog({ title: '학번 고치기', msg: `${s.name} 학생의 학번 (숫자 4~6자리)`, input: s.no, ok: '다음' }); if (no === false) return;
+    const nm = await SH.dialog({ title: '이름 고치기', msg: '학생 이름', input: s.name, ok: '저장' }); if (nm === false) return;
+    const r = await SH.rpc('seedhands_admin_student_update', { p_token: G.token, p_student: s.id, p_no: String(no).trim(), p_name: String(nm).trim() }); if (!r.ok) return SH.toast(r.error || '고치지 못했어요'); SH.toast('고쳤어요'); load();
   });
   $('#stuBody').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
     const s = G.stuById[b.dataset.del];
@@ -612,7 +537,23 @@ function renderSchools() {
 
 /* ───── 설정 ───── */
 function stuUrl(code) { const base = location.href.replace(/admin\.html.*$/, '').replace(/[?#].*$/, ''); return code === SH.DEFAULT_CODE ? base : `${base}?s=${code}`; }
+async function renderAi() {
+  if (!G.school || G.super) { $('#aiPanel').classList.add('hidden'); return; } $('#aiPanel').classList.remove('hidden');
+  const r = await SH.rpc('seedhands_admin_ai_get', { p_token: G.token }); if (!r.ok) return;
+  $('#aiProv').value = r.provider; G.aiHint = r.hint; aiProvUI();
+  $('#aiMsg').innerHTML = `오늘 ${r.used_today}회 · 지금까지 ${r.used_total}회 검토했어요.${r.provider === 'shared' && !r.shared_allowed ? ' <b style="color:var(--alert)">지금 운영국 공용 AI가 꺼져 있어요. 학교 키를 넣어 주세요.</b>' : ''}`;
+}
+function aiProvUI() { const p = $('#aiProv').value, k = ['google', 'anthropic', 'gateway'].includes(p); $('#aiKeyF').classList.toggle('hidden', !k); $('#aiHint').textContent = G.aiHint ? `저장된 키: ${G.aiHint} (바꿀 때만 새로 넣어요)` : '아직 저장된 키가 없어요.'; }
+$('#aiProv').onchange = aiProvUI;
+async function aiPost(action) {
+  if (SH.mode === 'demo') return { ok: true, demo: true, answer: 'Pinus' };
+  try { const r = await fetch('/api/aikey', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: G.token, provider: $('#aiProv').value, key: $('#aiKey').value.trim(), action }) }); return await r.json(); }
+  catch { return { ok: false, error: '서버에 연결하지 못했어요.' }; }
+}
+$('#aiSave').onclick = async () => { const r = await aiPost('save'); if (!r.ok) return SH.toast(r.error || '저장하지 못했어요'); $('#aiKey').value = ''; SH.toast('AI 연결을 저장했어요'); renderAi(); };
+$('#aiTest').onclick = async () => { $('#aiMsg').textContent = '확인하는 중…'; const r = await aiPost('test'); $('#aiMsg').innerHTML = r.ok ? `✅ 연결됐어요! (${SH.esc(r.model || '')} 응답: ${SH.esc(r.answer || '')})` : `❌ ${SH.esc(r.error || '연결 실패')}`; };
 function renderSet() {
+  renderAi();
   const sc = curSchool();
   $('#bigCode').textContent = sc ? sc.code : '학교를 고르세요';
   $('#stuLink').textContent = sc ? stuUrl(sc.code) : '';

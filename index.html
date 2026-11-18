@@ -6,7 +6,15 @@
 <title>2026 시드핸즈 프로젝트</title>
 <meta name="theme-color" content="#143A2E">
 <meta name="description" content="우리 산의 야생식물 씨앗을 기록해 백두대간 글로벌 시드볼트로 보내는 학생 채종 기록장">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%2322543F'/><path d='M32 11c-6.5 4.5-8.6 12-6.4 19 1.2 3.8 4 5.8 6.4 5.8s5.2-2 6.4-5.8c2.2-7 .1-14.5-6.4-19z' fill='%23D9982B'/><path d='M10.5 29.5c1.5 11 9 18.5 21.5 19.5M53.5 29.5c-1.5 11-9 18.5-21.5 19.5' fill='none' stroke='%23F1F4F0' stroke-width='4.2' stroke-linecap='round'/></svg>">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#143A2E">
+<meta name="apple-mobile-web-app-title" content="시드핸즈">
+<meta property="og:title" content="시드핸즈 프로젝트">
+<meta property="og:description" content="우리 산의 야생식물 씨앗을 기록해 백두대간 글로벌 시드볼트로 보내요.">
+<meta property="og:image" content="icons/icon-512.png"><rect width='64' height='64' rx='16' fill='%2322543F'/><path d='M32 11c-6.5 4.5-8.6 12-6.4 19 1.2 3.8 4 5.8 6.4 5.8s5.2-2 6.4-5.8c2.2-7 .1-14.5-6.4-19z' fill='%23D9982B'/><path d='M10.5 29.5c1.5 11 9 18.5 21.5 19.5M53.5 29.5c-1.5 11-9 18.5-21.5 19.5' fill='none' stroke='%23F1F4F0' stroke-width='4.2' stroke-linecap='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -355,10 +363,14 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
   <div class="wrap">
     <form class="login-card hidden" id="codeForm" autocomplete="off">
       <h2>학교 코드를 입력해요</h2>
-      <p class="muted small" style="margin:0 0 16px">선생님께 받은 6자리 코드예요.</p>
-      <label class="field"><span class="lbl">학교 코드</span><input class="inp" id="lgCode" maxlength="8" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.2em;font-weight:700;font-size:20px" required></label>
+      <p class="muted small" style="margin:0 0 16px">선생님께 받은 코드예요. (예: 한빛초2026)</p>
+      <label class="field"><span class="lbl">학교 코드</span><input class="inp" id="lgCode" maxlength="30" autocapitalize="characters" placeholder="학교이름+연도" style="font-weight:700;font-size:20px" required></label>
       <div class="err" id="codeErr" role="alert"></div>
       <button class="btn block" id="codeBtn">다음</button>
+      <div style="margin-top:16px;border-top:1px dashed var(--line);padding-top:14px">
+        <p class="small" style="margin:0 0 8px">🔎 코드를 모르겠다면 학교 이름으로 찾아요</p>
+        <div style="display:flex;gap:8px"><input class="inp" id="schQ" placeholder="예: 송례, 한빛초"><button type="button" class="btn line" id="schFind">찾기</button></div>
+        <div id="schRes" style="display:grid;gap:6px;margin-top:8px"></div></div>
     </form>
     <form class="login-card hidden" id="loginForm" autocomplete="off">
       <div class="school-chip"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22543F" stroke-width="1.7" aria-hidden="true"><path d="M3 20l6-10 4 6 3-4 5 8z"/></svg><div style="flex:1"><b id="lgSchool"></b><span class="small muted" id="lgSite"></span></div><button type="button" class="btn ghost sm" id="chgCode">다른 학교</button></div>
@@ -420,8 +432,20 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
     <div id="natSay"></div>
     <div class="mapwrap" id="natMap"></div>
     <div class="nat" id="natStats"></div>
+    <button class="btn seed" style="margin-top:14px" onclick="openBook()">📗 시드핸즈 도감 보기 — 어떤 식물이 몇 립 모였을까?</button>
     <p class="small" style="color:#B9CCC1;margin:10px 0 0" id="natNote"></p>
   </div></div>
+</section>
+
+<section id="book" class="view hidden">
+  <div class="pagehead"><div class="wrap"><button class="backbtn" data-home aria-label="뒤로"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button><h1>📗 시드핸즈 도감</h1></div></div>
+  <div class="wrap">
+    <div id="bookSay"></div>
+    <div class="seg" id="bookTabs" style="margin:10px 0 12px"><button data-y="now" class="on">올해</button><button data-y="all">전체</button><button data-y="dep">🏔️ 입고된 씨앗만</button></div>
+    <input class="inp" id="bookQ" placeholder="🔎 식물 이름으로 찾기" style="margin-bottom:12px">
+    <div class="small muted" id="bookN" style="margin-bottom:10px"></div>
+    <div class="bookgrid" id="bookGrid"></div>
+  </div>
 </section>
 
 <!-- ─────────── 채종 기록 (단계별) ─────────── -->
@@ -442,7 +466,7 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
 <section id="note" class="view hidden">
   <div class="pagehead"><div class="wrap"><button class="backbtn" id="noteBack" aria-label="뒤로"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button><h1 id="noteTitle"></h1></div></div>
   <div class="wrap" id="noteBody"></div>
-  <div class="bottombar"><div class="wrap"><span class="stat" id="noteStat"></span><button class="btn" id="noteSave">저장하기</button></div></div>
+  <div class="bottombar"><div class="wrap"><span class="stat" id="noteStat"></span><button class="btn ghost sm" id="noteDel" style="color:var(--alert)">지우기</button><button class="btn" id="noteSave">저장하기</button></div></div>
 </section>
 
 <!-- ─────────── 기탁 정보 양식 ─────────── -->
@@ -507,6 +531,7 @@ b, strong { font-weight: 400; -webkit-text-stroke: .35px currentColor; }
 
 <script src="common.js"></script>
 <script src="plants.js"></script>
+<script src="geo.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -564,6 +589,14 @@ async function lookupCode(code) {
   $('#codeForm').classList.add('hidden'); $('#loginForm').classList.remove('hidden');
 }
 $('#codeForm').onsubmit = async e => { e.preventDefault(); $('#codeErr').textContent = ''; const b = $('#codeBtn'); b.disabled = true; b.innerHTML = '<span class="spin"></span>'; try { await lookupCode($('#lgCode').value.trim()); } catch (err) { $('#codeErr').textContent = err.message; } finally { b.disabled = false; b.textContent = '다음'; } };
+async function schFind() {
+  const box = $('#schRes'); box.innerHTML = '<span class="small muted">찾는 중…</span>';
+  const r = await SH.rpc('seedhands_school_search', { p_q: $('#schQ').value });
+  if (!r.ok) { box.innerHTML = `<span class="small muted">${SH.esc(r.error)}</span>`; return; }
+  box.innerHTML = r.items.length ? r.items.map(x => `<button type="button" class="addritem" data-c="${SH.esc(x.code)}"><b>🏫 ${SH.esc(x.name)}</b><span>${SH.esc(x.region || '')}${x.site_name ? ' · ' + SH.esc(x.site_name) : ''}</span></button>`).join('') : '<span class="small muted">학교를 찾지 못했어요. 선생님께 코드를 여쭤봐요.</span>';
+  box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { $('#lgCode').value = b.dataset.c; $('#codeForm').requestSubmit(); });
+}
+$('#schFind').onclick = schFind; $('#schQ').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); schFind(); } };
 $('#chgCode').onclick = () => { $('#loginForm').classList.add('hidden'); $('#codeForm').classList.remove('hidden'); $('#lgTitle').textContent = '시드핸즈 프로젝트'; $('#lgCode').value = ''; $('#lgCode').focus(); };
 ['lgNo', 'lgPin'].forEach(id => $('#' + id).addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g, '')));
 $('#loginForm').onsubmit = async e => {
@@ -653,6 +686,7 @@ function renderHome() {
     { e: '⛑️', t: '야외 안전 수칙', s: '나가기 전에 꼭 읽어요', c: '#B5452F', go: () => showSafety() },
     { e: '🖼️', t: '우리 학교 갤러리', s: '친구들의 관찰 그림', c: '#C76A8C', go: () => openGallery() },
     { e: '🗺️', t: '전국 씨앗 지도', s: '친구들이 모은 씨앗', c: '#2F5D7C', go: openNation },
+    { e: '📗', t: '시드핸즈 도감', s: '올해 시드볼트로 가는 식물', c: '#3E6A2F', go: openBook },
     { e: '🏔️', t: '시드볼트 이야기', s: '씨앗이 가는 곳과 약속', c: '#143A2E', go: openVaultInfo },
     { e: '📋', t: '기탁 정보 양식', s: '함께 보내는 정보 24가지', c: '#D9982B', go: openForm },
     { e: '🎬', t: '소개 영상 다시 보기', s: '씨앗의 여행', c: '#7262A8', go: () => playIntro() }
@@ -690,6 +724,23 @@ function drawHomeMap() {
   setTimeout(() => SH.seedMap(el, { mine, site }), 30);
 }
 $('#homeMapAll').onclick = () => openNation();
+let BK = { y: 'now', items: [] };
+async function openBook() {
+  show('book'); $('#bookSay').innerHTML = SH.say('전국 친구들이 올해 모은 씨앗을 식물별로 모았어! 몇 립이 시드볼트로 가는지 볼래? 🌰');
+  document.querySelectorAll('#bookTabs button').forEach(b => b.onclick = () => { BK.y = b.dataset.y; document.querySelectorAll('#bookTabs button').forEach(x => x.classList.toggle('on', x === b)); loadBook(); });
+  $('#bookQ').oninput = () => drawBook(); loadBook();
+}
+async function loadBook() {
+  $('#bookGrid').innerHTML = '<div class="empty"><span class="spin"></span></div>';
+  try { const r = await SH.rpc('seedhands_public_book', { p_year: BK.y === 'now' ? new Date().getFullYear() : null, p_deposited: BK.y === 'dep' }); BK.items = r.items || []; } catch (e) { BK.items = []; }
+  drawBook();
+}
+function drawBook() {
+  const q = $('#bookQ').value.trim(), L = BK.items.filter(e => !q || (e.plant + ' ' + e.sci + ' ' + e.family).includes(q));
+  $('#bookN').textContent = L.length ? `${L.length}종 · 씨앗 ${L.reduce((t, e) => t + (+e.seeds || 0), 0).toLocaleString()}립` : '';
+  $('#bookGrid').innerHTML = L.map(e => SH.bookCard({ ...e, photoKey: e.photo_id || '', schools: e.schools ? e.schools + '곳' : '', regions: (e.regions || []).join(', '), months: (e.months || []).map(m => m + '월').join(', ') })).join('') || '<div class="empty">아직 모인 씨앗이 없어요. 첫 번째 씨앗의 주인공이 되어 볼래? 🌱</div>';
+  document.querySelectorAll('#bookGrid .bimg[data-ph]').forEach(async el => { if (!el.dataset.ph) return; try { const r = await SH.rpc('seedhands_public_book_photo', { p_id: el.dataset.ph }); el.innerHTML = r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : '<span class="bemo">🌱</span>'; } catch { el.innerHTML = '<span class="bemo">🌱</span>'; } });
+}
 function openNation() {
   $('#natSay').innerHTML = SH.say('전국의 친구들이 모은 씨앗이야! 점을 눌러 보면 어떤 씨앗인지 알 수 있어. 모두 백두대간을 따라 시드볼트로 가고 있어. ⛰️', { cls: 'soft' });
   show('nation'); drawNatMap(); loadPublic();
@@ -801,6 +852,7 @@ function renderStep() {
         <span class="hint">찾은 다음 지도에서 핀을 끌어 씨앗 받은 곳에 딱 맞춰 줘요.</span>
       </div>
       <dl class="gis" id="gisBox" style="margin:12px 0 0">${gisRows()}</dl>
+      <div id="zoneBox" style="margin-top:12px">${zoneHTML()}</div>
     </div>
     <div class="card">
       <label class="field"><span class="lbl">어떤 식물인가요?</span><div class="plantpick"><input class="inp" data-f="plant" placeholder="모르면 오른쪽 버튼을 눌러요" value="${SH.esc(d.plant || '')}"><button type="button" class="btn" id="pickBtn">찾기</button></div><span class="hint">선생님이 알려 준 이름을 먼저 적어요. 후보 목록은 참고용이에요.</span></label>
@@ -840,13 +892,14 @@ function renderStep() {
   }
   if (st === 3) {
     h += `<div class="card"><div class="photos">
-      ${[['photo_plant', '식물 전체', '한 걸음 물러나서', '🌳'], ['photo_fruit', '열매', '가까이서', '🍎'], ['photo_seed', '씨앗', '손바닥 위에', '🌰']].map(([k, l, t, e]) => `<label class="slot ${A[k] ? 'done' : ''}">${A[k] ? `<img src="${A[k]}" alt="${l} 사진"><button type="button" class="x" data-del="${k}" aria-label="${l} 사진 지우기">×</button>` : `<span style="font-size:28px;line-height:1.1" aria-hidden="true">${e}</span><b>${l}</b><span class="pick2 col"><span class="pk" data-pk="cam">📸 찍기</span><span class="pk" data-pk="alb">🖼️ 앨범</span></span>`}<input type="file" accept="image/*" capture="environment" data-in="${k}" data-src="cam"><input type="file" accept="image/*" data-in="${k}" data-src="alb"></label>`).join('')}
-    </div></div>
+      ${[['photo_plant', '식물 전체 *', '한 걸음 물러나서', '🌳'], ['photo_fruit', '열매', '가까이서', '🍎'], ['photo_seed', '씨앗 *', '손바닥 위에', '🌰']].map(([k, l, t, e]) => `<label class="slot ${A[k] ? 'done' : ''}">${A[k] ? `<img src="${A[k]}" alt="${l} 사진"><button type="button" class="x" data-del="${k}" aria-label="${l} 사진 지우기">×</button>` : `<span style="font-size:28px;line-height:1.1" aria-hidden="true">${e}</span><b>${l}</b><span class="pick2 col"><span class="pk" data-pk="cam">📸 찍기</span><span class="pk" data-pk="alb">🖼️ 앨범</span></span>`}<input type="file" accept="image/*" capture="environment" data-in="${k}" data-src="cam"><input type="file" accept="image/*" data-in="${k}" data-src="alb"></label>`).join('')}
+    </div><p class="small" style="margin:10px 0 0">* <b>식물 전체</b>와 <b>씨앗</b> 사진은 꼭 있어야 해요. 이름이 맞는지 AI와 선생님이 확인할 때 써요. 잎·열매가 잘 보이게 가까이도 찍어 줘요.</p></div>
     <div class="card"><h3>씨앗 그림 <span class="muted small" style="font-family:var(--sans)">(하고 싶으면)</span></h3><div id="skHost"></div></div>`;
   }
   if (st === 4) {
     const rd = SH.readiness(A), row = SH.depositRow('', A, S.student, S.school);
-    h += `<div class="sheet-doc">
+    h += `<div class="card" id="aiBox">${aiBoxHTML()}</div>
+    <div class="sheet-doc">
       <div class="top"><div class="accno">${SH.esc(A.acc_no || '저장하면 채종 번호가 생겨요')}</div><h2>${SH.esc(d.plant || '이름 미정')}</h2>${d.sci ? `<div class="sci">${SH.esc(d.sci)}${d.family ? ' (' + SH.esc(d.family) + ')' : ''}</div>` : ''}</div>
       <div class="ready"><h3>시드볼트 준비도 ${rd.score}/${rd.total}</h3><div class="meter"><i style="width:${rd.score / rd.total * 100}%"></i></div>
         <ul>${rd.items.map(([t, ok]) => `<li class="${ok ? 'y' : 'n'}"><i>${ok ? '✓' : ''}</i>${t}</li>`).join('')}</ul>
@@ -870,8 +923,49 @@ function renderStep() {
     accSketch = SH.makeSketch($('#skHost'), '씨앗의 모양과 크기를 크게 그려 보세요', A.sketch, () => { A.sketch = accSketch.exportJPEG(); A.imgChanged.sketch = true; markAcc(); });
     accSketch.setTrace(A.photo_seed || A.photo_fruit);
   }
-  if (st === 4) $('#printLbl').onclick = () => printLabels([A]);
+  if (st === 4) { $('#printLbl').onclick = () => printLabels([A]); bindAi(); }
   window.scrollTo(0, 0);
+}
+function zoneHTML() {
+  const d = A.data; if (!d.lat) return '';
+  const z = SH.zoneOf(d.lat, d.lng, d.alt); const m = +String(d.date || '').slice(5, 7) || (new Date().getMonth() + 1);
+  return SH.zoneCard(z, { short: true, month: m });
+}
+function aiSig() { return [A.photo_plant, A.photo_seed, A.photo_fruit].map(x => (x || '').length).join('-') + '|' + (A.data.plant || '') + '|' + (A.data.sci || ''); }
+function aiBoxHTML() {
+  if (A.aiBusy) return `<div class="ai-loading"><span class="seedspin">🌰</span><div><b>AI가 사진을 살펴보고 있어요…</b><div class="small muted">10~30초쯤 걸려요. 잠깐만 기다려 줘!</div></div></div>`;
+  const fresh = A.aiRes && A.data.ai_sig === aiSig();
+  if (fresh) {
+    const R = A.aiRes, alt = (R.candidates || []).filter(c => c.ko && c.ko !== A.data.plant);
+    return `<h3>🤖 AI 한 번 더 확인</h3>${SH.aiCard(R)}${['mismatch', 'check'].includes(R.level) && alt.length ? `<div style="margin-top:10px"><p class="small" style="margin:0 0 6px">이름을 바꿔 볼까요? <b>선생님께 먼저 여쭤봐요!</b></p><div style="display:flex;gap:6px;flex-wrap:wrap">${alt.map((c, i) => `<button type="button" class="btn line sm" data-alt="${i}">${SH.esc(c.ko)}(으)로 바꾸기</button>`).join('')}</div></div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn ghost sm" id="aiAgain">사진 바꾸고 다시 확인</button></div>`;
+  }
+  if (A.data.ai_level && A.data.ai_sig === aiSig()) return `<h3>🤖 AI 한 번 더 확인</h3>${SH.aiCard({ level: A.data.ai_level, summary: A.data.ai_summary || '' }, { full: false })}`;
+  const can = A.photo_plant && A.photo_seed;
+  return `<h3>🤖 AI 한 번 더 확인 <span class="muted small" style="font-family:var(--sans)">(추천)</span></h3>
+    <p class="small" style="margin:0 0 10px">식물 사진과 씨앗 사진을 보고, 적은 이름이 맞는지 AI가 살펴봐 줘요. AI는 참고만 하고, 마지막 확인은 선생님이 해요.</p>
+    ${A.aiErr ? `<div class="cautionbox" style="margin-bottom:10px">${SH.esc(A.aiErr)}</div>` : ''}
+    <button type="button" class="btn ${can ? 'seed' : 'line'}" id="aiGo" ${can ? '' : 'disabled'}>🤖 AI에게 확인받기</button>${can ? '' : '<p class="small muted" style="margin:8px 0 0">4단계에서 식물 전체·씨앗 사진을 먼저 넣어 줘요.</p>'}`;
+}
+function bindAi() {
+  const box = $('#aiBox'); if (!box) return;
+  box.innerHTML = aiBoxHTML();
+  $('#aiGo') && ($('#aiGo').onclick = runAi);
+  $('#aiAgain') && ($('#aiAgain').onclick = () => { A.step = 3; renderStep(); });
+  box.querySelectorAll('[data-alt]').forEach(b => b.onclick = async () => {
+    const c = (A.aiRes.candidates || []).filter(c => c.ko && c.ko !== A.data.plant)[+b.dataset.alt];
+    if (!(await SH.dialog({ title: `${c.ko}(으)로 바꿀까요?`, msg: '선생님께 확인을 받았나요? 바꾸면 AI 확인을 한 번 더 받을 수 있어요.', ok: '바꾸기' }))) return;
+    await setPlant({ n: c.ko, s: c.sci }, false); A.data.ai_id = null; A.aiRes = null; markAcc(); renderStep();
+  });
+}
+async function runAi() {
+  A.aiBusy = true; A.aiErr = ''; bindAi();
+  const d = A.data, z = d.lat ? SH.zoneOf(d.lat, d.lng, d.alt) : null;
+  const r = await SH.aiReview({ token: S.token, plant: d.plant, sci: d.sci, date: d.date, lat: d.lat, lng: d.lng, alt: d.alt, address: d.address, zone: z ? z.name : '', habitat: d.habitat, fruit: d.fruit, plantPhoto: A.photo_plant, seedPhoto: A.photo_seed, fruitPhoto: A.photo_fruit });
+  A.aiBusy = false;
+  if (!r.ok) { A.aiErr = r.error || 'AI 확인을 받지 못했어요.'; if (r.off) { S.aiOn = false; A.aiErr += ' 그냥 보내도 괜찮아요.'; } bindAi(); return; }
+  A.aiRes = r.result; Object.assign(A.data, { ai_id: r.id, ai_level: r.result.level, ai_summary: r.result.summary, ai_at: new Date().toISOString(), ai_sig: aiSig() }); markAcc(); bindAi();
+  SH.toast(SH.AI_LEVEL[r.result.level]?.emoji + ' AI 확인이 끝났어요!');
 }
 function gisRows() {
   const d = A.data;
@@ -912,7 +1006,7 @@ async function setPos(p) {
   d.country = g.country; d.address = g.address || (S.school.site_name ? S.school.site_name + ' 일대' : '주소를 찾지 못했어요'); d.admin1 = g.admin1;
   if ((d.alt === '' || d.alt == null) && g.elev != null) { d.alt = g.elev; d.altSrc = '지형 자료'; }
   if (!d.place || d.place === S.school.site_name) d.place = d.address;
-  markAcc(); $('#gisBox') && ($('#gisBox').innerHTML = gisRows());
+  markAcc(); $('#gisBox') && ($('#gisBox').innerHTML = gisRows()); $('#zoneBox') && ($('#zoneBox').innerHTML = zoneHTML());
 }
 function idLine() { const d = A.data; return d.sci ? `<span class="sci">${SH.esc(d.sci)}</span>${d.family ? ', ' + SH.esc(d.family) : ''}` : ''; }
 async function setPlant(info, keepName) {
@@ -986,6 +1080,11 @@ async function leaveAcc() {
 }
 $('#accNext').onclick = async () => {
   if (A.step === 0 && !A.data.plant?.trim()) { SH.toast('식물 이름을 먼저 정해 주세요. 모르면 찾기를 눌러요.'); return; }
+  if (A.step === 3 && (!A.photo_plant || !A.photo_seed)) { SH.toast('📸 식물 전체 사진과 씨앗 사진을 꼭 넣어 주세요.', 3200); return; }
+  if (A.step === 4 && !(A.data.ai_level && A.data.ai_sig === aiSig()) && !A.aiSkip && S.aiOn !== false) {
+    const go = await SH.dialog({ title: '🤖 AI 확인을 받아 볼까요?', msg: 'AI가 사진과 이름을 한 번 더 살펴봐 줘요. 안 받아도 선생님이 확인하니 그냥 보내도 돼요.', ok: 'AI 확인받기', cancel: '그냥 보내기' });
+    if (go) { runAi(); return; } A.aiSkip = true;
+  }
   if (A.step < 4) { A.step++; renderStep(); return; }
   const btn = $('#accNext'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 저장 중';
   const img = k => A.id ? (A.imgChanged[k] ? (A[k] || '') : null) : (A[k] || null);
@@ -1070,6 +1169,13 @@ $('#noteSave').onclick = async () => {
   const btn = $('#noteSave'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
   try { const sk = noteSketch.exportJPEG(); const r = await SH.rpc('seedhands_save', { p_token: S.token, p_mission: N.m.id, p_data: N.data, p_sketch: sk, p_photo: N.photo }); if (!r.ok) return SH.toast(r.error === 'session' ? '다시 로그인해 주세요.' : r.error); S.recs[N.m.id] = { mission: N.m.id, data: { ...N.data }, sketch: sk, photo: N.photo, updated_at: r.updated_at }; noteDirty = false; $('#noteStat').textContent = '저장됨'; SH.toast('관찰 노트를 저장했어요'); }
   catch (e) { SH.toast(e.message); } finally { btn.disabled = false; btn.textContent = '저장하기'; }
+};
+
+$('#noteDel').onclick = async () => {
+  if (!S.recs[N.m.id]) { N.data = {}; N.photo = null; noteDirty = false; return goHome(); }
+  if (!(await SH.dialog({ title: '이 관찰 노트를 지울까요?', msg: '그림과 사진, 적은 내용이 모두 지워져요.', ok: '지우기', danger: true }))) return;
+  const r = await SH.rpc('seedhands_record_delete', { p_token: S.token, p_mission: N.m.id }); if (!r.ok) return SH.toast(r.error || '지우지 못했어요');
+  delete S.recs[N.m.id]; noteDirty = false; N = null; SH.toast('지웠어요'); goHome();
 };
 
 /* ───── 시작: 인트로(처음 한 번) → 자동 로그인 ───── */

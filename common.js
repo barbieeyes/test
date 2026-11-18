@@ -412,7 +412,7 @@ SH.openPlantPicker = function ({ fix, prefer = 'any', onPick, onNeedGPS }) {
 SH._db = null;
 SH._demoDB = function () {
   if (SH._db) return SH._db;
-  let db = SH.store.get('sh_demo_v4');
+  let db = SH.store.get('sh_demo_v5');
   if (!db) {
     const now = Date.now(), iso = t => new Date(t).toISOString();
     db = { superPw: 'seedvault-demo', schools: [{ id: 'sc1', code: 'SR2026', name: '송례중학교', inst_name: '송례중학교', region: '서울특별시', site_name: '대모산', site_lat: 37.4772, site_lng: 127.0789, contact: '', pw: 'songrye-seed26', acc_seq: 0, created_at: iso(now - 864e6) }], students: [], records: [], accs: [], sessions: {} };
@@ -431,15 +431,35 @@ SH._demoDB = function () {
       const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 700'><rect width='1000' height='700' fill='white'/><path d='M500 620 C${300 + i * 20} 520 ${260 + i * 10} 260 500 90 C${740 - i * 10} 260 ${700 - i * 20} 520 500 620Z' fill='none' stroke='${cols[i]}' stroke-width='14' stroke-linecap='round'/><path d='M500 600 L500 130' stroke='${cols[i]}' stroke-width='8'/>${[0, 1, 2, 3].map(k => `<path d='M500 ${520 - k * 95} L${400 - k * 8} ${450 - k * 95}M500 ${520 - k * 95} L${600 + k * 8} ${450 - k * 95}' stroke='${cols[i]}' stroke-width='6' stroke-linecap='round'/>`).join('')}</svg>`;
       db.records.push({ id: 'r' + i, student_id: id, mission: ms[i], data: { plant: ['신갈나무', '산국', '서어나무', '굴참나무', '생강나무', '쑥부쟁이', '당단풍나무'][i], comp: '홑잎', arr: '어긋나기', date: SH.dayOf(now - i * 864e5) }, sketch: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), photo: null, updated_at: iso(now - i * 72e5) });
     });
+    const ex = [['팔공중학교', '대구광역시', '팔공산', 35.98, 128.69, 420, [['쑥부쟁이', 'Aster yomena', '국화과'], ['때죽나무', 'Styrax japonicus', '때죽나무과']]],
+      ['금정중학교', '부산광역시', '금정산', 35.27, 129.05, 310, [['때죽나무', 'Styrax japonicus', '때죽나무과'], ['청미래덩굴', 'Smilax china', '청미래덩굴과']]],
+      ['노암중학교', '강원특별자치도', '대관령', 37.69, 128.75, 820, [['노박덩굴', 'Celastrus orbiculatus', '노박덩굴과'], ['당단풍나무', 'Acer pseudosieboldianum', '무환자나무과']]],
+      ['무등중학교', '광주광역시', '무등산', 35.13, 126.99, 540, [['산국', 'Chrysanthemum boreale', '국화과']]],
+      ['한라중학교', '제주특별자치도', '한라산 둘레길', 33.42, 126.6, 610, [['청미래덩굴', 'Smilax china', '청미래덩굴과'], ['보리밥나무', 'Elaeagnus macrophylla', '보리수나무과']]],
+      ['춘양중학교', '경상북도', '문수산', 36.94, 128.92, 730, [['신갈나무', 'Quercus mongolica', '참나무과'], ['팥배나무', 'Sorbus alnifolia', '장미과'], ['싸리', 'Lespedeza bicolor', '콩과']]],
+      ['유달중학교', '전라남도', '유달산', 34.79, 126.37, 120, [['동백나무', 'Camellia japonica', '차나무과']]],
+      ['우암중학교', '충청북도', '우암산', 36.65, 127.5, 260, [['싸리', 'Lespedeza bicolor', '콩과'], ['화살나무', 'Euonymus alatus', '노박덩굴과']]]];
+    const exSt = ['deposited', 'packed', 'cleaned', 'collected', 'drying'], exNm = ['김*연', '이*호', '박*아', '최*린', '정*우'];
+    ex.forEach(([nm, rg, site, la, ln, alt, pl], k) => {
+      const scid = 'ex' + k, code = nm.replace('중학교', '중') + '2026';
+      db.schools.push({ id: scid, code, name: nm, inst_name: nm, region: rg, site_name: site, site_lat: la, site_lng: ln, contact: '', pw: 'demo-pass', acc_seq: 0, created_at: iso(now - (20 - k) * 864e5), example: true });
+      pl.forEach(([p0, p1, p2], j) => {
+        const stid = scid + 's' + j; db.students.push({ id: stid, school_id: scid, no: `1${SH.pad(j + 1)}0${j + 1}`, name: exNm[(k + j) % 5].replace('*', '새'), pin: '0000', created_at: iso(now - 9 * 864e5), last_login: iso(now - 864e5) });
+        const sc = db.schools[db.schools.length - 1]; sc.acc_seq++;
+        db.accs.push({ id: scid + 'a' + j, school_id: scid, student_id: stid, acc_no: `${code}-${String(sc.acc_seq).padStart(3, '0')}`, status: exSt[(k + j) % 5], teacher_note: null,
+          data: { date: SH.dayOf(now - (k * 3 + j + 2) * 864e5), country: '대한민국', address: `${rg} ${site}`, identifier: '담당 교사', lat: la + j * 0.006, lng: ln + j * 0.008, alt: alt + j * 30, plant: p0, sci: p1, family: p2, plantsSampled: String(12 + j * 5), seedCount: String(150 + k * 40 + j * 70), weight: String(3 + j * 2), habitat: SH.ACC.habitat[j % 4], popSize: SH.ACC.popSize[2], share: SH.ACC.share[0], ai_level: ['match', 'check', 'match'][j % 3], ai_summary: '사진과 이름이 잘 맞아 보여요.' },
+          photo_plant: null, photo_fruit: null, photo_seed: null, sketch: null, created_at: iso(now - (k * 3 + j + 2) * 864e5), updated_at: iso(now - k * 36e5) });
+      });
+    });
   }
   return SH._db = db;
 };
-SH._save = () => SH.store.set('sh_demo_v4', SH._db);
+SH._save = () => SH.store.set('sh_demo_v5', SH._db);
 SH.demo = function (fn, a) {
   const db = SH._demoDB(), save = SH._save, tok = () => Math.random().toString(36).slice(2) + Date.now().toString(36), now = () => new Date().toISOString();
   const sess = db.sessions[a.p_token] || {}, sid = sess.sid, adm = sess.admin ? sess : null;
   const scopeOk = school_id => adm && (adm.super || adm.school_id === school_id);
-  const school = code => db.schools.find(s => s.code === String(code || '').trim().toUpperCase());
+  const school = code => db.schools.find(s => s.code.replace(/[\s\-_·.]/g, '').toUpperCase() === String(code || '').replace(/[\s\-_·.]/g, '').toUpperCase());
   const pub = s => ({ id: s.id, code: s.code, name: s.name, region: s.region, site_name: s.site_name, site_lat: s.site_lat, site_lng: s.site_lng, contact: s.contact, inst_name: s.inst_name, created_at: s.created_at });
   const accLite = x => ({ id: x.id, school_id: x.school_id, student_id: x.student_id, acc_no: x.acc_no, data: x.data, status: x.status, teacher_note: x.teacher_note, has_plant: !!x.photo_plant, has_fruit: !!x.photo_fruit, has_seed: !!x.photo_seed, has_sketch: !!x.sketch, created_at: x.created_at, updated_at: x.updated_at });
   switch (fn) {
@@ -447,7 +467,9 @@ SH.demo = function (fn, a) {
     case 'seedhands_school_create': {
       if ((a.p_name || '').trim().length < 2) return { ok: false, error: '학교 이름을 입력해 주세요.' };
       if ((a.p_pw || '').length < 6) return { ok: false, error: '관리자 비밀번호는 6자 이상으로 정해 주세요.' };
-      const code = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+      const base = a.p_name.trim().replace(/\s/g, '').replace(/초등학교$/, '초').replace(/중학교$/, '중').replace(/고등학교$/, '고').replace(/학교$/, '') + new Date().getFullYear();
+      if (db.schools.some(x => x.name.replace(/\s/g, '') === a.p_name.trim().replace(/\s/g, '') && (x.region || '') === (a.p_region || ''))) return { ok: false, exists: true, error: '같은 지역에 같은 이름의 학교가 이미 등록되어 있어요. 「학교 코드 찾기」로 코드를 확인해 주세요.' };
+      let code = base.toUpperCase(); if (db.schools.some(x => x.code === code)) code = (String(a.p_region || '').slice(0, 2) + base).toUpperCase(); let n = 2; while (db.schools.some(x => x.code === code)) code = base.toUpperCase() + '-' + n++;
       const s = { id: 'sc' + tok(), code, name: a.p_name.trim(), region: a.p_region, site_name: a.p_site_name, site_lat: a.p_site_lat, site_lng: a.p_site_lng, contact: a.p_contact, pw: a.p_pw, acc_seq: 0, created_at: now() };
       db.schools.push(s); const t = tok(); db.sessions[t] = { admin: true, school_id: s.id }; save(); return { ok: true, code, token: t };
     }
@@ -501,7 +523,7 @@ SH.demo = function (fn, a) {
     }
     case 'seedhands_logout': delete db.sessions[a.p_token]; save(); return null;
     case 'seedhands_admin_login2': {
-      if (String(a.p_code).toUpperCase() === 'ALL') { if (a.p_pw !== db.superPw) return { ok: false, error: '비밀번호가 맞지 않아요. (미리보기: seedvault-demo)' }; const t = tok(); db.sessions[t] = { admin: true, super: true }; save(); return { ok: true, token: t, super: true }; }
+      if (['ALL', 'HQ', '운영국'].includes(String(a.p_code).trim().toUpperCase())) { if (a.p_pw !== db.superPw) return { ok: false, error: '비밀번호가 맞지 않아요. (미리보기: seedvault-demo)' }; const t = tok(); db.sessions[t] = { admin: true, super: true }; save(); return { ok: true, token: t, super: true }; }
       const s = school(a.p_code); if (!s) return { ok: false, error: '학교 코드를 찾지 못했어요.' };
       if (s.pw !== a.p_pw) return { ok: false, error: '관리자 비밀번호가 맞지 않아요.' };
       const t = tok(); db.sessions[t] = { admin: true, school_id: s.id }; save(); return { ok: true, token: t, super: false };
@@ -553,6 +575,51 @@ SH.demo = function (fn, a) {
       if (!adm || !adm.school_id) return { ok: false, error: 'session' };
       Object.assign(db.schools.find(x => x.id === adm.school_id), { name: a.p_name, region: a.p_region, site_name: a.p_site_name, site_lat: a.p_site_lat, site_lng: a.p_site_lng, contact: a.p_contact, inst_name: a.p_inst }); save(); return { ok: true };
     }
+    case 'seedhands_school_search': {
+      const q = String(a.p_q || '').replace(/\s/g, ''); if (q.length < 2) return { ok: false, error: '학교 이름을 두 글자 이상 적어 주세요.' };
+      return { ok: true, items: db.schools.filter(x => x.name.replace(/\s/g, '').includes(q) || x.code.includes(q.toUpperCase())).slice(0, 12).map(x => ({ code: x.code, name: x.name, region: x.region, site_name: x.site_name, created_at: x.created_at })) };
+    }
+    case 'seedhands_record_delete': { if (!sid) return { ok: false, error: 'session' }; db.records = db.records.filter(r => !(r.student_id === sid && r.mission === a.p_mission)); save(); return { ok: true }; }
+    case 'seedhands_admin_acc_delete': { if (!adm) return { ok: false, error: 'session' }; const n0 = db.accs.length; db.accs = db.accs.filter(x => !(a.p_ids.includes(x.id) && scopeOk(x.school_id))); save(); return { ok: true, deleted: n0 - db.accs.length }; }
+    case 'seedhands_admin_student_update': {
+      if (!adm) return { ok: false, error: 'session' }; const st = db.students.find(x => x.id === a.p_student && scopeOk(x.school_id)); if (!st) return { ok: false, error: '학생을 찾지 못했어요.' };
+      if (!/^\d{4,6}$/.test(String(a.p_no || '').trim())) return { ok: false, error: '학번은 숫자 4~6자리예요.' };
+      if (db.students.some(x => x.school_id === st.school_id && x.no === a.p_no.trim() && x.id !== st.id)) return { ok: false, error: '같은 학번의 학생이 이미 있어요.' };
+      st.no = a.p_no.trim(); st.name = a.p_name.trim(); save(); return { ok: true };
+    }
+    case 'seedhands_hq_overview': {
+      if (!adm || !adm.super) return { ok: false, error: 'session' };
+      return { ok: true, ai_count: db.accs.filter(x => x.data.ai_level).length,
+        schools: db.schools.map(x => ({ ...pub(x), students: db.students.filter(s => s.school_id === x.id).length })),
+        accessions: db.accs.map(x => { const st = db.students.find(s => s.id === x.student_id) || {}; return { ...accLite(x), student: st.name, student_no: st.no, ai: x.data.ai_level ? { result: { level: x.data.ai_level, summary: x.data.ai_summary || '', score: 80 } } : null }; }).sort((p, q) => q.created_at.localeCompare(p.created_at)) };
+    }
+    case 'seedhands_hq_school_update': {
+      if (!adm || !adm.super) return { ok: false, error: 'session' }; const x = db.schools.find(y => y.id === a.p_school); if (!x) return { ok: false, error: '학교를 찾지 못했어요.' };
+      const P = a.p_patch || {}; if (P.code) { const c = String(P.code).replace(/\s/g, '').toUpperCase(); if (db.schools.some(y => y.code === c && y.id !== x.id)) return { ok: false, error: '이미 쓰는 코드예요.' }; x.code = c; }
+      ['name', 'region', 'site_name', 'contact', 'inst_name'].forEach(k => { if (k in P) x[k] = P[k]; }); ['site_lat', 'site_lng'].forEach(k => { if (k in P) x[k] = P[k] === '' ? null : +P[k]; });
+      save(); return { ok: true, code: x.code };
+    }
+    case 'seedhands_hq_school_pw': { if (!adm || !adm.super) return { ok: false, error: 'session' }; const x = db.schools.find(y => y.id === a.p_school); if ((a.p_pw || '').length < 6) return { ok: false, error: '6자 이상으로 정해 주세요.' }; x.pw = a.p_pw; save(); return { ok: true }; }
+    case 'seedhands_hq_school_delete': {
+      if (!adm || !adm.super) return { ok: false, error: 'session' }; const x = db.schools.find(y => y.id === a.p_school); if (!x) return { ok: false }; if (x.code === 'SR2026') return { ok: false, error: '기본 학교는 지울 수 없어요.' };
+      const ids = new Set(db.students.filter(s => s.school_id === x.id).map(s => s.id));
+      db.records = db.records.filter(r => !ids.has(r.student_id)); db.accs = db.accs.filter(y => y.school_id !== x.id); db.students = db.students.filter(s => s.school_id !== x.id); db.schools = db.schools.filter(y => y.id !== x.id); save(); return { ok: true };
+    }
+    case 'seedhands_hq_shared_ai': { if (!adm || !adm.super) return { ok: false, error: 'session' }; if (a.p_on != null) db.sharedAi = a.p_on; save(); return { ok: true, shared_ai: db.sharedAi !== false }; }
+    case 'seedhands_admin_ai_get': { if (!adm || !adm.school_id) return { ok: false, error: 'session' }; const x = db.schools.find(y => y.id === adm.school_id); return { ok: true, provider: x.ai_provider || 'shared', hint: x.ai_hint || null, shared_allowed: db.sharedAi !== false, used_today: 0, used_total: db.accs.filter(y => y.school_id === x.id && y.data.ai_level).length }; }
+    case 'seedhands_admin_ai_set': { if (!adm || !adm.school_id) return { ok: false, error: 'session' }; const x = db.schools.find(y => y.id === adm.school_id); x.ai_provider = a.p_provider; x.ai_hint = a.p_hint || x.ai_hint; save(); return { ok: true }; }
+    case 'seedhands_admin_ai': return { ok: true, items: [] };
+    case 'seedhands_public_book': {
+      const yr = a.p_year ? String(a.p_year) : '', m = {};
+      db.accs.filter(x => (!yr || (x.data.date || '').startsWith(yr)) && (!a.p_deposited || x.status === 'deposited') && x.status !== 'rejected').forEach(x => {
+        const d = x.data, k = d.sci || d.plant; if (!k) return;
+        const e = m[k] || (m[k] = { plant: d.plant, sci: d.sci || '', family: d.family || '', recs: 0, seeds: 0, dep: 0, sch: new Set(), reg: new Set(), mon: new Set(), photo_id: null });
+        e.recs++; e.seeds += parseInt(d.seedCount) || 0; if (x.status === 'deposited') e.dep++; e.sch.add(x.school_id);
+        const sc = db.schools.find(y => y.id === x.school_id); if (sc) e.reg.add(SH.regionKey ? SH.regionKey(sc.region) : sc.region); if (d.date) e.mon.add(+d.date.slice(5, 7)); if (!e.photo_id && x.photo_plant) e.photo_id = x.id;
+      });
+      return { ok: true, items: Object.values(m).map(e => ({ plant: e.plant, sci: e.sci, family: e.family, recs: e.recs, seeds: e.seeds, dep: e.dep, schools: e.sch.size, regions: [...e.reg], months: [...e.mon].sort((p, q) => p - q), photo_id: e.photo_id })).sort((p, q) => q.seeds - p.seeds) };
+    }
+    case 'seedhands_public_book_photo': { const x = db.accs.find(y => y.id === a.p_id); return { ok: true, photo: x ? x.photo_plant : null }; }
     case 'seedhands_admin_school_update': {
       if (!adm || !adm.school_id) return { ok: false, error: 'session' };
       Object.assign(db.schools.find(x => x.id === adm.school_id), { name: a.p_name, region: a.p_region, site_name: a.p_site_name, site_lat: a.p_site_lat, site_lng: a.p_site_lng, contact: a.p_contact }); save(); return { ok: true };

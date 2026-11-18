@@ -142,3 +142,36 @@ select.inp { appearance: none; background-image: url("data:image/svg+xml,%3Csvg 
 .chip.emo.on { background: var(--spruce); }
 
 .sk-magic { background: linear-gradient(135deg, #FBF1DD, #E6EFE1); border-color: #E3C98E; font-weight: 700; color: #6B4A0E; padding: 0 12px; }
+/* ── AI 검토 카드 ── */
+.aicard{border-radius:18px;padding:14px 16px;background:#fff;border:2px solid var(--line);display:grid;gap:8px}
+.aicard.ai-ok{border-color:#6E9A5B;background:#F3F9EF}.aicard.ai-check{border-color:#D9982B;background:#FFF8EA}
+.aicard.ai-bad{border-color:#D9534F;background:#FFF2F1}.aicard.ai-photo{border-color:#2F5D7C;background:#EEF4F9}
+.aihead{display:flex;gap:10px;align-items:center}.aiemo{font-size:30px}.aihead b{display:block;font-size:17px}
+.aiscore{font-family:Pretendard,sans-serif;font-size:12px;color:var(--ink-2);background:#fff;border-radius:999px;padding:2px 8px;margin-left:6px}
+.aisum{font-size:15.5px;line-height:1.5}.aidl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px}
+.aidl dt{color:var(--ink-2);white-space:nowrap}.aidl dd{margin:0;font-family:Pretendard,sans-serif;line-height:1.5}
+.aicand{margin:0;padding-left:16px}.aicand span{color:var(--ink-2)}.ainote{font-size:12.5px;color:var(--ink-2)}
+.ai-loading{display:flex;gap:12px;align-items:center;padding:16px;border-radius:18px;background:#fff;border:2px dashed var(--line)}
+.ai-loading .seedspin{font-size:30px;animation:seedspin 1.2s ease-in-out infinite}
+@keyframes seedspin{0%,100%{transform:rotate(-12deg) translateY(0)}50%{transform:rotate(12deg) translateY(-6px)}}
+/* ── 식생대 카드 ── */
+.zonecard{border-radius:18px;padding:14px 16px;background:#fff;border-left:6px solid var(--zc);display:grid;gap:8px;box-shadow:var(--shadow)}
+.zhead{display:flex;gap:10px;align-items:center}.zemo{font-size:30px}.zhead small{display:block;color:var(--ink-2);font-size:12px}.zhead b{font-size:18px;color:var(--zc)}
+.zonecard p{font-size:14.5px;line-height:1.55}.zridge{background:#FFF8EA;border-radius:10px;padding:6px 10px}
+.ztrees{display:flex;flex-wrap:wrap;gap:5px;align-items:center}.ztrees small{width:100%;color:var(--ink-2);font-size:12.5px}
+.ztrees span{background:var(--frost);border-radius:999px;padding:3px 10px;font-size:13px}.ztrees span.ripe{background:#FFF1D6}
+.ztip{font-size:13.5px;color:var(--ink-2)}
+
+/* ── 시드핸즈 도감 ── */
+.bookgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.bookcard { background: #fff; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.bookcard .bimg { aspect-ratio: 4/3; background: linear-gradient(135deg, #E6EFE3, #F6F1E4); display: flex; align-items: center; justify-content: center; }
+.bookcard .bimg img { width: 100%; height: 100%; object-fit: cover; }
+.bookcard .bemo { font-size: 64px; }
+.bookcard .bbody { padding: 14px 16px 16px; }
+.bookcard h3 { font-family: var(--serif); font-size: 22px; font-weight: 400; color: var(--spruce); }
+.bnum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; background: var(--frost); border-radius: 12px; padding: 8px; text-align: center; }
+.bnum b { display: block; font-family: Pretendard, sans-serif; font-size: 18px; color: var(--spruce); }
+.bnum span { font-size: 11.5px; color: var(--ink-2); }
+.bkv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 13px; margin: 0; }
+.bkv dt { color: var(--ink-2); } .bkv dd { margin: 0; }

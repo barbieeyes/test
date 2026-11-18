@@ -1,3 +1,22 @@
-{ "cleanUrls": false,
-  "functions": { "api/review.js": { "maxDuration": 60 } },
-  "headers": [ { "source": "/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" } ] } ] }
+{
+ "cleanUrls": false,
+ "functions": {
+  "api/review.js": {
+   "maxDuration": 60
+  },
+  "api/aikey.js": {
+   "maxDuration": 30
+  }
+ },
+ "headers": [
+  {
+   "source": "/(.*)",
+   "headers": [
+    {
+     "key": "Cache-Control",
+     "value": "public, max-age=0, must-revalidate"
+    }
+   ]
+  }
+ ]
+}
