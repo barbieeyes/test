@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시드핸즈 안내 영상</title>
+<link rel="icon" href="../favicon.ico" sizes="any">
+<meta name="theme-color" content="#143A2E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Pretendard, 'Apple SD Gothic Neo', sans-serif; background: #F1F4F0; color: #1A2721; word-break: keep-all; }
+header { background: #143A2E; color: #fff; padding: 28px 20px 24px; }
+header .in, main { max-width: 980px; margin: 0 auto; }
+header small { color: #FFD84D; font-weight: 700; letter-spacing: .05em; }
+header h1 { margin: 6px 0 6px; font-size: 30px; }
+header p { margin: 0; color: #C7DFD2; line-height: 1.6; }
+nav { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+nav a { color: #fff; text-decoration: none; background: rgba(255,255,255,.12); padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 15px; }
+main { padding: 20px; }
+section { background: #fff; border-radius: 20px; padding: 18px; margin-bottom: 18px; box-shadow: 0 4px 14px rgba(20,58,46,.08); scroll-margin-top: 12px; }
+section.on { outline: 4px solid #FFD84D; }
+.tag { display: inline-block; font-size: 13px; font-weight: 800; color: #fff; padding: 3px 10px; border-radius: 999px; }
+h2 { margin: 8px 0 4px; font-size: 22px; }
+.who { color: #4A5952; margin: 0 0 12px; line-height: 1.6; }
+video { width: 100%; border-radius: 12px; background: #000; aspect-ratio: 16/9; }
+.ch { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ch button { border: 1px solid #DCD3BE; background: #FBF8F0; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+.ch button:hover { background: #FFF1A8; }
+footer { text-align: center; color: #4A5952; font-size: 14px; padding: 10px 20px 40px; }
+footer a { color: #2C5A7A; }
+</style>
+</head>
+<body>
+<header><div class="in"><small>2026 시드핸즈 프로젝트</small><h1>안내 영상 5편</h1>
+<p>운영 매뉴얼의 QR을 찍으면 이 페이지로 와요. 장면 버튼을 누르면 그 부분부터 재생돼요.</p>
+<nav id="nav"></nav></div></header>
+<main id="list"></main>
+<footer>학생 화면 <a href="../">songrye-seedhands.vercel.app</a> · 선생님 화면 <a href="../admin.html">/admin.html</a> · 운영국 화면 <a href="../hq.html">/hq.html</a></footer>
+<script>
+const V = [
+  { id: 'v1', file: 'v1.mp4', color: '#2C5A7A', who: '② 담당 교사', title: '담당 교사 편', desc: '학교 등록부터 학생 안내, 기록 검토, 전문가 검토, 기탁 양식까지', ch: [['처음', 0], ['학교 등록', 30], ['학교 코드', 42], ['QR 안내', 64], ['AI 연결', 84], ['학생 들어오기', 100], ['기록 검토', 138], ['단계 바꾸기', 160], ['전문가 검토', 172], ['기탁 양식', 192]] },
+  { id: 'v2', file: 'v2.mp4', color: '#1E5B45', who: '① 운영국', title: '운영국 대시보드 편', desc: '전국 현황, 아카이브, 참여 학교, 전문가 검토 관리, 기탁 양식', ch: [['처음', 0], ['한눈에 보기', 26], ['아카이브', 48], ['참여 학교', 80], ['도감', 102], ['전문가 검토', 114], ['기탁 양식', 148], ['설정', 160]] },
+  { id: 'v3', file: 'v3.mp4', color: '#9A5B0B', who: '③ 학생 (수업 때 함께)', title: '학생 편', desc: '왜 씨앗을 모을까, 들어가기, 씨앗 기록, AI·전문가 확인, 도감', ch: [['처음', 0], ['왜 씨앗을?', 17], ['들어가기', 39], ['씨앗 기록', 76], ['사진', 97], ['AI 확인', 107], ['전문가 묻기', 128], ['도감', 139]] },
+  { id: 'v4', file: 'v4.mp4', color: '#1E5B45', who: '① 운영국 · ② 담당 교사', title: '지도 활용 편', desc: '채종 위치, 식생대, 지역 특성, 이번 달 익는 식물', ch: [['처음', 0], ['채종 위치', 20], ['식생대 색', 33], ['지역 특성', 45], ['학생 화면', 58], ['활용 팁', 88]] },
+  { id: 'v5', file: 'v5.mp4', color: '#2C5A7A', who: '② 담당 교사', title: '씨앗 다루기 편', desc: '식물 고르기, 채종 약속, 과육 벗기기, 1·2차 건조, 알루미늄 포장', ch: [['처음', 0], ['식물 고르기', 19], ['채종하기', 49], ['과육·정선', 76], ['말리기', 106], ['포장·발송', 147]] },
+];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const t = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+document.getElementById('nav').innerHTML = V.map((v, i) => `<a href="#${v.id}">${i + 1}. ${esc(v.title)}</a>`).join('');
+document.getElementById('list').innerHTML = V.map((v, i) => `<section id="${v.id}"><span class="tag" style="background:${v.color}">${esc(v.who)}</span>
+  <h2>${i + 1}. ${esc(v.title)}</h2><p class="who">${esc(v.desc)}</p>
+  <video controls playsinline preload="metadata" src="${v.file}"></video>
+  <div class="ch">${v.ch.map(([n, s]) => `<button data-v="${v.id}" data-t="${s}">${t(s)} ${esc(n)}</button>`).join('')}</div></section>`).join('');
+document.querySelectorAll('.ch button').forEach(b => b.onclick = () => { const vd = document.querySelector(`#${b.dataset.v} video`); vd.currentTime = +b.dataset.t; vd.play(); });
+function hl() { const h = location.hash.slice(1); document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === h)); }
+addEventListener('hashchange', hl); hl();
+</script>
+</body>
+</html>
