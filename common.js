@@ -727,7 +727,7 @@ SH.seedMap = function (el, { points = [], mine = [], site = null, ridge = false,
   const b = [];
   if (ridge) L.polyline(SH.RIDGE.map(([x, y]) => [y, x]), { color: '#D9982B', weight: 4, opacity: .75, dashArray: '8 6' }).addTo(map).bindTooltip('백두대간');
   if (vault) { const v = L.marker([SH.VAULT.lat, SH.VAULT.lng], { icon: L.divIcon({ className: '', html: '<div class="mk-emo">🏔️</div>', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(map).bindPopup(`<b>${SH.VAULT.name}</b><br>${SH.VAULT.place}`); b.push([SH.VAULT.lat, SH.VAULT.lng]); }
-  if (site && site.lat) { L.marker([site.lat, site.lng], { icon: L.divIcon({ className: '', html: '<div class="mk-emo">🏫</div>', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(map).bindPopup(`<b>${SH.esc(site.name || '탐사지')}</b>`); b.push([site.lat, site.lng]); }
+  if (site && site.lat) { L.marker([site.lat, site.lng], { icon: L.divIcon({ className: '', html: '<div class="mk-emo">🏫</div>', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(map).bindPopup(`<b>${SH.esc(site.name || '채종 지역')}</b>`); b.push([site.lat, site.lng]); }
   const dot = (p, isMine) => {
     const dep = p.status === 'deposited';
     const m = L.circleMarker([p.lat, p.lng], { radius: isMine ? 9 : 7, color: '#143A2E', weight: 2, fillColor: dep ? '#D9982B' : isMine ? '#6E9A5B' : '#9FD08A', fillOpacity: .95 }).addTo(map);
