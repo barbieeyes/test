@@ -75,8 +75,9 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--spruce); }
 .flag.w { background: var(--seed-soft); color: #8A5B0C; }
 .flag.a { background: var(--alert-soft); color: var(--alert); }
 
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-@media (max-width: 1000px) { .grid2 { grid-template-columns: 1fr; } }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.grid2 > * { min-width: 0; }
+@media (max-width: 1000px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
 .bars { display: grid; gap: 9px; }
 .bar { display: grid; grid-template-columns: 140px 1fr 60px; gap: 10px; align-items: center; font-size: 14px; }
 .bar .tr { height: 14px; background: #ECF0EB; border-radius: 4px; overflow: hidden; }

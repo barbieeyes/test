@@ -608,7 +608,7 @@ $('#codeForm').onsubmit = async e => { e.preventDefault(); $('#codeErr').textCon
 async function schFind() {
   const box = $('#schRes'); box.innerHTML = '<span class="small muted">찾는 중…</span>';
   const r = await SH.rpc('seedhands_school_search', { p_q: $('#schQ').value });
-  if (!r.ok) { box.innerHTML = `<span class="small muted">${SH.esc(r.error)}</span>`; return; }
+  if (!r.ok) { box.innerHTML = `<span class="small muted">${SH.esc(SH.errText(r.error))}</span>`; return; }
   box.innerHTML = r.items.length ? r.items.map(x => `<button type="button" class="addritem" data-c="${SH.esc(x.code)}"><b>🏫 ${SH.esc(x.name)}</b><span>${SH.esc(x.region || '')}${x.site_name ? ' · ' + SH.esc(x.site_name) : ''}</span></button>`).join('') : '<span class="small muted">학교를 찾지 못했어요. 선생님께 코드를 여쭤봐요.</span>';
   box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { $('#lgCode').value = b.dataset.c; $('#codeForm').requestSubmit(); });
 }
@@ -1121,7 +1121,7 @@ $('#accNext').onclick = async () => {
     SH.store.del(draftKey()); const isNew = !A.id; A = null;
     await loadMe(); openDetail(r.id, isNew);
   } catch (e) { SH.toast(e.message + ' 기기에 임시저장돼 있어요.', 4500); }
-  finally { btn.disabled = false; btn.textContent = '저장하고 보내기'; }
+  finally { btn.disabled = false; btn.textContent = A && A.id ? '고친 내용 저장' : '저장하고 보내기'; }
 };
 window.addEventListener('beforeunload', e => { if ((A && A.dirty) || noteDirty) { e.preventDefault(); e.returnValue = ''; } });
 

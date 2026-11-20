@@ -12,7 +12,10 @@ SH.dayOf = t => { if (!t) return ''; const d = new Date(t); return `${d.getFullY
 SH.fmt = t => { if (!t) return '-'; const d = new Date(t); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${SH.pad(d.getHours())}:${SH.pad(d.getMinutes())}`; };
 SH.dot = d => d ? d.replace(/-/g, '. ') : '';
 SH.distKm = (a, b) => { const R = 6371, r = x => x * Math.PI / 180; const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+SH.ERRMSG = { session: '로그인 시간이 끝났어요. 다시 로그인해 주세요.', forbidden: '이 작업을 할 권한이 없어요.', mission: '알 수 없는 관찰 노트예요.', provider: 'AI 종류를 다시 골라 주세요.' };
+SH.errText = m => (m == null || m === '' || m === 'undefined') ? '처리하지 못했어요. 잠시 뒤 다시 해 주세요.' : (SH.ERRMSG[m] || String(m));
 SH.toast = (msg, ms = 2600) => {
+  msg = SH.errText(msg);
   document.querySelectorAll('.toast').forEach(x => x.remove());
   const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), ms);
@@ -50,9 +53,10 @@ SH.enterDemo = function () {
   if (SH.mode === 'demo') return;
   SH.mode = 'demo';
   const b = document.createElement('div'); b.className = 'demo-bar';
-  const isAdmin = /admin\.html/.test(location.pathname);
-  b.innerHTML = `<div class="demo-switch" role="tablist" aria-label="화면 바꾸기"><a href="index.html" class="${isAdmin ? '' : 'on'}">학생 화면</a><a href="admin.html" class="${isAdmin ? 'on' : ''}">선생님 화면</a></div>
-    <div><b>미리보기</b>: 기록은 이 브라우저에만 저장돼요. ${isAdmin ? '학교 코드 <b>새싹중2026</b>, 관리자 비밀번호 <b>saessak-demo</b>' : '아무 학번·이름·비밀번호로 새로 가입해 보세요. 예시 학생(20103 김하늘)의 비밀번호는 <b>0000</b>'}</div>`;
+  const pg = /admin\.html/.test(location.pathname) ? 'admin' : /hq\.html/.test(location.pathname) ? 'hq' : /expert\.html/.test(location.pathname) ? 'expert' : 'stu';
+  const tip = { admin: '학교 코드 <b>새싹중2026</b>, 관리자 비밀번호 <b>saessak-demo</b>', hq: '운영국 비밀번호 <b>seedvault-demo</b>', expert: '전문가 <b>expert@seedhands.kr</b> / <b>expert-demo</b>', stu: '아무 학번·이름·비밀번호로 새로 가입해 보세요. 예시 학생(20103 김하늘)의 비밀번호는 <b>0000</b>' }[pg];
+  b.innerHTML = `<div class="demo-switch" role="tablist" aria-label="화면 바꾸기">${[['stu', 'index.html', '학생'], ['admin', 'admin.html', '선생님'], ['hq', 'hq.html', '운영국'], ['expert', 'expert.html', '전문가']].map(([k, h, t]) => `<a href="${h}" class="${pg === k ? 'on' : ''}">${t}</a>`).join('')}</div>
+    <div><b>미리보기</b>: 기록은 이 브라우저에만 저장돼요. ${tip}</div>`;
   document.body.prepend(b);
 };
 /* 처음 열 때 서버 연결이 막혀 있는지 확인 (Claude 미리보기 감지) */

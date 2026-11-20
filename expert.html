@@ -118,7 +118,7 @@ async function openReq(id) {
   X.cur = id; history.replaceState(null, '', '#' + id); drawList();
   $('#xDetail').innerHTML = '<div class="panel empty-x"><span class="spin"></span></div>';
   if (innerWidth < 980) $('#xListCol').classList.add('hide-m');
-  const r = await SH.rpc('seedhands_expert_get', { p_token: X.token, p_req: id }); if (!r.ok) { $('#xDetail').innerHTML = `<div class="panel empty-x">${SH.esc(r.error)}</div>`; return; }
+  const r = await SH.rpc('seedhands_expert_get', { p_token: X.token, p_req: id }); if (!r.ok) { $('#xDetail').innerHTML = `<div class="panel empty-x">${SH.esc(SH.errText(r.error))}</div>`; return; }
   const q = r.req, a = r.acc, d = a.data || {}, sc = r.school || {}, z = d.lat ? SH.zoneOf(+d.lat, +d.lng, d.alt) : null;
   const pics = [...Object.keys(KIND).filter(k => a[k]).map(k => ({ src: a[k], t: KIND[k] })), ...(r.photos || []).map(p => ({ src: p.img, t: SH.EXP_KIND[p.kind] || '' }))];
   const canEdit = ['waiting', 'claimed', 'more'].includes(q.status) || X.me.hq || q.expert_id === X.me.id;
@@ -164,7 +164,7 @@ async function openReq(id) {
     const b = $('#xSave'); b.disabled = true; b.innerHTML = '<span class="spin"></span> 보내는 중';
     const x = await SH.rpc('seedhands_expert_answer', { p_token: X.token, p_req: id, p_verdict: V, p_ko: $('#xKo').value, p_sci: $('#xSci').value, p_family: $('#xFam').value, p_comment: $('#xCm').value });
     b.disabled = false; b.textContent = '판정 보내기';
-    if (!x.ok) return $('#xAErr').textContent = x.error || '보내지 못했어요';
+    if (!x.ok) return $('#xAErr').textContent = SH.errText(x.error || '보내지 못했어요');
     SH.toast(V === 'need_photo' ? '📸 학교에 사진 보완을 요청했어요' : '✅ 판정을 보냈어요. 고맙습니다!');
     const next = X.items.findIndex(y => y.id === id); await load(); const nx = X.items[next] || X.items[0]; if (nx && X.tab === 'open') openReq(nx.id);
   };
