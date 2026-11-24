@@ -516,15 +516,15 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
 .lampCnt{font-weight:900;color:#0d4a66;background:#e3f4fb;border-radius:12px;padding:6px 10px;white-space:nowrap}
 .lampBar{height:8px;border-radius:4px;background:#d9ecf5;margin:10px 0;overflow:hidden}.lampBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),#ffd76a);transition:width .4s}
 .lampPic{position:relative;border-radius:14px;overflow:hidden;background:#0d1b33;aspect-ratio:4/3;max-height:50vh;width:100%;cursor:zoom-in;box-shadow:inset 0 0 0 2px rgba(63,214,232,.35)}
-.lampPic img{width:100%;height:100%;object-fit:contain;display:block;transition:opacity .25s}
+.lampPic canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}.lampPic{cursor:grab}
 .lampHint{position:absolute;left:8px;top:8px;background:rgba(3,10,26,.78);color:#ffe08a;font-size:12px;font-weight:800;padding:4px 9px;border-radius:10px}
-.lampZoom{position:absolute;right:8px;bottom:8px;background:rgba(3,10,26,.7);color:#cfe9f5;font-size:11px;padding:3px 8px;border-radius:9px}
+.lampZoom{position:absolute;right:8px;top:8px;background:rgba(3,10,26,.7);color:#cfe9f5;font-size:11px;padding:3px 8px;border-radius:9px}
 .lampTxt{font-size:clamp(16px,1.8vw,19px);line-height:1.55;margin:10px 2px;color:#123a52;font-weight:600;min-height:3.1em}
 .lampNav{display:flex;gap:8px;align-items:center}.lampNav .pill{flex:1;justify-content:center}
 .lampBtn{background:#e3f4fb;color:#0d4a66;border:2px solid #b9e2f1;border-radius:14px;padding:10px 14px;font-weight:900;font-size:15px}
 .lampBtn:disabled{opacity:.4}
 .lampThumbs{position:relative;display:flex;gap:6px;overflow-x:auto;margin-top:10px;padding-bottom:4px;scrollbar-width:thin}
-.lampThumbs button{flex:0 0 auto;width:54px;height:44px;border-radius:9px;background:#0d1b33 center/cover no-repeat;border:2px solid transparent;position:relative;opacity:.55}
+.lampThumbs button{flex:0 0 auto;width:58px;height:44px;border-radius:9px;background:#0d1b33 center/cover no-repeat;border:2px solid transparent;position:relative;opacity:.55}
 .lampThumbs button span{position:absolute;left:2px;top:1px;font-size:10px;font-weight:900;color:#fff;text-shadow:0 0 3px #000}
 .lampThumbs button.dn{opacity:.9}.lampThumbs button.dn:after{content:"✓";position:absolute;right:2px;bottom:0;color:#7ff3e1;font-weight:900;font-size:12px;text-shadow:0 0 3px #000}
 .lampThumbs button.on{opacity:1;border-color:#ffd76a;box-shadow:0 0 10px rgba(243,195,90,.8)}
@@ -610,7 +610,7 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
         <div class="mCard lampMain">
           <div class="lampHead"><span class="lampNo" id="lpNo">1</span><div class="lampHT"><b id="lpTitle"></b><small id="lpSub"></small></div><span class="lampCnt">🧩 <b id="lpCnt2">0</b>/30</span></div>
           <div class="lampBar"><i id="lpBar"></i></div>
-          <div class="lampPic" id="lpPic"><img id="lpImg" alt="조립 단계 사진"><span class="lampHint">✦ 밝게 빛나는 곳 = 이번에 끼울 곳</span><span class="lampZoom">🔍 눌러서 크게</span></div>
+          <div class="lampPic" id="lpPic"><canvas id="lpCv" aria-label="조립 단계 그림"></canvas><span class="lampHint">✦ 금색 조각 = 이번에 끼울 조각</span><span class="lampZoom">👆 끌어서 돌려 보기</span></div>
           <p class="lampTxt" id="lpTxt"></p>
           <div class="lampNav"><button class="lampBtn" id="lpPrev">◀ 이전</button><button class="pill sm" id="lpNext"><span class="tri"></span>다 했어요!</button></div>
           <div class="lampThumbs" id="lpThumbs"></div>
@@ -624,11 +624,10 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
         </div>
       </div>
       <div class="lampDone" id="lpDone">
-        <div class="ldBox"><div class="ldGlow"><img src="lamp/p15.jpg" alt="완성된 조명"></div>
+        <div class="ldBox"><div class="ldGlow"><img id="lpDoneImg" alt="완성된 조명"></div>
           <div class="lsTag">MISSION COMPLETE</div><h2>별빛 조명 완성!</h2><p>30개 조각이 하나의 별이 되었어요. 불을 켜고 조원들과 인증샷을 남겨 보세요.</p>
           <div class="ldBtns"><button class="pill sm" id="lpBooth"><span class="tri"></span>📸 네컷 사진관으로</button><button class="lampBtn" id="lpAgain">처음부터 다시 보기</button></div></div>
       </div>
-      <div class="lampZoomBox" id="lpZoomBox"><img id="lpZoomImg" alt=""><span>화면을 누르면 닫혀요</span></div>
     </div>
     <div class="tpane" id="t3">
       <div class="lsTag" style="margin:4px 0 6px">4차시 · 진짜 밤하늘 탐험 기록</div>
@@ -2303,33 +2302,110 @@ $$('#tabs button').forEach(b=>b.onclick=()=>{beep('x');setTab(b.dataset.tab)});
    💡 3차시 — 별빛 조명 만들기 (30조각 볼 조명)
    ========================================================= */
 const LAMP=[
- ['조각 5개 놓기','조각 5개를 사진처럼 나란히 놓아요. 볼록한 면이 모두 같은 쪽을 보게 해요.',0],
+ ['조각 5개 놓기','조각 5개를 그림처럼 나란히 놓아요. 볼록한 면이 모두 같은 쪽을 보게 해요.',0],
  ['꽃 모양 만들기','5개의 끝을 서로 끼워 꽃 모양 1개를 만들어요. 옆에 새 조각 5개를 놓아요.',5],
- ['3군데 끼우기','밝게 보이는 부분처럼 새 조각을 이웃 조각 3군데에 끼워요.',10],
+ ['3군데 끼우기','금색 조각처럼 새 조각을 이웃 조각 3군데에 끼워요.',10],
  ['새 조각 5개 놓기','지금까지 10개 연결! 옆에 새 조각 5개를 놓아요.',10],
- ['2군데 끼우기','밝게 보이는 부분처럼 새 조각을 2군데에 끼워요.',15],
+ ['2군데 끼우기','금색 조각처럼 새 조각을 2군데에 끼워요.',15],
  ['새 조각 5개 놓기','지금까지 15개 연결! 옆에 새 조각 5개를 놓아요.',15],
- ['4군데 끼우기','밝게 보이는 부분처럼 4군데에 끼워요. 점점 둥글어져요.',20],
+ ['4군데 끼우기','금색 조각처럼 4군데에 끼워요. 점점 둥글어져요.',20],
  ['새 조각 5개 놓기','지금까지 20개 연결! 옆에 새 조각 5개를 놓아요.',20],
- ['3군데 끼우기','밝게 보이는 부분처럼 3군데에 끼워요.',25],
+ ['3군데 끼우기','금색 조각처럼 3군데에 끼워요.',25],
  ['마지막 5개 놓기','지금까지 25개 연결! 마지막 조각 5개를 놓아요.',25],
- ['3군데 끼우기','밝게 보이는 부분처럼 3군데에 끼워요.',27],
- ['나머지 4군데 끼우기','밝게 보이는 부분처럼 남은 곳을 4군데에 끼워요.',29],
+ ['3군데 끼우기','금색 조각처럼 3군데에 끼워요.',27],
+ ['나머지 4군데 끼우기','금색 조각처럼 남은 곳을 4군데에 끼워요.',29],
  ['전구 넣기','조각이 1개 남았을 때, 열린 구멍으로 전구를 넣어요.',29],
  ['구멍 닫기','남은 조각 1개로 구멍을 닫아요. 30개 모두 연결!',30],
  ['불 켜기, 완성!','전구 줄을 꽂아 불을 켜면 별빛 조명 완성!',30]];
 let LS={i:0,done:0};
 try{Object.assign(LS,JSON.parse(localStorage.getItem('hsLamp')||'{}'))}catch(e){}
 function lampSave(){try{localStorage.setItem('hsLamp',JSON.stringify(LS))}catch(e){}PR.lamp=LS.done;ping(null,true)}
-LAMP.forEach((_,k)=>{const im=new Image();im.src=`lamp/p${k+1}.jpg`});
-$('#lpThumbs').innerHTML=LAMP.map((s,k)=>`<button data-k="${k}" style="background-image:url(lamp/p${k+1}.jpg)" aria-label="${k+1}단계 ${s[0]}"><span>${k+1}</span></button>`).join('');
+/* 30조각 볼 조명 3D 그림 — 정이십면체 모서리 30개 = 조각 30개 */
+const L3=(()=>{
+  const s5=Math.sqrt(5),V=[[0,1,0]];
+  for(let k=0;k<5;k++){const a=k*72*Math.PI/180;V.push([2/s5*Math.cos(a),1/s5,2/s5*Math.sin(a)])}
+  for(let k=0;k<5;k++){const a=(k*72+36)*Math.PI/180;V.push([2/s5*Math.cos(a),-1/s5,2/s5*Math.sin(a)])}
+  V.push([0,-1,0]);
+  const U=k=>1+(k%5),Lw=k=>6+(k%5),B=11,E=[];
+  for(let k=0;k<5;k++)E.push([0,U(k)]);            // 꽃 모양 (0~4)
+  for(let k=0;k<5;k++)E.push([U(k),U(k+1)]);       // 3군데 (5~9)
+  for(let k=0;k<5;k++)E.push([U(k),Lw(k)]);        // 2군데 (10~14)
+  for(let k=0;k<5;k++)E.push([U(k+1),Lw(k)]);      // 4군데 (15~19)
+  for(let k=0;k<5;k++)E.push([Lw(k),Lw(k+1)]);     // 3군데 (20~24)
+  for(let k=0;k<5;k++)E.push([Lw(k),B]);           // 마지막 (25~29)
+  // 단계별: [붙은 조각 수, 새 조각 시작, 옆에 놓인 조각 수, 전구, 점등]
+  const ST=[[0,0,5],[5,0,0],[10,5,0],[10,10,5],[15,10,0],[15,15,5],[20,15,0],[20,20,5],[25,20,0],[25,25,5],[27,25,0],[29,27,0],[29,29,1,1],[30,29,0,1],[30,30,0,1,1]];
+  const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],sc=(a,s)=>[a[0]*s,a[1]*s,a[2]*s],
+    sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],nrm=a=>{const l=Math.hypot(...a)||1;return sc(a,1/l)},
+    crs=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+  // 조각 하나 = S자로 휘어진 리본 (양 끝이 넓은 갈고리 모양)
+  const N=14,PIECES=E.map(([ia,ib])=>{const a=V[ia],b=V[ib],L=[],R=[];
+    for(let i=0;i<=N;i++){const t=.06+.88*i/N;
+      const p=nrm(add(sc(a,1-t),sc(b,t))),side=nrm(crs(p,sub(b,a)));
+      const sw=Math.sin(2*Math.PI*t)*.17,w=.085+.075*Math.pow(Math.abs(Math.cos(Math.PI*t)),3)+.02*Math.sin(Math.PI*t);
+      const c=nrm(add(p,sc(side,sw)));const r=1.0+.03*Math.sin(Math.PI*t);
+      L.push(sc(nrm(add(c,sc(side,w))),r));R.push(sc(nrm(add(c,sc(side,-w))),r))}
+    return{L,R}});
+  function rot(p,yaw,pitch){const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+    const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy;return[x,p[1]*cp-z*sp,p[1]*sp+z*cp]}
+  function piece2D(g,x,y,s,ang,col){g.save();g.translate(x,y);g.rotate(ang);g.scale(s,s);g.beginPath();
+    g.moveTo(-1,-.55);g.bezierCurveTo(-.55,-.75,-.35,-.2,0,-.25);g.bezierCurveTo(.35,-.3,.55,-.75,1,-.55);
+    g.bezierCurveTo(1.15,-.2,.75,-.05,.8,.15);g.bezierCurveTo(.85,.45,1.15,.5,1,.6);
+    g.bezierCurveTo(.55,.8,.35,.25,0,.3);g.bezierCurveTo(-.35,.25,-.55,.8,-1,.6);
+    g.bezierCurveTo(-1.15,.5,-.85,.45,-.8,.15);g.bezierCurveTo(-.75,-.05,-1.15,-.2,-1,-.55);g.closePath();
+    g.fillStyle=col;g.shadowColor='rgba(255,215,106,.8)';g.shadowBlur=14/s;g.fill();g.shadowBlur=0;g.lineWidth=.06;g.strokeStyle='rgba(255,255,255,.9)';g.stroke();g.restore()}
+  function draw(g,W,H,k,yaw,pitch,T){
+    const st=ST[k],[n,n0,loose,bulb,lit]=st;
+    g.clearRect(0,0,W,H);
+    const bg=g.createRadialGradient(W/2,H*.45,10,W/2,H*.45,Math.max(W,H)*.7);
+    bg.addColorStop(0,lit?'#3a2c10':'#13305a');bg.addColorStop(1,'#050d1f');g.fillStyle=bg;g.fillRect(0,0,W,H);
+    // 바닥 별가루
+    for(let i=0;i<40;i++){const x=(i*97.3%1)*W,y=(i*57.7%1)*H,a=.25+.25*Math.sin(T*1.5+i);g.fillStyle=`rgba(200,230,255,${a})`;g.fillRect(x,y,1.5,1.5)}
+    const cx=W/2,cy=H*(loose?.42:.5),R=Math.min(W,H*(loose?.78:1))*.34;
+    if(bulb||lit){const gr=g.createRadialGradient(cx,cy,0,cx,cy,R*(lit?1.9:.8));gr.addColorStop(0,lit?'rgba(255,236,180,1)':'rgba(255,225,150,.95)');gr.addColorStop(.35,lit?'rgba(255,200,110,.6)':'rgba(255,200,110,.35)');gr.addColorStop(1,'rgba(255,180,80,0)');g.fillStyle=gr;g.beginPath();g.arc(cx,cy,R*(lit?1.9:.8),0,7);g.fill()}
+    // 안내 원 (아직 비어 있는 공 자리)
+    g.setLineDash([4,6]);g.strokeStyle='rgba(63,214,232,.28)';g.lineWidth=1.2;g.beginPath();g.arc(cx,cy,R*1.02,0,7);g.stroke();g.setLineDash([]);
+    const quads=[];
+    for(let e=0;e<n;e++){const P=PIECES[e],isNew=e>=n0&&!lit&&!bulb||(bulb&&!lit&&k===13&&e===29);
+      for(let i=0;i<N;i++){const q=[P.L[i],P.L[i+1],P.R[i+1],P.R[i]].map(p=>rot(p,yaw,pitch));
+        const z=(q[0][2]+q[1][2]+q[2][2]+q[3][2])/4;quads.push({q,z,isNew,e})}}
+    quads.sort((a,b)=>a.z-b.z);
+    quads.forEach(({q,z,isNew})=>{const f=(z+1)/2,front=z>0;
+      g.beginPath();q.forEach((p,j)=>{const sx=cx+p[0]*R,sy=cy-p[1]*R;j?g.lineTo(sx,sy):g.moveTo(sx,sy)});g.closePath();
+      let col;
+      if(isNew)col=front?`rgb(255,${200+40*f|0},${90+60*f|0})`:'rgb(120,95,60)';
+      else if(lit)col=front?`rgb(255,${238+12*f|0},${205+30*f|0})`:'rgb(205,165,105)';
+      else col=front?`rgb(${205+45*f|0},${225+30*f|0},${240+15*f|0})`:`rgb(${38+30*f|0},${62+40*f|0},${98+45*f|0})`;
+      g.fillStyle=col;g.fill();g.strokeStyle=col;g.lineWidth=1.3;g.stroke()});
+    // 조각 테두리
+    for(let e=0;e<n;e++){const P=PIECES[e],pts=P.L.concat(P.R.slice().reverse()).map(p=>rot(p,yaw,pitch));const z=pts.reduce((a,p)=>a+p[2],0)/pts.length;if(z<0)continue;
+      const isNew=e>=n0&&!lit&&!bulb;g.beginPath();pts.forEach((p,j)=>{const sx=cx+p[0]*R,sy=cy-p[1]*R;j?g.lineTo(sx,sy):g.moveTo(sx,sy)});g.closePath();
+      g.strokeStyle=isNew?'rgba(255,250,225,.95)':lit?'rgba(255,245,215,.8)':'rgba(140,190,220,.75)';g.lineWidth=isNew?1.6:1;g.stroke()}
+    // 새 조각 반짝임
+    if(n>n0&&!lit){const e=PIECES[n0+((T*1.2|0)%(n-n0))],m=rot(e.L[N>>1],yaw,pitch);if(m[2]>0){const x=cx+m[0]*R,y=cy-m[1]*R,s=6+3*Math.sin(T*6);
+      g.fillStyle='#fff8d6';g.beginPath();g.moveTo(x,y-s*2);g.quadraticCurveTo(x,y,x+s*2,y);g.quadraticCurveTo(x,y,x,y+s*2);g.quadraticCurveTo(x,y,x-s*2,y);g.quadraticCurveTo(x,y,x,y-s*2);g.fill()}}
+    // 옆에 놓인 조각
+    if(loose){const s=Math.min(W/(loose*2.9+1),H*.07),y=H*.86,gap=s*2.7,x0=W/2-gap*(loose-1)/2;
+      for(let i=0;i<loose;i++)piece2D(g,x0+gap*i,y+Math.sin(T*2+i)*2,s,Math.sin(T+i)*.08,bulb?'#fff1c9':'#ffd76a');
+      if(W>200){g.fillStyle='#ffe08a';g.font=`800 ${Math.max(11,W*.035)|0}px sans-serif`;g.textAlign='center';g.fillText(bulb?'남은 조각 1개':'옆에 새 조각 '+loose+'개',W/2,y-s*1.25)}}
+    if(bulb&&!lit&&W>200){g.fillStyle='#fff3c4';g.font=`800 ${Math.max(11,W*.035)|0}px sans-serif`;g.textAlign='center';g.fillText(k===12?'💡 열린 구멍으로 전구 넣기':'💡 전구가 들어 있어요',W/2,H*.08)}
+  }
+  function view(k){const[n,n0]=ST[k];let d=[0,0,0];const a=n>n0?n0:0,b=n>n0?n:Math.max(n,1);
+    if(n===0)return[0.3,1.05];for(let e=a;e<b;e++){const[i,j]=E[e];d=add(d,add(V[i],V[j]))}d=nrm(d);
+    const r=Math.hypot(d[0],d[2]);return[Math.atan2(d[0],d[2])+0.35,Math.atan2(d[1],r)-0.2]}
+  return{draw,ST,view,count:k=>ST[k][0]};
+})();
+
+const lampSnap=(k,w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;const v=L3.view(k);L3.draw(c.getContext('2d'),w,h,k,v[0],v[1],1);return c.toDataURL('image/jpeg',.85)};
+$('#lpThumbs').innerHTML=LAMP.map((s,k)=>`<button data-k="${k}" style="background-image:url(${lampSnap(k,116,88)})" aria-label="${k+1}단계 ${s[0]}"><span>${k+1}</span></button>`).join('');
+$('#lpDoneImg').src=lampSnap(14,440,440);
 $$('#lpThumbs button').forEach(b=>b.onclick=()=>{beep('x');LS.i=+b.dataset.k;renderLamp()});
 function lampCount(){return LS.done?LAMP[LS.done-1][2]:0}
 function renderLamp(){
   const k=LS.i,s=LAMP[k];
   $('#lpNo').textContent=k+1;$('#lpTitle').textContent=s[0];$('#lpSub').textContent=`STEP ${k+1} / 15`;
   $('#lpTxt').textContent=s[1];
-  const im=$('#lpImg');im.style.opacity=0;setTimeout(()=>{im.src=`lamp/p${k+1}.jpg`;im.onload=()=>im.style.opacity=1},120);
+  LV.target=L3.view(k);LV.spin=0;
   $('#lpBar').style.width=(LS.done/15*100)+'%';
   const c=lampCount();$('#lpCnt').textContent=c;$('#lpCnt2').textContent=c;
   $('#lpOrbMsg').textContent=LS.done>=15?'반짝! 우리 조의 별이 빛나요':c>=20?'거의 다 됐어요! 공 모양이 보여요':c>=10?'좋아요! 점점 둥글어지고 있어요':'조각을 끼울수록 별 공이 밝아져요';
@@ -2349,10 +2425,20 @@ function lampFinish(){$('#lpDone').classList.add('on');for(let n=0;n<6;n++)setTi
 $('#lpDone').onclick=e=>{if(e.target.id==='lpDone')$('#lpDone').classList.remove('on')};
 $('#lpBooth').onclick=()=>{$('#lpDone').classList.remove('on');setTab('t5')};
 $('#lpAgain').onclick=()=>{$('#lpDone').classList.remove('on');LS.i=0;renderLamp()};
-$('#lpPic').onclick=()=>{$('#lpZoomImg').src=`lamp/p${LS.i+1}.jpg`;$('#lpZoomBox').classList.add('on')};
-$('#lpZoomBox').onclick=()=>$('#lpZoomBox').classList.remove('on');
-(()=>{let x0=null;const p=$('#lpPic');p.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
- p.addEventListener('touchend',e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>50){e.preventDefault();if(dx<0&&LS.i<14){LS.i++;renderLamp()}else if(dx>0&&LS.i>0){LS.i--;renderLamp()}}})})();
+// 3D 조립 그림: 끌어서 돌리기
+const LV={yaw:.3,pitch:1,target:[.3,1],drag:null,spin:0,last:0};
+(()=>{const cv=$('#lpCv');
+ cv.addEventListener('pointerdown',e=>{LV.drag={x:e.clientX,y:e.clientY,yaw:LV.yaw,pitch:LV.pitch};cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing'});
+ cv.addEventListener('pointermove',e=>{if(!LV.drag)return;LV.yaw=LV.drag.yaw+(e.clientX-LV.drag.x)*.012;LV.pitch=Math.max(-1.5,Math.min(1.5,LV.drag.pitch+(e.clientY-LV.drag.y)*.012));LV.target=[LV.yaw,LV.pitch];LV.spin=0});
+ const up=()=>{LV.drag=null;cv.style.cursor='grab'};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);})();
+function lampLoop(t){requestAnimationFrame(lampLoop);
+  if(curTab!=='t8'||document.hidden||!$('#hub').classList.contains('on'))return;
+  const cv=$('#lpCv'),W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;
+  const d=Math.min(2,devicePixelRatio||1);if(cv.width!==Math.round(W*d)||cv.height!==Math.round(H*d)){cv.width=Math.round(W*d);cv.height=Math.round(H*d)}
+  if(!LV.drag){LV.spin+=.016;const sw=Math.sin(LV.spin*.6)*.35;
+    let dy=LV.target[0]+sw-LV.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));LV.yaw+=dy*.08;LV.pitch+=(LV.target[1]-LV.pitch)*.08}
+  const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);L3.draw(g,W,H,LS.i,LV.yaw,LV.pitch,t/1000)}
+requestAnimationFrame(lampLoop);
 // 별 공 캔버스: 30개 조각 = 구 위의 30개 점
 const ORB=Array.from({length:30},(_,i)=>{const y=1-(i+.5)/30*2,r=Math.sqrt(1-y*y),a=i*2.39996;return[Math.cos(a)*r,y,Math.sin(a)*r]});
 let orbRaf=0;
