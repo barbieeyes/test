@@ -498,7 +498,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>window.__BUILD__ = "20261124103741";</script>
+<script>window.__BUILD__ = "20261124131558";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -1159,6 +1159,10 @@ const session = {
 const getHome = (name) => { const base = HOME_DEFAULT[name] || { label: "우리 동네", lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] };
   const mine = (store.get(LS_HOME, {}) || {})[name]; return mine ? { ...base, lat: mine.lat, lng: mine.lng, custom: true } : base; };
 const setHome = (name, v) => { const all = store.get(LS_HOME, {}) || {}; all[name] = v; store.set(LS_HOME, all); };
+/** 약속이 너무 오래 걸리면 대신 값(fallback)으로 끝내기 — 휴대폰에서 저장이 멈춰 보이지 않게 */
+const withTimeout = (pr, ms, fallback) => new Promise((res) => { let done = false;
+  const t = setTimeout(() => { if (!done) { done = true; res(typeof fallback === "function" ? fallback() : fallback); } }, ms);
+  Promise.resolve(pr).then((v) => { if (!done) { done = true; clearTimeout(t); res(v); } }, () => { if (!done) { done = true; clearTimeout(t); res(typeof fallback === "function" ? fallback() : fallback); } }); });
 const db = {
   _p: null, mem: new Map(),
   open() {
@@ -1174,12 +1178,18 @@ const db = {
     return this._p;
   },
   async all() {
-    const d = await this.open(); if (!d) return [...this.mem.values()];
-    return new Promise((res) => { const rq = d.transaction("records").objectStore("records").getAll(); rq.onsuccess = () => res(rq.result || []); rq.onerror = () => res([]); });
+    const d = await withTimeout(this.open(), 5000, null);
+    const list = !d ? [] : await withTimeout(new Promise((res) => { try { const rq = d.transaction("records").objectStore("records").getAll(); rq.onsuccess = () => res(rq.result || []); rq.onerror = () => res([]); } catch (e) { res([]); } }), 8000, () => { this._p = null; return []; });
+    if (!this.mem.size) return list;
+    const m = new Map(list.map((x) => [x.id, x])); this.mem.forEach((v, k) => m.set(k, v)); return [...m.values()];
   },
   async put(r) {
-    const d = await this.open(); if (!d) { this.mem.set(r.id, r); return true; }
-    return new Promise((res) => { const t = d.transaction("records", "readwrite"); t.objectStore("records").put(r); t.oncomplete = () => res(true); t.onerror = () => res(false); t.onabort = () => res(false); });
+    const d = await withTimeout(this.open(), 5000, null);
+    if (!d) { this.mem.set(r.id, r); return true; }
+    // 아이폰 사파리에서 가끔 저장소가 응답하지 않아요: 6초 넘으면 연결을 새로 열고, 기록은 메모리에 잡아 두었다가 팀 저장소로 올려요
+    const ok = await withTimeout(new Promise((res) => { try { const t = d.transaction("records", "readwrite"); t.objectStore("records").put(r); t.oncomplete = () => res(true); t.onerror = () => res(false); t.onabort = () => res(false); } catch (e) { res(false); } }), 6000, false);
+    if (ok) this.mem.delete(r.id); else { this.mem.set(r.id, r); this._p = null; }
+    return true;
   },
   async del(id) {
     const d = await this.open(); if (!d) { this.mem.delete(id); return; }
@@ -2365,7 +2375,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   const save = async () => {
     setSaving(true);
     let photo = null;
-    if (raw) { try { photo = await EM.composeFrame(raw, meta); } catch (e) { photo = raw; } }
+    if (raw) photo = await withTimeout(EM.composeFrame(raw, meta), 12000, () => framed || raw);
     onSave({ ...preview, id: uid(), savedAt: Date.now(), origin: f.origin || "", frameV: FRAME_V, photo, raw: raw || undefined, habitat: f.habitat || undefined, ...(mode === "solo" && th && spots.length > 1 ? { spot: th.key } : {}), place: meta.place, accuracy: p.accuracy ?? null, source: p.source, lai: est.lai, notes: f.notes.trim(),
       weather: { temp: w.temp, rh: w.rh, cloud: w.cloud, sw: w.sw, ppfd: w.ppfd, par: w.par, ...(pastWx ? { past: true } : {}) }, ...(album ? { fromAlbum: true } : {}) });
   };
@@ -3173,8 +3183,8 @@ function App() {
   const addRecord = (mode, spot) => setDraft({ mode, pos: null, spot });
   const onMapPick = useCallback((lat, lng) => { setOpenId(null); setDraft({ mode: "team", pos: { lat, lng, source: "map", accuracy: null } }); }, []);
   const saveRecord = async (rec) => {
+    setRecords((rs) => [rec, ...rs]); setDraft(null); // 창부터 닫고, 저장은 뒤에서
     const ok = await putLocal(rec); setTimeout(syncNow, 200);
-    setRecords((rs) => [rec, ...rs]); setDraft(null);
     say(ok ? `${MODES[rec.mode].label} 기록 저장 · ${rec.koreanName || "식물"}` : "저장 공간이 부족해요. 아카이브에서 백업 후 정리하세요.");
     // 앱 카메라로 찍은 사진은 휴대폰 앨범에 자동으로 남지 않아서, 바로 저장할 수 있게 물어본다
     if (rec.photo && !rec.fromAlbum) setSaver({ items: [{ url: rec.photo, name: `에코쌤즈_${rec.koreanName || "식물"}_${ymd(rec.ts)}_${hm(rec.ts)}.jpg` }], title: "방금 찍은 사진, 앨범에도 남길까요?" });
