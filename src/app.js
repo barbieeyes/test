@@ -83,6 +83,7 @@ const FRAME_V = 2; // 프레임 디자인 판 (바뀌면 예전 사진을 새 �
 const TEAM_HABITATS = ["화단", "운동장 가장자리", "담장·울타리", "텃밭·생태정원", "교정 나무", "틈새"];
 /** 목록 정렬: 나중에 올린(저장한) 기록이 위로. 예전 기록은 찍은 시각으로 */
 const upKey = (r) => r.savedAt || r.ts || 0;
+const STUDENT = { name: "학생 탐사대", color: "#E8A33D", pin: "0707" }; // 학생 입장: '같이(학교)' 기록만 보고 올려요
 const TEAM_PIN = "2144"; // 팀 공용 입장 비밀번호 (화면 잠금용이며 보안 장치는 아님)
 const MODES = EM.MODE_INFO; // solo = 따로(우리 동네), team = 같이(학교)
 const FORM_LIST = ["목본", "초본", "양치식물", "이끼류"];
@@ -103,7 +104,8 @@ const TABS = [
   { id: "archive", label: "아카이브", icon: "Film" },
 ];
 
-const rColor = (n) => (RESEARCHERS.find((r) => r.name === n) || {}).color || "#94A3B8";
+const rColor = (n) => n === STUDENT.name ? STUDENT.color : (RESEARCHERS.find((r) => r.name === n) || {}).color || "#94A3B8";
+const whoLabel = (r) => r.group ? `${r.researcher}·${r.group}` : r.researcher;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const fmtDate = (ts) => new Date(ts).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 const fmtDay = (ts) => new Date(ts).toLocaleDateString("ko-KR", { year: "numeric", month: "numeric", day: "numeric" });
@@ -524,7 +526,7 @@ function toCSV(recs) {
     "LAI", "탄소고정(gCO₂/h·m²)", "기후지표종", "메모", "AI 광합성 해설", "AI 기후지표 근거", "AI 수업 연계 조언", "예시"];
   const src = { gps: "GPS", map: "지도 지정", home: "우리 동네 기본 위치", photo: "사진 위치정보", default: "임시 위치" };
   const rows = recs.map((r) => [new Date(r.ts).toLocaleString("ko-KR"), MODES[r.mode] ? MODES[r.mode].label : "",
-    recTheme(r) ? recTheme(r).tag : "학교", r.origin === "planted" ? "식재" : r.origin === "wild" ? "자생" : "", r.habitat || "", r.place || "", r.researcher, r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
+    recTheme(r) ? recTheme(r).tag : "학교", r.origin === "planted" ? "식재" : r.origin === "wild" ? "자생" : "", r.habitat || "", r.place || "", whoLabel(r), r.lat, r.lng, src[r.source] || "", r.accuracy ?? "",
     r.koreanName, r.scientificName, r.confidence ?? "", r.ai && r.ai.taxonomy ? r.ai.taxonomy.family : "", r.growthForm, r.psType,
     r.weather.temp, r.weather.rh, r.weather.cloud, r.weather.sw, r.weather.ppfd, r.weather.par, M.activity(r.weather.ppfd).label,
     r.model.aLeaf, r.model.lai, r.model.gco2, r.ai && r.ai.ecologicalInsight && r.ai.ecologicalInsight.climateIndicator ? "O" : "",
@@ -672,14 +674,17 @@ function TabBar({ tab, setTab, counts }) {
 /* ---------- 입장 (연구원별 로그인) ---------- */
 function Gate({ onLogin }) {
   const [name, setName] = useState(null);
+  const [group, setGroup] = useState("");
   const [pin, setPin] = useState("");
   const [err, setErr] = useState("");
   const [shake, setShake] = useState(false);
   const submit = (e) => {
     e.preventDefault();
     if (!name) { setErr("이름을 먼저 골라 주세요."); return; }
-    if (pin !== TEAM_PIN) { setErr("비밀번호가 맞지 않아요. 다시 입력해 주세요."); setPin(""); setShake(false); requestAnimationFrame(() => setShake(true)); return; }
-    onLogin(name);
+    const isStu = name === STUDENT.name;
+    if (isStu && !group.trim()) { setErr("모둠 이름을 적어 주세요. (예: 1모둠)"); return; }
+    if (pin !== (isStu ? STUDENT.pin : TEAM_PIN)) { setErr("비밀번호가 맞지 않아요. 다시 입력해 주세요."); setPin(""); setShake(false); requestAnimationFrame(() => setShake(true)); return; }
+    onLogin(name, isStu ? group.trim().slice(0, 20) : null);
   };
   return html`<div class="gate">
     <${Hero} />
@@ -692,11 +697,16 @@ function Gate({ onLogin }) {
             class=${"who-b" + (name === r.name ? " who-on" : "")} onClick=${() => { setName(r.name); setErr(""); }}>
             <${Dot} color=${r.color} size=${10} /><span class="grid text-left leading-tight">${r.name}<small>${HOME_DEFAULT[r.name].label}</small></span></button>`)}
         </div>
-        <label class="fld"><span>비밀번호</span>
+        <button type="button" role="radio" aria-checked=${name === STUDENT.name} class=${"who-b" + (name === STUDENT.name ? " who-on" : "")}
+          onClick=${() => { setName(STUDENT.name); setErr(""); }}>
+          <${Dot} color=${STUDENT.color} size=${10} /><span class="grid text-left leading-tight">${STUDENT.name}<small>학생은 여기 · 학교 식물 같이 모으기</small></span></button>
+        ${name === STUDENT.name && html`<label class="fld"><span>모둠 이름</span>
+          <input id="grpIn" value=${group} maxlength="20" placeholder="예: 1모둠 (이름 대신 모둠으로)" onInput=${(e) => { setGroup(e.target.value); setErr(""); }} /></label>`}
+        <label class="fld"><span>${name === STUDENT.name ? "학생 입장 코드" : "비밀번호"}</span>
           <input id="pinIn" class="pin-in" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••"
             value=${pin} onInput=${(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setErr(""); }} /></label>
         ${err && html`<div class="err" role="alert">${err}</div>`}
-        <button type="submit" class="gate-go">${name ? `${name} 님, 탐사 시작` : "탐사 시작"}</button>
+        <button type="submit" class="gate-go">${name === STUDENT.name ? `${group.trim() || "학생 탐사대"}, 탐사 시작` : name ? `${name} 님, 탐사 시작` : "탐사 시작"}</button>
       </form>
     </div>
   </div>`;
@@ -830,7 +840,7 @@ function SoloView({ me, records, gps, onAdd, onOpen, say }) {
 }
 
 /* ---------- 같이: 학교 식물 표본함 ---------- */
-function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting, onOpenMeeting, onExportMinutes }) {
+function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting, onOpenMeeting, onExportMinutes, student }) {
   const seg = html`<div class="seg3" role="tablist" aria-label="같이 보기">
     <button type="button" role="tab" aria-selected=${sub === "plants"} class=${"seg3-b" + (sub === "plants" ? " on" : "")} onClick=${() => setSub("plants")}>학교 식물 표본함</button>
     <button type="button" role="tab" aria-selected=${sub === "meetings"} class=${"seg3-b" + (sub === "meetings" ? " on s-meeting" : "")} onClick=${() => setSub("meetings")}>협의회 기록 ${meetings.length}</button>
@@ -844,21 +854,22 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
     const latest = (list) => Math.max(...list.map(upKey));
     return g.sort((a, b) => latest(b) - latest(a));
   }, [records]);
-  if (sub === "meetings") return html`<div class="grid gap-4">${seg}<${MeetingList} meetings=${meetings} onAdd=${onAddMeeting} onOpen=${onOpenMeeting} onExport=${onExportMinutes} /></div>`;
+  if (sub === "meetings" && !student) return html`<div class="grid gap-4">${seg}<${MeetingList} meetings=${meetings} onAdd=${onAddMeeting} onOpen=${onOpenMeeting} onExport=${onExportMinutes} /></div>`;
   return html`<div class="grid gap-4">
-    ${seg}
-    <${MeetBar} meetings=${meetings} onAdd=${onAddMeeting} onList=${() => setSub("meetings")} />
+    ${!student && seg}
+    ${!student && html`<${MeetBar} meetings=${meetings} onAdd=${onAddMeeting} onList=${() => setSub("meetings")} />`}
     <section class="glass p-4 grid gap-3">
       <div class="flex items-center gap-2 flex-wrap">
         <h2 class="pill-h"><${Icon} name="School" size=${17} />학교 식물 표본함</h2>
-        <span class="text-[12px] text-mist">${groups.length}종 · ${total.length}건 · 넷이 함께 모은 교정 식물</span>
+        <span class="text-[12px] text-mist">${groups.length}종 · ${total.length}건 · ${student ? "선생님들과 함께 모은 교정 식물" : "넷이 함께 모은 교정 식물"}</span>
         <button type="button" class="btn-add ml-auto" style=${{ "--c": MODES.team.color }} onClick=${() => onAdd("team")}><${Icon} name="Plus" size=${17} />같이 수집</button>
       </div>
       <div class="contrib">${RESEARCHERS.map((r) => { const n = total.filter((x) => x.researcher === r.name).length;
-        return html`<span key=${r.name} style=${{ "--c": r.color, flexGrow: Math.max(n, 0.5) }} title=${`${r.name} ${n}건`}><b>${r.name}</b>${n}</span>`; })}</div>
+        return html`<span key=${r.name} style=${{ "--c": r.color, flexGrow: Math.max(n, 0.5) }} title=${`${r.name} ${n}건`}><b>${r.name}</b>${n}</span>`; })}
+        ${(() => { const n = total.filter((x) => x.researcher === STUDENT.name).length; return n || student ? html`<span style=${{ "--c": STUDENT.color, flexGrow: Math.max(n, 0.5) }} title=${`${STUDENT.name} ${n}건`}><b>학생</b>${n}</span>` : null; })()}</div>
     </section>
     ${groups.length ? html`<div class="herb-grid">${groups.map((g, i) => { const r = g[0], last = g[g.length - 1];
-      const who = [...new Set(g.map((x) => x.researcher))];
+      const who = [...new Set(g.map(whoLabel))];
       return html`<article key=${r.id} class="herb" style=${{ "--tilt": `${[-0.6, 0.5, -0.3, 0.7][i % 4]}deg` }}>
         <span class="tape" aria-hidden="true"></span>
         <button type="button" class="herb-photo" onClick=${() => onOpen(last.id)} aria-label=${`${r.koreanName || "식물"} 열기`}>
@@ -872,7 +883,7 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
             <dt>유형</dt><dd>${M.PS_TYPES[r.psType].label} · ${r.growthForm}</dd>
             ${r.origin && EM.ORIGIN_INFO[r.origin] ? html`<dt>식재</dt><dd style=${{ color: EM.ORIGIN_INFO[r.origin].color, fontWeight: 700 }}>${EM.ORIGIN_INFO[r.origin].label} · ${EM.ORIGIN_INFO[r.origin].long}</dd>` : null}
             <dt>채집</dt><dd>${fmtDay(r.ts)}${g.length > 1 ? ` 외 ${g.length - 1}회` : ""}</dd>
-            <dt>채집자</dt><dd>${who.map((n) => html`<span key=${n} class="inline-flex items-center gap-1 mr-1.5"><${Dot} color=${rColor(n)} size=${7} />${n}</span>`)}</dd>
+            <dt>채집자</dt><dd>${who.map((n) => html`<span key=${n} class="inline-flex items-center gap-1 mr-1.5"><${Dot} color=${rColor(n.split("·")[0])} size=${7} />${n}</span>`)}</dd>
             <dt>탄소</dt><dd class="mono">${fix(r.model.gco2, 2)} g/h·m²</dd>
           </dl>
         </div>
@@ -1246,7 +1257,7 @@ function startPos(mode, me, gps, picked) {
   if (mode === "solo") { const hm = getHome(me); return { lat: hm.lat, lng: hm.lng, accuracy: null, source: "home" }; }
   return gps ? { lat: gps.lat, lng: gps.lng, accuracy: gps.accuracy, source: "gps" } : null;
 }
-function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSave, onOpenSettings }) {
+function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSave, onOpenSettings, student }) {
   const [mode, setModeS] = useState(draft.mode || "team");
   const [pos, setPos] = useState(() => startPos(draft.mode || "team", researcher, gps, draft.pos));
   const [raw, setRaw] = useState(null);
@@ -1335,7 +1346,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
     <div class="modal" role="dialog" aria-modal="true" aria-label="새 식물 기록" onClick=${(e) => e.stopPropagation()} style=${{ borderColor: m.color }}>
       <div class="flex items-center gap-2 mb-3">
         <div class="seg3 flex-1">
-          ${["solo", "team"].map((k) => html`<button key=${k} type="button" class=${"seg3-b" + (mode === k ? " on" : "") + " s-" + k} onClick=${() => setMode(k)}>
+          ${(student ? ["team"] : ["solo", "team"]).map((k) => html`<button key=${k} type="button" class=${"seg3-b" + (mode === k ? " on" : "") + " s-" + k} onClick=${() => setMode(k)}>
             ${MODES[k].label} · ${k === "solo" ? "우리 동네" : "학교"}</button>`)}
         </div>
         <button type="button" class="icon-btn" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>
@@ -1431,7 +1442,8 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
 }
 
 /* ---------- 상세 ---------- */
-function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSettings }) {
+function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSettings, student, group }) {
+  const mineStu = !student || (rec.researcher === me && rec.group === group); // 학생은 자기 모둠 기록만 고치고 지워요
   const [ask, setAsk] = useState(false);
   // 이름·생활형 고치기 + 저장된 사진으로 AI 다시 찾기 (팀원 누구나)
   const [ed, setEd] = useState(null); // {koreanName, scientificName, growthForm, psType, place, notes}
@@ -1486,7 +1498,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
     <div class="modal" role="dialog" aria-modal="true" aria-label="기록 상세" onClick=${(e) => e.stopPropagation()}>
       <div class="flex items-center gap-2 mb-3 text-[12px] text-mist flex-wrap">
         <${ModeTag} mode=${rec.mode} /><${Dot} color=${rColor(rec.researcher)} size=${8} /><span>${rec.researcher}</span><span>· ${fmtDate(rec.ts)}</span>${rec.origin && EM.ORIGIN_INFO[rec.origin] ? html`<span class="hab-chip" style=${{ background: EM.ORIGIN_INFO[rec.origin].color, color: "#fff" }}>${EM.ORIGIN_INFO[rec.origin].label}</span>` : null}${rec.habitat ? html`<span class="hab-chip">${rec.habitat}</span>` : null}
-        ${!ed && html`<button type="button" class="link-btn" onClick=${openEdit}><${Icon} name="PencilLine" size=${13} />이름·종 고치기</button>`}
+        ${!ed && mineStu && html`<button type="button" class="link-btn" onClick=${openEdit}><${Icon} name="PencilLine" size=${13} />이름·종 고치기</button>`}
         ${mine && editWhen == null && html`<button type="button" class="link-btn" onClick=${() => setEditWhen(toLocalInput(rec.ts))}><${Icon} name="CalendarClock" size=${13} />날짜 고치기</button>`}<span>· ${rec.place || MODES[rec.mode].place}</span>
         <button type="button" class="icon-btn ml-auto" onClick=${onClose} aria-label="닫기"><${Icon} name="X" size=${18} /></button>
       </div>
@@ -1536,7 +1548,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
       ${rec.notes && html`<p class="text-[13px] text-snow mt-3 leading-relaxed">${rec.notes}</p>`}
       <div class="flex gap-2 mt-4 flex-wrap">
         <a class="btn-ghost" href=${`https://www.google.com/maps?q=${rec.lat},${rec.lng}`} target="_blank" rel="noopener"><${Icon} name="ExternalLink" size=${15} />구글 지도</a>
-        ${(rec.researcher === me || rec.sample) && (!ask ? html`<button type="button" class="btn-ghost ml-auto text-rose-600" onClick=${() => setAsk(true)}><${Icon} name="Trash2" size=${15} />삭제</button>`
+        ${((rec.researcher === me && mineStu) || (rec.sample && !student)) && (!ask ? html`<button type="button" class="btn-ghost ml-auto text-rose-600" onClick=${() => setAsk(true)}><${Icon} name="Trash2" size=${15} />삭제</button>`
           : html`<div class="ml-auto flex items-center gap-2"><span class="text-[13px] text-rose-700">이 기록을 지울까요?</span>
               <button type="button" class="btn-ghost" onClick=${() => setAsk(false)}>취소</button>
               <button type="button" class="btn-danger" onClick=${() => onDelete(rec.id)}>삭제</button></div>`)}
@@ -1970,7 +1982,7 @@ async function buildAllZip({ records, acts, meetings }, onStep) {
 function App() {
   const saved = store.get(LS_SET, {});
   const [settings, setSettings] = useState({ apiKey: saved.apiKey || "", model: saved.model || DEFAULT_MODEL });
-  const [auth, setAuth] = useState(() => { store.del("ecossam.v1.auth"); const a = store.get(LS_AUTH, null); return a && RESEARCHERS.some((r) => r.name === a.name) ? a : null; });
+  const [auth, setAuth] = useState(() => { store.del("ecossam.v1.auth"); const a = store.get(LS_AUTH, null); return a && (RESEARCHERS.some((r) => r.name === a.name) || (a.name === STUDENT.name && a.group)) ? a : null; });
   const me = auth ? auth.name : RESEARCHERS[0].name;
   const [records, setRecords] = useState([]);
   const [acts, setActs] = useState([]);
@@ -2112,7 +2124,7 @@ function App() {
   }, [gps]);
   useEffect(() => { const t = setInterval(() => { const q = gpsRef.current; if (q) loadWx(q.lat, q.lng, true); else { const hm = getHome(me); loadWx(hm.lat, hm.lng, false); } }, 600000); return () => clearInterval(t); }, [me]);
 
-  const login = (name) => { const a = { name, at: Date.now() }; store.set(LS_AUTH, a); setAuth(a); setTab("today"); };
+  const login = (name, group) => { const a = { name, at: Date.now(), ...(group ? { group } : {}) }; store.set(LS_AUTH, a); setAuth(a); setTab("today"); };
   const logout = () => { store.del(LS_AUTH); setAuth(null); setDraft(null); setOpenId(null); setActEdit(null); setMeetEdit(null); window.scrollTo(0, 0); };
   const switchTo = (name) => { const a = { name, at: Date.now() }; store.set(LS_AUTH, a); setAuth(a); setShowSwitch(false); say(`${name} 님으로 바꿨어요`); };
   const saveMeeting = async (m) => {
@@ -2170,6 +2182,25 @@ function App() {
 
   if (!auth) return html`<${Gate} onLogin=${login} />`;
   const openRec = records.find((r) => r.id === openId);
+  if (auth.name === STUDENT.name) return html`<div class="app tab-is-team">
+    <div class="strip"><div class="strip-in">
+      <span class="nav-logo"><span class="strip-team">기후행동 실천모임 <b>에코쌤즈</b> · 학생 탐사대</span>
+        <span class="strip-title"><${Icon} name="School" size=${18} />학교 식물 같이 모으기<small>${auth.group}</small></span></span>
+      <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+        <button type="button" class="nav-out" onClick=${logout}><${Icon} name="LogOut" size=${16} /><span class="nav-lbl">나가기</span></button></div>
+    </div></div>
+    ${(sync.state === "error" || sync.state === "offline") && html`<button type="button" class="sync-warn" onClick=${syncNow}><${Icon} name="CloudOff" size=${14} />${sync.state === "offline" ? "인터넷 끊김 · 기록은 이 휴대폰에 먼저 저장돼요" : "팀 저장소 연결 안 됨 · 눌러서 다시 맞추기"}</button>`}
+    <main class="wrap pb-12 pt-3">
+      ${!loaded ? html`<div class="boot" style=${{ minHeight: "30vh" }}>기록을 불러오는 중…</div>`
+        : html`<${TeamView} records=${records} meetings=${[]} sub="plants" setSub=${() => {}} onAdd=${addRecord} onOpen=${setOpenId} student=${true} />`}
+      <footer class="text-center text-[11px] text-mist leading-relaxed mt-6">기후행동 실천모임 에코쌤즈 × 학생 탐사대 · 사진에 친구 얼굴이 나오지 않게 찍어요</footer>
+    </main>
+    ${draft && html`<${RecordModal} draft=${{ ...draft, mode: "team" }} researcher=${me} weather=${weather} settings=${settings} gps=${gps} student=${true}
+      onClose=${() => setDraft(null)} onSave=${(r) => saveRecord({ ...r, mode: "team", group: auth.group })} onOpenSettings=${() => {}} />`}
+    ${saver && html`<${PhotoSaver} items=${saver.items} title=${saver.title} onClose=${() => setSaver(null)} />`}
+    ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} settings=${settings} student=${true} group=${auth.group} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} onUpdate=${updateRecord} onOpenSettings=${() => {}} />`}
+    ${toast && html`<div class="toast" role="status">${toast}</div>`}
+  </div>`;
   const counts = { solo: records.filter((r) => r.mode === "solo" && r.researcher === me).length, team: records.filter((r) => r.mode === "team").length + meetings.length, activity: acts.length };
 
   return html`<div class=${"app tab-is-" + tab}>
