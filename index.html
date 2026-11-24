@@ -506,6 +506,45 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
 .steps{grid-column:2/4;display:flex;gap:3px}.steps i{flex:1;height:6px;border-radius:3px;background:#e3eef3}.steps i.y{background:linear-gradient(90deg,#3fd6e8,#7ff3e1)}.steps i.w{background:#f3c35a}
 .dMsg{font-size:13px;padding:6px 0;border-bottom:1px solid #e3eef3;color:#244f66}.dMsg b{color:#0d3550}
 @media (max-width:860px){.dGrid{grid-template-columns:minmax(0,1fr)}}
+
+/* ===== 3차시 별빛 조명 만들기 ===== */
+.lampGrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:860px){.lampGrid{grid-template-columns:1fr}}
+.lampHead{display:flex;align-items:center;gap:10px}
+.lampNo{flex:0 0 auto;width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#ffd76a,#f39a2b);color:#3a2300;font:900 22px/46px var(--disp);text-align:center;box-shadow:0 0 16px rgba(243,195,90,.7)}
+.lampHT{flex:1;min-width:0}.lampHT b{display:block;font-family:var(--disp);font-size:clamp(20px,2.4vw,28px);color:#0d4a66;line-height:1.15}.lampHT small{color:#3f8aa6;font-weight:700;font-size:12px;letter-spacing:1px}
+.lampCnt{font-weight:900;color:#0d4a66;background:#e3f4fb;border-radius:12px;padding:6px 10px;white-space:nowrap}
+.lampBar{height:8px;border-radius:4px;background:#d9ecf5;margin:10px 0;overflow:hidden}.lampBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),#ffd76a);transition:width .4s}
+.lampPic{position:relative;border-radius:14px;overflow:hidden;background:#0d1b33;aspect-ratio:4/3;max-height:50vh;width:100%;cursor:zoom-in;box-shadow:inset 0 0 0 2px rgba(63,214,232,.35)}
+.lampPic img{width:100%;height:100%;object-fit:contain;display:block;transition:opacity .25s}
+.lampHint{position:absolute;left:8px;top:8px;background:rgba(3,10,26,.78);color:#ffe08a;font-size:12px;font-weight:800;padding:4px 9px;border-radius:10px}
+.lampZoom{position:absolute;right:8px;bottom:8px;background:rgba(3,10,26,.7);color:#cfe9f5;font-size:11px;padding:3px 8px;border-radius:9px}
+.lampTxt{font-size:clamp(16px,1.8vw,19px);line-height:1.55;margin:10px 2px;color:#123a52;font-weight:600;min-height:3.1em}
+.lampNav{display:flex;gap:8px;align-items:center}.lampNav .pill{flex:1;justify-content:center}
+.lampBtn{background:#e3f4fb;color:#0d4a66;border:2px solid #b9e2f1;border-radius:14px;padding:10px 14px;font-weight:900;font-size:15px}
+.lampBtn:disabled{opacity:.4}
+.lampThumbs{position:relative;display:flex;gap:6px;overflow-x:auto;margin-top:10px;padding-bottom:4px;scrollbar-width:thin}
+.lampThumbs button{flex:0 0 auto;width:54px;height:44px;border-radius:9px;background:#0d1b33 center/cover no-repeat;border:2px solid transparent;position:relative;opacity:.55}
+.lampThumbs button span{position:absolute;left:2px;top:1px;font-size:10px;font-weight:900;color:#fff;text-shadow:0 0 3px #000}
+.lampThumbs button.dn{opacity:.9}.lampThumbs button.dn:after{content:"✓";position:absolute;right:2px;bottom:0;color:#7ff3e1;font-weight:900;font-size:12px;text-shadow:0 0 3px #000}
+.lampThumbs button.on{opacity:1;border-color:#ffd76a;box-shadow:0 0 10px rgba(243,195,90,.8)}
+.lampSide{display:grid;gap:12px}
+.lampOrbBox{background:radial-gradient(circle at 50% 40%,#0f2a4d,#06122b);display:flex;align-items:center;gap:14px;color:#eaf6ff}
+.lampOrbBox canvas{width:150px!important;height:150px!important;max-width:none!important;max-height:none!important;flex:0 0 150px;display:block}
+.orbTxt b{font:900 44px/1 var(--disp);color:#ffd76a;text-shadow:0 0 14px rgba(243,195,90,.7)}.orbTxt small{font-weight:800;color:#9fd8ee;margin-left:4px}.orbTxt span{display:block;margin-top:6px;font-size:13px;color:#cfe9f5;line-height:1.4}
+.lampTags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.lampTags span{background:#0d4a66;color:#fff;border-radius:10px;padding:5px 10px;font-weight:800;font-size:13px}
+.lampTips{margin:8px 0 0 18px;font-size:14px;line-height:1.55;color:#123a52}.lampTips li{margin:3px 0}
+.lampStar{font-size:14px;line-height:1.6;color:#123a52;margin-top:6px}
+.lampDone{position:fixed;inset:0;z-index:60;background:radial-gradient(circle at 50% 35%,rgba(20,40,80,.97),rgba(2,8,20,.98));backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:18px}
+.lampDone.on{display:flex;animation:fadeIn .4s}
+.ldBox{max-width:440px;text-align:center;color:#eaf6ff}.ldBox h2{font-family:var(--disp);font-size:clamp(30px,5vw,44px);color:#ffd76a;text-shadow:0 0 22px rgba(243,195,90,.7);margin:6px 0}.ldBox p{color:#cfe9f5;line-height:1.55}
+.ldGlow{width:220px;height:220px;margin:0 auto 12px;border-radius:50%;overflow:hidden;box-shadow:0 0 40px 10px rgba(255,214,120,.55),0 0 120px 30px rgba(255,190,90,.25);animation:ldPulse 2.4s ease-in-out infinite}
+.ldGlow img{width:100%;height:100%;object-fit:cover}
+@keyframes ldPulse{50%{box-shadow:0 0 60px 18px rgba(255,214,120,.75),0 0 160px 50px rgba(255,190,90,.35)}}
+@keyframes fadeIn{from{opacity:0}}
+.ldBtns{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:14px}
+.lampZoomBox{position:fixed;inset:0;z-index:61;background:rgba(0,0,0,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+.lampZoomBox.on{display:flex}.lampZoomBox img{max-width:100%;max-height:86vh;object-fit:contain}.lampZoomBox span{color:#9db8cc;font-size:13px}
 </style>
 </head>
 <body>
@@ -537,7 +576,8 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
   <div class="tabs" id="tabs">
     <button data-tab="t1" class="on"><small>1차시</small>별빛 단서를 찾아라</button>
     <button data-tab="t2"><small>2차시</small>오늘 밤하늘 보기</button>
-    <button data-tab="t3"><small>3차시</small>관측 기록 남기기</button>
+    <button data-tab="t8"><small>3차시</small>별빛 조명 만들기</button>
+    <button data-tab="t3"><small>4차시</small>관측 기록 남기기</button>
     <button data-tab="t4"><small>함께</small>💬 채팅<span class="dot" id="chatDot"></span></button>
     <button data-tab="t5"><small>추억</small>📸 네컷 사진관</button>
     <button data-tab="t7" class="teaOnly" style="display:none"><small>선생님</small>📊 대시보드</button>
@@ -554,7 +594,7 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
       </div>
     </div>
     <div class="tpane" id="t2">
-      <div class="lsTag" style="margin:4px 0 6px">2차시 · 18:00 ~ 18:30 · 오늘의 「별이 빛나는 밤에」는?</div>
+      <div class="lsTag" style="margin:4px 0 6px">2차시 · 오늘의 「별이 빛나는 밤에」는?</div>
       <div class="skyWrap"><canvas id="skyCv"></canvas>
         <div class="skyHud"><b id="skyTime">18:40</b><span>2026년 12월 2일(수) · 서울 한강</span></div>
         <div class="skyDir" id="skyDir"><button data-az="0">북</button><button data-az="90">동</button><button data-az="180" class="on">남</button><button data-az="270">서</button></div>
@@ -564,8 +604,34 @@ table.lg{border-collapse:separate;border-spacing:4px;min-width:560px;width:100%}
         <label class="chk"><input type="checkbox" id="skyLines" checked> 별자리 선</label><label class="chk"><input type="checkbox" id="skyDark"> 시골 하늘</label></div>
       <div class="targets" id="targets"></div>
     </div>
+    <div class="tpane" id="t8">
+      <div class="lsTag" style="margin:4px 0 6px">3차시 · 별빛 조명 만들기 · 30조각이 맞물려 빛나는 별 공</div>
+      <div class="lampGrid">
+        <div class="mCard lampMain">
+          <div class="lampHead"><span class="lampNo" id="lpNo">1</span><div class="lampHT"><b id="lpTitle"></b><small id="lpSub"></small></div><span class="lampCnt">🧩 <b id="lpCnt2">0</b>/30</span></div>
+          <div class="lampBar"><i id="lpBar"></i></div>
+          <div class="lampPic" id="lpPic"><img id="lpImg" alt="조립 단계 사진"><span class="lampHint">✦ 밝게 빛나는 곳 = 이번에 끼울 곳</span><span class="lampZoom">🔍 눌러서 크게</span></div>
+          <p class="lampTxt" id="lpTxt"></p>
+          <div class="lampNav"><button class="lampBtn" id="lpPrev">◀ 이전</button><button class="pill sm" id="lpNext"><span class="tri"></span>다 했어요!</button></div>
+          <div class="lampThumbs" id="lpThumbs"></div>
+        </div>
+        <div class="lampSide">
+          <div class="mCard lampOrbBox"><canvas id="lpOrb"></canvas><div class="orbTxt"><b id="lpCnt">0</b><small>/ 30 조각 연결</small><span id="lpOrbMsg">조각을 끼울수록 별 공이 밝아져요</span></div></div>
+          <div class="mCard"><h4>🧰 준비물</h4><div class="lampTags"><span>조각 30개</span><span>전구 줄 1개</span><span>조원과 함께</span></div>
+            <h4 style="margin-top:12px">💡 만드는 요령</h4>
+            <ul class="lampTips"><li><b>5개 놓기 → 끼우기</b>를 반복해요. 늘 새 조각 5개를 옆에 놓고 시작해요.</li><li>"3군데 끼우기"는 새 조각 하나를 이웃 조각 <b>3곳</b>에 걸어 맞물리게 하는 거예요.</li><li>조각을 살짝 휘면 잘 들어가요. 너무 세게 꺾으면 하얗게 자국이 남아요.</li><li><b>조각이 1개 남았을 때</b> 전구를 넣고 마지막 조각으로 닫아요.</li></ul></div>
+          <div class="mCard"><h4>🌟 별과 연결하기</h4><p class="lampStar">사방으로 빛을 퍼뜨리는 조명은 스스로 빛나는 <b>별</b>과 닮았어요. 1차시에서 배운 것처럼 빛의 색은 온도를 알려 줘요. <b>주황빛 전구</b>는 약 3,000 K의 붉은 별, <b>흰 LED</b>는 약 6,000 K로 태양 같은 별의 색이에요. 우리 조명은 어떤 별일까요?</p></div>
+        </div>
+      </div>
+      <div class="lampDone" id="lpDone">
+        <div class="ldBox"><div class="ldGlow"><img src="lamp/p15.jpg" alt="완성된 조명"></div>
+          <div class="lsTag">MISSION COMPLETE</div><h2>별빛 조명 완성!</h2><p>30개 조각이 하나의 별이 되었어요. 불을 켜고 조원들과 인증샷을 남겨 보세요.</p>
+          <div class="ldBtns"><button class="pill sm" id="lpBooth"><span class="tri"></span>📸 네컷 사진관으로</button><button class="lampBtn" id="lpAgain">처음부터 다시 보기</button></div></div>
+      </div>
+      <div class="lampZoomBox" id="lpZoomBox"><img id="lpZoomImg" alt=""><span>화면을 누르면 닫혀요</span></div>
+    </div>
     <div class="tpane" id="t3">
-      <div class="lsTag" style="margin:4px 0 6px">3차시 · 18:30 ~ 19:00 · 진짜 밤하늘 탐험 기록</div>
+      <div class="lsTag" style="margin:4px 0 6px">4차시 · 진짜 밤하늘 탐험 기록</div>
       <div class="recGrid">
         <div class="mCard">
           <h4>📸 관측 기록 쓰기</h4>
@@ -2142,14 +2208,14 @@ const STAGES=['입장','프롤로그','단서 수집','빛 센서','단서 분�
 let PR={no:0,stage:'입장',caseT:'',solved:0,recs:0,best:0};
 try{Object.assign(PR,JSON.parse(localStorage.getItem('hsPR')||'{}'))}catch(e){}
 let lastPing=0;
-function placeName(){const on=document.querySelector('.screen.on');if(!on)return'';if(on.id==='hub')return{t1:'1차시 탭',t2:'2차시 밤하늘',t3:'3차시 관측 기록',t4:'채팅',t5:'네컷 사진관',t6:'사진함',t7:'대시보드'}[curTab]||'수업 목록';return{title:'1차시 미션',brief:'1차시 미션',s1:'1차시 미션',lm:'1차시 미션',s2:'1차시 미션',s3:'1차시 미션',sm:'1차시 미션',win:'1차시 미션',teacher:'사건 만들기',login:'로그인'}[on.id]||''}
+function placeName(){const on=document.querySelector('.screen.on');if(!on)return'';if(on.id==='hub')return{t1:'1차시 탭',t2:'2차시 밤하늘',t3:'4차시 관측 기록',t8:'3차시 조명 만들기',t4:'채팅',t5:'네컷 사진관',t6:'사진함',t7:'대시보드'}[curTab]||'수업 목록';return{title:'1차시 미션',brief:'1차시 미션',s1:'1차시 미션',lm:'1차시 미션',s2:'1차시 미션',s3:'1차시 미션',sm:'1차시 미션',win:'1차시 미션',teacher:'사건 만들기',login:'로그인'}[on.id]||''}
 function ping(no,force){
   if(no!=null){PR.no=no;PR.stage=STAGES[no]}
   if(G){PR.caseT=G.cfg.t;PR.best=Math.max(PR.best||0,G.score||0)}
   try{localStorage.setItem('hsPR',JSON.stringify(PR))}catch(e){}
   if(!SB||!ME.name||ME.team==='T'||!(+ME.team>=1))return;
   if(!force&&Date.now()-lastPing<4000)return; lastPing=Date.now();
-  SB.rpc('hs_ping',{p_team:+ME.team,p_name:ME.name.slice(0,12),p_stage_no:PR.no,p_stage:PR.stage,p_place:placeName(),p_case:PR.caseT||null,p_score:PR.best||0,p_solved:PR.solved||0,p_recs:PR.recs||0}).then(()=>{},()=>{});
+  SB.rpc('hs_ping',{p_team:+ME.team,p_name:ME.name.slice(0,12),p_stage_no:PR.no,p_stage:PR.stage,p_place:placeName(),p_case:PR.caseT||null,p_score:PR.best||0,p_solved:PR.solved||0,p_recs:PR.recs||0,p_lamp:PR.lamp||0}).then(()=>{},()=>{});
 }
 setInterval(()=>{if(!document.hidden)ping(null,true)},60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)ping(null,true)});
@@ -2213,7 +2279,7 @@ function renderDash(d){
   const now=new Date(d.now).getTime(), P=d.players||[], online=p=>now-new Date(p.updated_at).getTime()<120000;
   $('#dTime').textContent=`마지막 새로고침 ${hm(d.now)} · 입장한 학생 ${P.length}명`;
   const on=P.filter(online).length, solvedP=P.filter(p=>p.solved>0).length;
-  $('#dStats').innerHTML=[['지금 접속 중',on,`/ ${P.length}명`],['사건 해결한 학생',solvedP,`/ ${P.length}명`],['새 네컷 사진',d.inbox_new,`/ ${d.inbox_total}장`],['채팅',d.chat_total,'개'],['관측 기록',P.reduce((a,p)=>a+p.recs,0),'개']]
+  $('#dStats').innerHTML=[['지금 접속 중',on,`/ ${P.length}명`],['사건 해결한 학생',solvedP,`/ ${P.length}명`],['새 네컷 사진',d.inbox_new,`/ ${d.inbox_total}장`],['채팅',d.chat_total,'개'],['조명 완성',P.filter(p=>(p.lamp||0)>=15).length,`/ ${P.length}명`],['관측 기록',P.reduce((a,p)=>a+p.recs,0),'개']]
     .map(([k,v,u])=>`<div class="dStat"><span>${k}</span><b>${v}<small>${u}</small></b></div>`).join('');
   // 조별 점수
   const teams={};P.forEach(p=>{(teams[p.team]=teams[p.team]||[]).push(p)});
@@ -2224,7 +2290,7 @@ function renderDash(d){
   const cnt=STAGES.map((_,i)=>P.filter(p=>p.stage_no===i).length), mc=Math.max(1,...cnt);
   $('#dFunnel').innerHTML=STAGES.map((s,i)=>`<div class="bar"><span class="lb" style="width:74px">${s}</span><span class="tr"><i style="width:${cnt[i]/mc*100}%"></i></span><span class="v">${cnt[i]}명</span></div>`).join('');
   // 조별 현황
-  $('#dTeams').innerHTML=Object.keys(teams).length?Object.entries(teams).sort((a,b)=>a[0]-b[0]).map(([t,a])=>`<div class="dTeam"><h5>${t}조 <span>${a.filter(online).length}/${a.length}명 접속 · 💬 ${(d.chat_rooms||{})['t'+t]||0}</span></h5>${a.map(p=>`<div class="pl"><i class="on ${online(p)?'y':''}"></i><span class="nm">${esc(p.name)}<small>${esc(p.place||'')}${p.case_t?' · '+esc(p.case_t):''}</small></span><span class="sc">${p.score.toLocaleString()}점${p.solved?' ⭐'+p.solved:''}</span><span class="steps">${STAGES.map((_,i)=>`<i class="${i<p.stage_no?'y':i===p.stage_no?'w':''}" title="${STAGES[i]}"></i>`).join('')}</span></div>`).join('')}</div>`).join('')
+  $('#dTeams').innerHTML=Object.keys(teams).length?Object.entries(teams).sort((a,b)=>a[0]-b[0]).map(([t,a])=>`<div class="dTeam"><h5>${t}조 <span>${a.filter(online).length}/${a.length}명 접속 · 💬 ${(d.chat_rooms||{})['t'+t]||0}</span></h5>${a.map(p=>`<div class="pl"><i class="on ${online(p)?'y':''}"></i><span class="nm">${esc(p.name)}<small>${esc(p.place||'')}${p.case_t?' · '+esc(p.case_t):''}</small></span><span class="sc">${p.score.toLocaleString()}점${p.solved?' ⭐'+p.solved:''}${p.lamp?` 💡${p.lamp>=15?'완성':p.lamp+'/15'}`:''}</span><span class="steps">${STAGES.map((_,i)=>`<i class="${i<p.stage_no?'y':i===p.stage_no?'w':''}" title="${STAGES[i]}"></i>`).join('')}</span></div>`).join('')}</div>`).join('')
     :'<div class="chatEmpty">학생이 로그인하면 여기에 조별로 나타나요.</div>';
   $('#dChat').innerHTML=(d.recent_chat||[]).map(m=>`<div class="dMsg"><b>${m.is_teacher?'선생님':m.team+'조 '+esc(m.name)}</b> <span style="color:#3f8aa6">[${m.room==='all'?'전체방':m.room.slice(1)+'조 방'}] ${hm(m.created_at)}</span><br>${esc(m.body)}</div>`).join('')||'<div class="srcNote">아직 채팅이 없어요.</div>';
 }
@@ -2232,6 +2298,86 @@ $('#dRefresh').onclick=()=>{loadDash();beep('x')};
 setTab=(f=>function(t){const r=f(t);if(t==='t7')loadDash();return r})(setTab);
 $$('#tabs button').forEach(b=>b.onclick=()=>{beep('x');setTab(b.dataset.tab)});
 
+
+/* =========================================================
+   💡 3차시 — 별빛 조명 만들기 (30조각 볼 조명)
+   ========================================================= */
+const LAMP=[
+ ['조각 5개 놓기','조각 5개를 사진처럼 나란히 놓아요. 볼록한 면이 모두 같은 쪽을 보게 해요.',0],
+ ['꽃 모양 만들기','5개의 끝을 서로 끼워 꽃 모양 1개를 만들어요. 옆에 새 조각 5개를 놓아요.',5],
+ ['3군데 끼우기','밝게 보이는 부분처럼 새 조각을 이웃 조각 3군데에 끼워요.',10],
+ ['새 조각 5개 놓기','지금까지 10개 연결! 옆에 새 조각 5개를 놓아요.',10],
+ ['2군데 끼우기','밝게 보이는 부분처럼 새 조각을 2군데에 끼워요.',15],
+ ['새 조각 5개 놓기','지금까지 15개 연결! 옆에 새 조각 5개를 놓아요.',15],
+ ['4군데 끼우기','밝게 보이는 부분처럼 4군데에 끼워요. 점점 둥글어져요.',20],
+ ['새 조각 5개 놓기','지금까지 20개 연결! 옆에 새 조각 5개를 놓아요.',20],
+ ['3군데 끼우기','밝게 보이는 부분처럼 3군데에 끼워요.',25],
+ ['마지막 5개 놓기','지금까지 25개 연결! 마지막 조각 5개를 놓아요.',25],
+ ['3군데 끼우기','밝게 보이는 부분처럼 3군데에 끼워요.',27],
+ ['나머지 4군데 끼우기','밝게 보이는 부분처럼 남은 곳을 4군데에 끼워요.',29],
+ ['전구 넣기','조각이 1개 남았을 때, 열린 구멍으로 전구를 넣어요.',29],
+ ['구멍 닫기','남은 조각 1개로 구멍을 닫아요. 30개 모두 연결!',30],
+ ['불 켜기, 완성!','전구 줄을 꽂아 불을 켜면 별빛 조명 완성!',30]];
+let LS={i:0,done:0};
+try{Object.assign(LS,JSON.parse(localStorage.getItem('hsLamp')||'{}'))}catch(e){}
+function lampSave(){try{localStorage.setItem('hsLamp',JSON.stringify(LS))}catch(e){}PR.lamp=LS.done;ping(null,true)}
+LAMP.forEach((_,k)=>{const im=new Image();im.src=`lamp/p${k+1}.jpg`});
+$('#lpThumbs').innerHTML=LAMP.map((s,k)=>`<button data-k="${k}" style="background-image:url(lamp/p${k+1}.jpg)" aria-label="${k+1}단계 ${s[0]}"><span>${k+1}</span></button>`).join('');
+$$('#lpThumbs button').forEach(b=>b.onclick=()=>{beep('x');LS.i=+b.dataset.k;renderLamp()});
+function lampCount(){return LS.done?LAMP[LS.done-1][2]:0}
+function renderLamp(){
+  const k=LS.i,s=LAMP[k];
+  $('#lpNo').textContent=k+1;$('#lpTitle').textContent=s[0];$('#lpSub').textContent=`STEP ${k+1} / 15`;
+  $('#lpTxt').textContent=s[1];
+  const im=$('#lpImg');im.style.opacity=0;setTimeout(()=>{im.src=`lamp/p${k+1}.jpg`;im.onload=()=>im.style.opacity=1},120);
+  $('#lpBar').style.width=(LS.done/15*100)+'%';
+  const c=lampCount();$('#lpCnt').textContent=c;$('#lpCnt2').textContent=c;
+  $('#lpOrbMsg').textContent=LS.done>=15?'반짝! 우리 조의 별이 빛나요':c>=20?'거의 다 됐어요! 공 모양이 보여요':c>=10?'좋아요! 점점 둥글어지고 있어요':'조각을 끼울수록 별 공이 밝아져요';
+  $('#lpPrev').disabled=k===0;
+  $('#lpNext').innerHTML=k===14?'<span class="tri"></span>💡 불 켜기!':(k<LS.done?'<span class="tri"></span>다음 단계':'<span class="tri"></span>다 했어요!');
+  $$('#lpThumbs button').forEach((b,j)=>{b.classList.toggle('on',j===k);b.classList.toggle('dn',j<LS.done)});
+  const t=$('#lpThumbs button.on'),tb=$('#lpThumbs');if(t)tb.scrollTo({left:t.offsetLeft-tb.clientWidth/2+t.offsetWidth/2,behavior:'smooth'});
+}
+$('#lpPrev').onclick=()=>{if(LS.i>0){beep('x');LS.i--;renderLamp()}};
+$('#lpNext').onclick=e=>{
+  const r=e.currentTarget.getBoundingClientRect();
+  if(LS.i>=LS.done)LS.done=LS.i+1;
+  if(LS.i===14){LS.done=15;lampSave();renderLamp();beep('win');lampFinish();return}
+  beep('ok');spark(r.left+r.width/2,r.top,16);LS.i++;lampSave();renderLamp();
+};
+function lampFinish(){$('#lpDone').classList.add('on');for(let n=0;n<6;n++)setTimeout(()=>spark(innerWidth*(.2+Math.random()*.6),innerHeight*(.25+Math.random()*.4),28),n*220)}
+$('#lpDone').onclick=e=>{if(e.target.id==='lpDone')$('#lpDone').classList.remove('on')};
+$('#lpBooth').onclick=()=>{$('#lpDone').classList.remove('on');setTab('t5')};
+$('#lpAgain').onclick=()=>{$('#lpDone').classList.remove('on');LS.i=0;renderLamp()};
+$('#lpPic').onclick=()=>{$('#lpZoomImg').src=`lamp/p${LS.i+1}.jpg`;$('#lpZoomBox').classList.add('on')};
+$('#lpZoomBox').onclick=()=>$('#lpZoomBox').classList.remove('on');
+(()=>{let x0=null;const p=$('#lpPic');p.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
+ p.addEventListener('touchend',e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>50){e.preventDefault();if(dx<0&&LS.i<14){LS.i++;renderLamp()}else if(dx>0&&LS.i>0){LS.i--;renderLamp()}}})})();
+// 별 공 캔버스: 30개 조각 = 구 위의 30개 점
+const ORB=Array.from({length:30},(_,i)=>{const y=1-(i+.5)/30*2,r=Math.sqrt(1-y*y),a=i*2.39996;return[Math.cos(a)*r,y,Math.sin(a)*r]});
+let orbRaf=0;
+function orbLoop(t){
+  orbRaf=requestAnimationFrame(orbLoop);
+  const cv=$('#lpOrb');if(!cv||curTab!=='t8'||document.hidden)return;
+  const d=Math.min(2,devicePixelRatio||1),W=cv.clientWidth;if(!W)return;
+  if(cv.width!==W*d||cv.height!==W*d){cv.width=W*d;cv.height=W*d}
+  const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,W,W);
+  const C=W/2,R=W*.36,n=lampCount(),on=LS.done>=15,T=t/1000,rot=T*.5;
+  const glow=on?1:n/30*.55;
+  const gr=g.createRadialGradient(C,C,R*.2,C,C,R*1.45);gr.addColorStop(0,`rgba(255,220,140,${.15+glow*.6})`);gr.addColorStop(1,'rgba(255,200,120,0)');g.fillStyle=gr;g.fillRect(0,0,W,W);
+  g.strokeStyle='rgba(63,214,232,.25)';g.lineWidth=1;g.beginPath();g.arc(C,C,R,0,7);g.stroke();
+  const P=ORB.map((p,i)=>{const x=p[0]*Math.cos(rot)-p[2]*Math.sin(rot),z=p[0]*Math.sin(rot)+p[2]*Math.cos(rot);return{i,x:C+x*R,y:C+p[1]*R,z}}).sort((a,b)=>a.z-b.z);
+  P.forEach(p=>{const lit=(p.i*7)%30<n,f=(p.z+1)/2;
+    g.save();g.translate(p.x,p.y);g.rotate(p.i*1.3+rot);g.globalAlpha=lit?.45+f*.55:.12+f*.18;
+    g.fillStyle=lit?(on?'#fff1c9':'#ffe39a'):'#9fc6dc';
+    const s=4+f*5;g.beginPath();g.moveTo(-s,0);g.quadraticCurveTo(0,-s*1.1,s,0);g.quadraticCurveTo(0,s*.4,-s,0);g.fill();
+    if(lit&&f>.6){g.shadowColor='#ffd76a';g.shadowBlur=10;g.fill()}
+    g.restore()});
+  g.globalAlpha=1;
+}
+setTab=(f=>function(t){const r=f(t);if(t==='t8'){renderLamp();if(!orbRaf)orbRaf=requestAnimationFrame(orbLoop)}return r})(setTab);
+$$('#tabs button').forEach(b=>b.onclick=()=>{beep('x');setTab(b.dataset.tab)});
+renderLamp();
 /* =========================================================
    시작
    ========================================================= */
