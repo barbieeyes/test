@@ -145,8 +145,9 @@ const db = {
     return this._p;
   },
   async all() {
-    const d = await withTimeout(this.open(), 5000, null);
-    const list = !d ? [] : await withTimeout(new Promise((res) => { try { const rq = d.transaction("records").objectStore("records").getAll(); rq.onsuccess = () => res(rq.result || []); rq.onerror = () => res([]); } catch (e) { res([]); } }), 8000, () => { this._p = null; return []; });
+    // 읽기에는 시간 제한을 두지 않아요: 오래 걸린다고 빈 목록을 돌려주면 기록이 사라진 것처럼 보여요
+    const d = await this.open();
+    const list = !d ? [] : await new Promise((res) => { try { const rq = d.transaction("records").objectStore("records").getAll(); rq.onsuccess = () => res(rq.result || []); rq.onerror = () => res([]); } catch (e) { this._p = null; res([]); } });
     if (!this.mem.size) return list;
     const m = new Map(list.map((x) => [x.id, x])); this.mem.forEach((v, k) => m.set(k, v)); return [...m.values()];
   },
@@ -1991,6 +1992,7 @@ function App() {
   const [auth, setAuth] = useState(() => { store.del("ecossam.v1.auth"); const a = store.get(LS_AUTH, null); return a && (RESEARCHERS.some((r) => r.name === a.name) || a.name === STUDENT.name) ? a : null; });
   const me = auth ? auth.name : RESEARCHERS[0].name;
   const [records, setRecords] = useState([]);
+  const recRef = useRef(records); recRef.current = records;
   const [acts, setActs] = useState([]);
   const [actEdit, setActEdit] = useState(null);
   const [meetings, setMeetings] = useState([]);
@@ -2050,6 +2052,7 @@ function App() {
   const syncing = useRef(false), syncAgain = useRef(false);
   const reloadFromDb = async () => {
     const all = (await db.all()).sort((a, b) => upKey(b) - upKey(a));
+    if (!all.filter((r) => !r.sample).length && recRef.current.some((r) => !r.sample)) return; // 저장소가 잠깐 비어 보여도 화면의 기록은 지키기
     setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting"));
   };
   const syncNow = async () => {
