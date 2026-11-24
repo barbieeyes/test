@@ -83,7 +83,7 @@ const FRAME_V = 2; // 프레임 디자인 판 (바뀌면 예전 사진을 새 �
 const TEAM_HABITATS = ["화단", "운동장 가장자리", "담장·울타리", "텃밭·생태정원", "교정 나무", "틈새"];
 /** 목록 정렬: 나중에 올린(저장한) 기록이 위로. 예전 기록은 찍은 시각으로 */
 const upKey = (r) => r.savedAt || r.ts || 0;
-const STUDENT = { name: "학생 탐사대", color: "#E8A33D", pin: "0707" }; // 학생 입장: '같이(학교)' 기록만 보고 올려요
+const STUDENT = { name: "송그린", color: "#E8A33D", pin: "0707" }; // 학생 입장: '같이(학교)' 기록만 보고 올려요
 const TEAM_PIN = "2144"; // 팀 공용 입장 비밀번호 (화면 잠금용이며 보안 장치는 아님)
 const MODES = EM.MODE_INFO; // solo = 따로(우리 동네), team = 같이(학교)
 const FORM_LIST = ["목본", "초본", "양치식물", "이끼류"];
@@ -674,7 +674,6 @@ function TabBar({ tab, setTab, counts }) {
 /* ---------- 입장 (연구원별 로그인) ---------- */
 function Gate({ onLogin }) {
   const [name, setName] = useState(null);
-  const [group, setGroup] = useState("");
   const [pin, setPin] = useState("");
   const [err, setErr] = useState("");
   const [shake, setShake] = useState(false);
@@ -682,9 +681,8 @@ function Gate({ onLogin }) {
     e.preventDefault();
     if (!name) { setErr("이름을 먼저 골라 주세요."); return; }
     const isStu = name === STUDENT.name;
-    if (isStu && !group.trim()) { setErr("모둠 이름을 적어 주세요. (예: 1모둠)"); return; }
     if (pin !== (isStu ? STUDENT.pin : TEAM_PIN)) { setErr("비밀번호가 맞지 않아요. 다시 입력해 주세요."); setPin(""); setShake(false); requestAnimationFrame(() => setShake(true)); return; }
-    onLogin(name, isStu ? group.trim().slice(0, 20) : null);
+    onLogin(name);
   };
   return html`<div class="gate">
     <${Hero} />
@@ -700,13 +698,11 @@ function Gate({ onLogin }) {
         <button type="button" role="radio" aria-checked=${name === STUDENT.name} class=${"who-b" + (name === STUDENT.name ? " who-on" : "")}
           onClick=${() => { setName(STUDENT.name); setErr(""); }}>
           <${Dot} color=${STUDENT.color} size=${10} /><span class="grid text-left leading-tight">${STUDENT.name}<small>학생은 여기 · 학교 식물 같이 모으기</small></span></button>
-        ${name === STUDENT.name && html`<label class="fld"><span>모둠 이름</span>
-          <input id="grpIn" value=${group} maxlength="20" placeholder="예: 1모둠 (이름 대신 모둠으로)" onInput=${(e) => { setGroup(e.target.value); setErr(""); }} /></label>`}
         <label class="fld"><span>${name === STUDENT.name ? "학생 입장 코드" : "비밀번호"}</span>
           <input id="pinIn" class="pin-in" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••"
             value=${pin} onInput=${(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setErr(""); }} /></label>
         ${err && html`<div class="err" role="alert">${err}</div>`}
-        <button type="submit" class="gate-go">${name === STUDENT.name ? `${group.trim() || "학생 탐사대"}, 탐사 시작` : name ? `${name} 님, 탐사 시작` : "탐사 시작"}</button>
+        <button type="submit" class="gate-go">${name === STUDENT.name ? "송그린, 탐사 시작" : name ? `${name} 님, 탐사 시작` : "탐사 시작"}</button>
       </form>
     </div>
   </div>`;
@@ -866,7 +862,7 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
       </div>
       <div class="contrib">${RESEARCHERS.map((r) => { const n = total.filter((x) => x.researcher === r.name).length;
         return html`<span key=${r.name} style=${{ "--c": r.color, flexGrow: Math.max(n, 0.5) }} title=${`${r.name} ${n}건`}><b>${r.name}</b>${n}</span>`; })}
-        ${(() => { const n = total.filter((x) => x.researcher === STUDENT.name).length; return n || student ? html`<span style=${{ "--c": STUDENT.color, flexGrow: Math.max(n, 0.5) }} title=${`${STUDENT.name} ${n}건`}><b>학생</b>${n}</span>` : null; })()}</div>
+        ${(() => { const n = total.filter((x) => x.researcher === STUDENT.name).length; return n || student ? html`<span style=${{ "--c": STUDENT.color, flexGrow: Math.max(n, 0.5) }} title=${`${STUDENT.name} ${n}건`}><b>송그린</b>${n}</span>` : null; })()}</div>
     </section>
     ${groups.length ? html`<div class="herb-grid">${groups.map((g, i) => { const r = g[0], last = g[g.length - 1];
       const who = [...new Set(g.map(whoLabel))];
@@ -1443,7 +1439,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
 
 /* ---------- 상세 ---------- */
 function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSettings, student, group }) {
-  const mineStu = !student || (rec.researcher === me && rec.group === group); // 학생은 자기 모둠 기록만 고치고 지워요
+  const mineStu = !student || rec.researcher === me; // 학생은 자기 모둠 기록만 고치고 지워요
   const [ask, setAsk] = useState(false);
   // 이름·생활형 고치기 + 저장된 사진으로 AI 다시 찾기 (팀원 누구나)
   const [ed, setEd] = useState(null); // {koreanName, scientificName, growthForm, psType, place, notes}
@@ -1982,7 +1978,7 @@ async function buildAllZip({ records, acts, meetings }, onStep) {
 function App() {
   const saved = store.get(LS_SET, {});
   const [settings, setSettings] = useState({ apiKey: saved.apiKey || "", model: saved.model || DEFAULT_MODEL });
-  const [auth, setAuth] = useState(() => { store.del("ecossam.v1.auth"); const a = store.get(LS_AUTH, null); return a && (RESEARCHERS.some((r) => r.name === a.name) || (a.name === STUDENT.name && a.group)) ? a : null; });
+  const [auth, setAuth] = useState(() => { store.del("ecossam.v1.auth"); const a = store.get(LS_AUTH, null); return a && (RESEARCHERS.some((r) => r.name === a.name) || a.name === STUDENT.name) ? a : null; });
   const me = auth ? auth.name : RESEARCHERS[0].name;
   const [records, setRecords] = useState([]);
   const [acts, setActs] = useState([]);
@@ -2184,8 +2180,8 @@ function App() {
   const openRec = records.find((r) => r.id === openId);
   if (auth.name === STUDENT.name) return html`<div class="app tab-is-team">
     <div class="strip"><div class="strip-in">
-      <span class="nav-logo"><span class="strip-team">기후행동 실천모임 <b>에코쌤즈</b> · 학생 탐사대</span>
-        <span class="strip-title"><${Icon} name="School" size=${18} />학교 식물 같이 모으기<small>${auth.group}</small></span></span>
+      <span class="nav-logo"><span class="strip-team">기후행동 실천모임 <b>에코쌤즈</b> × 송그린</span>
+        <span class="strip-title"><${Icon} name="School" size=${18} />학교 식물 같이 모으기<small>송그린 탐사대</small></span></span>
       <div class="flex items-center gap-1.5 shrink-0 ml-auto">
         <button type="button" class="nav-out" onClick=${logout}><${Icon} name="LogOut" size=${16} /><span class="nav-lbl">나가기</span></button></div>
     </div></div>
@@ -2193,12 +2189,12 @@ function App() {
     <main class="wrap pb-12 pt-3">
       ${!loaded ? html`<div class="boot" style=${{ minHeight: "30vh" }}>기록을 불러오는 중…</div>`
         : html`<${TeamView} records=${records} meetings=${[]} sub="plants" setSub=${() => {}} onAdd=${addRecord} onOpen=${setOpenId} student=${true} />`}
-      <footer class="text-center text-[11px] text-mist leading-relaxed mt-6">기후행동 실천모임 에코쌤즈 × 학생 탐사대 · 사진에 친구 얼굴이 나오지 않게 찍어요</footer>
+      <footer class="text-center text-[11px] text-mist leading-relaxed mt-6">기후행동 실천모임 에코쌤즈 × 송그린 · 사진에 친구 얼굴이 나오지 않게 찍어요</footer>
     </main>
     ${draft && html`<${RecordModal} draft=${{ ...draft, mode: "team" }} researcher=${me} weather=${weather} settings=${settings} gps=${gps} student=${true}
-      onClose=${() => setDraft(null)} onSave=${(r) => saveRecord({ ...r, mode: "team", group: auth.group })} onOpenSettings=${() => {}} />`}
+      onClose=${() => setDraft(null)} onSave=${(r) => saveRecord({ ...r, mode: "team" })} onOpenSettings=${() => {}} />`}
     ${saver && html`<${PhotoSaver} items=${saver.items} title=${saver.title} onClose=${() => setSaver(null)} />`}
-    ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} settings=${settings} student=${true} group=${auth.group} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} onUpdate=${updateRecord} onOpenSettings=${() => {}} />`}
+    ${openRec && !draft && html`<${DetailModal} rec=${openRec} me=${me} settings=${settings} student=${true} onClose=${() => setOpenId(null)} onDelete=${deleteRecord} onUpdate=${updateRecord} onOpenSettings=${() => {}} />`}
     ${toast && html`<div class="toast" role="status">${toast}</div>`}
   </div>`;
   const counts = { solo: records.filter((r) => r.mode === "solo" && r.researcher === me).length, team: records.filter((r) => r.mode === "team").length + meetings.length, activity: acts.length };
