@@ -1152,23 +1152,30 @@ function TodayView({ me, records, meetings = [], airs = [], rxs = [], weather, w
   ];
   return html`<div class="grid gap-4">
     ${(() => { const f = problemFacts(records, airs); const P = (v) => `${Math.round(v * 100)}%`;
+      const nSp = new Set(records.filter((r) => !r.sample).map((r) => r.koreanName).filter(Boolean)).size;
       return html`<section class="mission">
-      <span class="mission-k">우리가 찾은 문제</span>
-      <div class="prob-list">
-        <button type="button" class="prob p-eco" onClick=${() => goTab("rx")}>
-          <b>① 우리 동네와 학교에서 자생식물이 사라지고 있어요</b>
-          <small>${[f.low && f.high && f.low !== f.high ? `동네별 자생 비율 ${f.low.place} ${P(f.low.share)} ~ ${f.high.place} ${P(f.high.share)}` : null,
-            f.same.length ? `${f.same.join("·")} 같은 조경수가 동네마다 반복` : null,
-            f.schoolWild != null ? `교정 식물 ${f.team}건 중 자생 ${P(f.schoolWild)}` : null].filter(Boolean).join(" · ") || "식물 기록이 쌓이면 근거 숫자가 여기 나와요"}</small>
-          <span class="prob-sol">해결 → <b>교정 녹지 처방전</b> · <b>자생식물 QR 이름표</b></span></button>
-        <button type="button" class="prob p-air" onClick=${() => goTab("rx")}>
-          <b>② 교실 공기를 감으로만 환기해요</b>
-          <small>${f.worst ? `${f.worst.place} 평균 ${Math.round(f.worst.st.avg).toLocaleString()}ppm · 기준(${f.thr.toLocaleString()}ppm) 넘은 시간 ${P(f.worst.st.share)}` : "교실 CO₂를 재면 근거 숫자가 여기 나와요"}</small>
-          <span class="prob-sol">해결 → <b>교실 환기 규칙</b> (규칙 전후 CO₂ 비교)</span></button>
+      <div class="st-step s1"><span class="st-k">STEP 01 · 문제 발견</span>
+        <b class="st-h">우리 학교는 식물을 심고 환기를 하지만, 근거 없이 하고 있어요</b>
+        <div class="prob-list">
+          <button type="button" class="prob p-air" onClick=${() => goTab("air")}>
+            <b>교실 공기: 감으로 하는 환기</b>
+            <small>${f.worst ? `${f.worst.place} 평균 ${Math.round(f.worst.st.avg).toLocaleString()}ppm, 수업 시간의 ${P(f.worst.st.share)}가 학교 기준(${f.thr.toLocaleString()}ppm)을 넘었어요.` : "교실 CO₂를 재면 여기 근거가 나와요."} 기준을 넘으면 졸리고 집중이 떨어져요.</small></button>
+          <button type="button" class="prob p-eco" onClick=${() => goTab("rx")}>
+            <b>교정 녹지: 심기만 하는 조경</b>
+            <small>${[f.schoolWild != null ? `교정 식물 ${f.team}건 중 자생 ${P(f.schoolWild)}` : null, f.same.length ? `${f.same.join("·")} 같은 조경수가 동네마다 반복` : null, f.low && f.high && f.low !== f.high ? `동네 자생 비율 ${f.low.place} ${P(f.low.share)} ~ ${f.high.place} ${P(f.high.share)}` : null].filter(Boolean).join(" · ") || "식물 기록이 쌓이면 여기 근거가 나와요"}. 같은 나무만 심으면 곤충과 새가 살 곳이 줄어요.</small></button>
+        </div></div>
+      <div class="st-arrow">↓</div>
+      <div class="st-data">
+        <button type="button" class="sd sd-eco" onClick=${() => goTab("team")}><span>DATA 01</span><b>식물 생태 데이터</b><small>사진 · AI 동정 · 위치</small><i>${records.filter((r) => !r.sample).length}건 · ${nSp}종</i><small>생활권(따로) + 학교(같이)</small></button>
+        <button type="button" class="sd sd-air" onClick=${() => goTab("air")}><span>DATA 02</span><b>CO₂ 공기환경 데이터</b><small>공간별 측정 · 밀폐 실험</small><i>측정 ${airs.filter((a) => a.kind === "air_sess").length}회</i><small>실측값 기반</small></button>
       </div>
-      <p class="mission-p">생활권(따로)과 학교(같이)에서 모은 생태·공기 데이터로 문제를 찾고, 세 가지 실천으로 학교를 바꿔요.</p>
-      <div class="mission-flow">${flow.map(([tab, n, t, sub, ic], i) => html`<button key=${n} type="button" onClick=${() => goTab(tab)}>
-        <span class="mf-n">${n}</span><span class="grid text-left min-w-0"><b>${t}</b><small>${sub}</small></span></button>`)}</div>
+      <div class="st-arrow">↓</div>
+      <button type="button" class="st-step s3" onClick=${() => goTab("rx")}><span class="st-k">STEP 03 · 진단</span><b class="st-h sm">녹지 취약 구역과 환기가 필요한 공간 찾기</b></button>
+      <div class="st-arrow">↓</div>
+      <div class="st-step s4"><span class="st-k">STEP 04 · 기후행동 실행</span>
+        <div class="st-acts">${[["Wind", "교실 환기 규칙", `규칙 ${rxs.filter((x) => x.type === "vent").length}`], ["Sprout", "교정 녹지 처방전", `처방 ${rxs.filter((x) => x.type === "green").length}`], ["QrCode", "자생식물 QR 이름표", `${new Set(rxs.filter((x) => x.type === "tag").flatMap((x) => x.ids || [])).size}종`]].map(([ic, t, n]) => html`<button key=${t} type="button" onClick=${() => goTab("rx")}><${Icon} name=${ic} size=${18} /><b>${t}</b><small>${n}</small></button>`)}</div></div>
+      <div class="st-arrow">↓</div>
+      <a class="st-step s5" href="/?share=1" target="_blank" rel="noopener"><span class="st-k">STEP 05 · 성과 공유</span><b class="st-h sm">데이터가 행동이 되고, 행동이 학교의 변화가 되다</b><small>성과 공유 페이지 열기 →</small></a>
     </section>`; })()}
     <div class="duo">
       <button type="button" class="duo-b duo-solo" onClick=${() => onAdd("solo")}>
