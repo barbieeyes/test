@@ -84,27 +84,31 @@ esp-web-install-button button[slot=activate]{all:unset}
   </section>
 
   <section class="card">
-    <div class="step"><span class="num">3</span><h2>핫스팟 정보 넣기</h2></div>
-    <p>설치가 끝나면 설치 창을 닫고, 핫스팟 이름·비밀번호를 넣어 주세요. 보드에만 저장돼요.</p>
-    <div class="row"><button class="go" id="conn" type="button">보드 연결</button><span class="muted" id="cstat">아직 연결 안 됨</span></div>
-    <form class="fields" id="form">
-      <label><span>핫스팟(와이파이) 이름</span><input id="ssid" required maxlength="32" placeholder="예: 이정연의 iPhone" autocomplete="off"></label>
-      <label><span>비밀번호</span><input id="pass" type="password" maxlength="63" autocomplete="off"></label>
-      <label><span>측정 장소 (나중에 앱에서도 바꿀 수 있어요)</span><input id="place" maxlength="30" placeholder="예: 한강 둔치"></label>
-      <div class="row"><button class="go" id="save" type="submit" disabled>보드에 저장하기</button><label class="muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="showpw" style="width:auto">비밀번호 보기</label></div>
-    </form>
-    <div class="tip" style="margin-top:12px">아이폰 핫스팟은 <b>설정 → 개인용 핫스팟</b>에서 '다른 사람의 연결 허용'과 <b>'호환성 최대화'</b>를 켜 두세요. 이름은 <b>설정 → 일반 → 정보 → 이름</b>에 있어요.</div>
+    <div class="step"><span class="num">3</span><h2>휴대폰으로 핫스팟 정보 넣기</h2></div>
+    <p>설치가 끝나면 보드가 <b>설정용 와이파이</b>를 켜요. 이제 컴퓨터는 필요 없어요.</p>
+    <ol>
+      <li>휴대폰 <b>설정 → Wi-Fi</b>에서 <b>EZ-CO2-SETUP-○○○○</b>를 눌러 연결하세요. (비밀번호 없음)</li>
+      <li>설정 화면이 저절로 떠요. 안 뜨면 사파리에서 <b>192.168.4.1</b>을 여세요.</li>
+      <li>핫스팟 이름·비밀번호·장소를 적고 <b>저장하고 다시 시작</b>을 누르세요.</li>
+      <li>휴대폰 Wi-Fi 연결을 끊고 <b>개인용 핫스팟</b>을 켜 두세요. ('호환성 최대화'도 켜기)</li>
+    </ol>
+    <div class="tip">아이폰 핫스팟 이름은 <b>설정 → 일반 → 정보 → 이름</b>에 있어요. 나중에 핫스팟을 바꾸고 싶으면, 보드가 1분 넘게 핫스팟을 못 찾을 때 설정용 와이파이가 다시 켜져요.</div>
   </section>
 
   <section class="card">
     <div class="step"><span class="num">4</span><h2>잘 되는지 확인</h2></div>
-    <div class="checks">
-      <div class="chk" id="c-sensor"><i>·</i>센서</div>
-      <div class="chk" id="c-wifi"><i>·</i>와이파이</div>
-      <div class="chk" id="c-up"><i>·</i>기록 올리기</div>
-    </div>
-    <p class="muted" id="board">세 칸이 모두 초록색이 되면 끝! 휴대폰에서 에코쌤즈 → <b>공기</b> 탭을 열어 보세요. (첫 기록은 1~2분 뒤에 올라와요)</p>
-    <pre id="log" aria-live="polite"></pre>
+    <p>1~2분 뒤 휴대폰에서 에코쌤즈 → <b>공기</b> 탭의 <b>와이파이 보드</b> 칸에 보드가 나타나면 성공이에요!</p>
+    <details style="margin-top:10px"><summary class="muted" style="cursor:pointer">컴퓨터로 보드 상태 보기 (선택)</summary>
+      <div class="row" style="margin-top:10px"><button class="ghost" id="conn" type="button">보드 연결</button><span class="muted" id="cstat">아직 연결 안 됨</span></div>
+      <div class="checks">
+        <div class="chk" id="c-sensor"><i>·</i>센서</div>
+        <div class="chk" id="c-wifi"><i>·</i>와이파이</div>
+        <div class="chk" id="c-up"><i>·</i>기록 올리기</div>
+      </div>
+      <p class="muted" id="board"></p>
+      <form id="form" hidden><input id="ssid"><input id="pass"><input id="place"><button id="save" disabled></button><input type="checkbox" id="showpw"></form>
+      <pre id="log" aria-live="polite"></pre>
+    </details>
   </section>
 </main>
 <script>
