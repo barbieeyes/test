@@ -1120,6 +1120,21 @@ function MeetBar({ meetings = [], onAdd, onList }) {
   </div>`;
 }
 
+/** 메인 화면 '우리가 찾은 문제'의 근거 숫자 */
+function problemFacts(records, airs) {
+  const real = records.filter((r) => !r.sample), team = real.filter((r) => r.mode === "team");
+  const hood = new Map();
+  for (const r of real) { if (r.mode !== "solo") continue; const t = recTheme(r); if (!t) continue; const k = r.researcher + t.key;
+    const o = hood.get(k) || { place: t.place, n: 0, wild: 0, planted: new Set() }; o.n++; if (r.origin === "wild") o.wild++; if (r.origin === "planted" && r.koreanName) o.planted.add(r.koreanName); hood.set(k, o); }
+  const hs = [...hood.values()].filter((h) => h.n >= 3).map((h) => ({ ...h, share: h.wild / h.n })).sort((a, b) => a.share - b.share);
+  const cnt = new Map(); hs.forEach((h) => h.planted.forEach((n) => cnt.set(n, (cnt.get(n) || 0) + 1)));
+  const same = [...cnt.entries()].filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).map(([n]) => n).slice(0, 3);
+  const thr = airCfg.get().thr || 1000, by = new Map();
+  for (const x of airSessionsOf(airs)) { if (x.type === "exp" || !x.pts.length) continue; const k = (x.place || "").trim(); const o = by.get(k) || []; o.push(...x.pts); by.set(k, o); }
+  const places = [...by.entries()].map(([place, pts]) => ({ place, st: co2Sum(pts, thr) })).filter((p) => p.st).sort((a, b) => b.st.share - a.st.share);
+  return { team: team.length, schoolWild: team.length ? team.filter((r) => r.origin === "wild").length / team.length : null, low: hs[0], high: hs[hs.length - 1], same, worst: places[0], thr };
+}
+
 function TodayView({ me, records, meetings = [], airs = [], rxs = [], weather, wState, wErr, gps, onRefresh, onAdd, onOpen, goTab, onAddMeeting, onMeetings }) {
   const solo = records.filter((r) => r.mode === "solo"), team = records.filter((r) => r.mode === "team");
   const mineToday = solo.filter((r) => r.researcher === me && fmtDay(r.ts) === fmtDay(Date.now())).length;
@@ -1136,12 +1151,25 @@ function TodayView({ me, records, meetings = [], airs = [], rxs = [], weather, w
     ["rx", "4", "세 가지 실천", `환기 ${rxN("vent")} · 녹지 ${rxN("green")} · 이름표 ${new Set(rxs.filter((x) => x.type === "tag").flatMap((x) => x.ids || [])).size}`, "ClipboardCheck"],
   ];
   return html`<div class="grid gap-4">
-    <section class="mission">
-      <span class="mission-k">우리가 하는 일</span>
-      <p>생활권과 학교에서 모은 <b>생태·공기 데이터</b>로 학교 환경을 진단하고, <b>교실 환기 규칙</b> · <b>교정 녹지 개선</b> · <b>자생식물 QR 이름표</b> 세 가지 실천으로 잇는 데이터 기반 학교 기후행동</p>
+    ${(() => { const f = problemFacts(records, airs); const P = (v) => `${Math.round(v * 100)}%`;
+      return html`<section class="mission">
+      <span class="mission-k">우리가 찾은 문제</span>
+      <div class="prob-list">
+        <button type="button" class="prob p-eco" onClick=${() => goTab("rx")}>
+          <b>① 우리 동네와 학교에서 자생식물이 사라지고 있어요</b>
+          <small>${[f.low && f.high && f.low !== f.high ? `동네별 자생 비율 ${f.low.place} ${P(f.low.share)} ~ ${f.high.place} ${P(f.high.share)}` : null,
+            f.same.length ? `${f.same.join("·")} 같은 조경수가 동네마다 반복` : null,
+            f.schoolWild != null ? `교정 식물 ${f.team}건 중 자생 ${P(f.schoolWild)}` : null].filter(Boolean).join(" · ") || "식물 기록이 쌓이면 근거 숫자가 여기 나와요"}</small>
+          <span class="prob-sol">해결 → <b>교정 녹지 처방전</b> · <b>자생식물 QR 이름표</b></span></button>
+        <button type="button" class="prob p-air" onClick=${() => goTab("rx")}>
+          <b>② 교실 공기를 감으로만 환기해요</b>
+          <small>${f.worst ? `${f.worst.place} 평균 ${Math.round(f.worst.st.avg).toLocaleString()}ppm · 기준(${f.thr.toLocaleString()}ppm) 넘은 시간 ${P(f.worst.st.share)}` : "교실 CO₂를 재면 근거 숫자가 여기 나와요"}</small>
+          <span class="prob-sol">해결 → <b>교실 환기 규칙</b> (규칙 전후 CO₂ 비교)</span></button>
+      </div>
+      <p class="mission-p">생활권(따로)과 학교(같이)에서 모은 생태·공기 데이터로 문제를 찾고, 세 가지 실천으로 학교를 바꿔요.</p>
       <div class="mission-flow">${flow.map(([tab, n, t, sub, ic], i) => html`<button key=${n} type="button" onClick=${() => goTab(tab)}>
         <span class="mf-n">${n}</span><span class="grid text-left min-w-0"><b>${t}</b><small>${sub}</small></span></button>`)}</div>
-    </section>
+    </section>`; })()}
     <div class="duo">
       <button type="button" class="duo-b duo-solo" onClick=${() => onAdd("solo")}>
         <span class="duo-k">따로</span><b>우리 동네 식물 기록</b><small>${getHome(me).label} 주변 · 오늘 ${mineToday}건</small>
