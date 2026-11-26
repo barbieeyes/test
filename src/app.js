@@ -1180,7 +1180,7 @@ function problemFacts(records, airs) {
   const thr = airCfg.get().thr || 1000, by = new Map();
   for (const x of airSessionsOf(airs)) { if (x.type === "exp" || !x.pts.length) continue; const k = (x.place || "").trim(); const o = by.get(k) || []; o.push(...x.pts); by.set(k, o); }
   const places = [...by.entries()].map(([place, pts]) => ({ place, st: co2Sum(pts, thr) })).filter((p) => p.st).sort((a, b) => b.st.share - a.st.share);
-  const g = gridCells(team), topP = Math.max(...g.cells.map((c) => c.pot), 0.01), lowCells = g.cells.filter((c) => c.pot < topP / 3 || c.sp <= 1).length;
+  const g = gridCells(team), topP = Math.max(...g.cells.map((c) => c.pot), 0.01), lowCells = g.cells.filter((c) => c.sp <= 1 || c.pot < topP / 3).length;
   return { cells: g.cells.length, lowCells, schoolPot: team.length ? team.reduce((a, r) => a + potOf(r), 0) / team.length : null, team: team.length, schoolWild: team.length ? team.filter((r) => r.origin === "wild").length / team.length : null, low: hs[0], high: hs[hs.length - 1], same, worst: places[0], thr };
 }
 
@@ -1204,14 +1204,15 @@ function TodayView({ me, records, meetings = [], airs = [], rxs = [], weather, w
       const nSp = new Set(records.filter((r) => !r.sample).map((r) => r.koreanName).filter(Boolean)).size;
       return html`<section class="mission">
       <div class="st-step s1"><span class="st-k">STEP 01 · 문제 발견</span>
-        <b class="st-h">생활권 녹지는 탄소흡수원인데, 무엇으로 얼마나 광합성하는지 모른 채 같은 나무만 심고 빈 곳은 그대로 둬요</b>
+        <b class="st-h">우리 동네와 학교의 녹지는 같은 나무만 반복되고, 식물이 빈약한 곳이 많아요</b>
+        <small class="text-mist text-[12.5px]">녹지는 이산화탄소를 흡수하는 곳인데, 무엇이 얼마나 자라는지 아무도 기록하지 않았어요.</small>
         <div class="prob-list">
           <button type="button" class="prob p-eco" onClick=${() => goTab("rx")}>
-            <b>따로 · 동네: 도심일수록 녹지가 획일적이에요</b>
-            <small>${[f.low && f.high && f.low !== f.high ? `저절로 자란 식물 비율 ${f.low.place} ${P(f.low.share)} ~ ${f.high.place} ${P(f.high.share)}` : null, f.same.length ? `${f.same.join("·")} 같은 조경수가 동네마다 반복` : null].filter(Boolean).join(" · ") || "동네 기록이 쌓이면 근거가 나와요"}</small></button>
+            <b>동네: 도심일수록 사람이 심은 나무뿐이에요</b>
+            <small>${[f.low && f.high && f.low !== f.high ? `저절로 자란 식물이 ${f.low.place}은 ${P(f.low.share)}, ${f.high.place}은 ${P(f.high.share)}` : null, f.same.length ? `어느 동네에나 ${f.same.join("·")}` : null].filter(Boolean).join(" · ") || "동네 기록이 쌓이면 근거가 나와요"}</small></button>
           <button type="button" class="prob p-eco2" onClick=${() => goTab("map")}>
-            <b>같이 · 학교: 광합성이 비어 있는 구역이 있어요</b>
-            <small>${f.team ? `교정 식물 ${f.team}건 · 평균 광합성 잠재력 ${(f.schoolPot || 0).toFixed(2)} g/h·m² · 15m 칸 ${f.cells}개 중 ${f.lowCells}개가 잠재력·다양성 낮음` : "학교 기록이 쌓이면 근거가 나와요"}</small></button>
+            <b>학교: 교정의 절반 가까이가 식물이 빈약해요</b>
+            <small>${f.team ? `교정을 15m 칸으로 나눠 보니 ${f.cells}칸 중 ${f.lowCells}칸은 한 종뿐이거나 광합성이 약한 식물만 있어요 · 지도에서 보기 →` : "학교 기록이 쌓이면 근거가 나와요"}</small></button>
         </div></div>
       <div class="st-arrow">↓</div>
       <div class="st-data">
