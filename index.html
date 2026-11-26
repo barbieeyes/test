@@ -525,7 +525,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>window.__BUILD__ = "20261126094948";</script>
+<script>window.__BUILD__ = "20261126095927";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -3309,7 +3309,7 @@ function AirView({ me, airs, onDelete, onSaveCfg, say }) {
 
     <section class="glass p-4">
       <h2 class="pill-h mb-3"><${Icon} name="Wifi" size=${18} />와이파이 보드</h2>
-      ${!boards.length ? html`<p class="text-[13.5px] text-mist">아직 기록을 올린 보드가 없어요. 보드에 와이파이 펌웨어(EZ_CO2_WiFi)를 올리고 핫스팟 이름·비밀번호를 적어 주세요.</p>`
+      ${!boards.length ? html`<p class="text-[13.5px] text-mist">아직 기록을 올린 보드가 없어요. 컴퓨터(크롬·엣지·웨일)에서 아래 설치 페이지를 열어 보드에 프로그램을 넣어 주세요.</p>`
         : html`<div class="grid gap-2">${boards.map((b) => { const cp = (cfgs.get(b.dev) || {}).place, cur = cp || b.place, alive = now - b.end < 600000;
           return html`<div key=${b.dev} class="air-row" style=${{ cursor: "default" }}>
             <span class="air-dot" style=${{ background: alive ? "var(--grass)" : "#B8C7BD" }}></span>
@@ -3319,6 +3319,8 @@ function AirView({ me, airs, onDelete, onSaveCfg, say }) {
               : html`<span class="grid text-left min-w-0 flex-1"><b class="truncate">${cur}</b><small class="text-mist">보드 ${b.dev.toUpperCase()} · 마지막 기록 ${agoTxt(b.end)}${cp && cp !== b.place ? " · 장소 바꾸는 중" : ""}</small></span>
                 <button type="button" class="btn-ghost shrink-0" onClick=${() => { setEditDev(b.dev); setEditPlace(cur); }}><${Icon} name="MapPin" size=${15} />장소 바꾸기</button>`}
           </div>`; })}</div>`}
+      <div class="mt-3 flex items-center gap-2 flex-wrap"><a class="btn-ghost" href="/air-setup" target="_blank" rel="noopener"><${Icon} name="Cpu" size=${15} />보드 설치 페이지</a>
+        <span class="text-[12.5px] text-mist">컴퓨터에서 열기 · ${location.host}/air-setup</span></div>
       <div class="insight mt-3 text-[13.5px]"><b>야외에서 쓸 때</b>
         <ol class="list-decimal pl-5 mt-1 grid gap-1">
           <li>아이폰 설정 → 개인용 핫스팟 → <b>'다른 사람의 연결 허용'</b>과 <b>'호환성 최대화'</b>를 켜세요.</li>

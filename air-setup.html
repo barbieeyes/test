@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#2FA463">
+<title>에코쌤즈 공기 보드 설치</title>
+<link rel="icon" type="image/svg+xml" href="/icons/fav.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<style>
+:root{--grass:#2FA463;--grass-deep:#1E7F4A;--ink:#1D3B2A;--lime:#C6DE3A;--leaf:#7CC242;--sun:#FFEB3B;--cream:#FFFBE6;--paper:#F6FAF2;--mist:#5F7A68;--line:rgba(29,59,42,.12);--line2:rgba(29,59,42,.2);--rose:#D9365A;
+  --f-d:"Jua","IBM Plex Sans KR",sans-serif;--f-b:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;--f-m:"JetBrains Mono",ui-monospace,monospace}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--f-b)}
+.hero{background-color:var(--grass);background-image:linear-gradient(rgba(255,255,255,.16) 1.5px,transparent 1.5px),linear-gradient(90deg,rgba(255,255,255,.16) 1.5px,transparent 1.5px);background-size:44px 44px;
+  border-bottom:4px solid var(--lime);box-shadow:0 4px 0 var(--leaf);padding:26px 16px 30px;text-align:center;color:#fff}
+.hero small{display:inline-block;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.45);font-weight:600;font-size:13px}
+.hero h1{font-family:var(--f-d);font-weight:400;font-size:clamp(32px,6vw,52px);line-height:1.1;margin:10px 0 0;text-shadow:0 4px 0 rgba(20,90,50,.35)}
+.hero h1 b{color:var(--sun);font-weight:400}
+.hero p{display:inline-block;margin:14px 0 0;background:var(--cream);color:var(--grass-deep);font-family:var(--f-d);font-size:clamp(16px,2.6vw,21px);padding:6px 20px;border:3px solid var(--grass-deep);box-shadow:6px 6px 0 rgba(255,255,255,.5)}
+main{max-width:760px;margin:0 auto;padding:22px 16px 60px;display:grid;gap:18px}
+.card{background:#fff;border:1.5px solid var(--line);border-radius:20px;box-shadow:0 6px 18px rgba(30,127,74,.07);padding:18px}
+.step{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.num{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--grass);color:#fff;font-family:var(--f-d);font-size:19px;box-shadow:0 3px 0 var(--grass-deep)}
+.step h2{font-family:var(--f-d);font-weight:400;font-size:22px;margin:0;color:var(--grass-deep)}
+.card p,.card li{color:#304a3c}.card ul,.card ol{padding-left:22px;margin:8px 0}
+.go{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:10px 22px;border-radius:16px;font-family:var(--f-d);font-size:20px;color:var(--ink);background:var(--sun);border:2.5px solid var(--grass-deep);box-shadow:0 4px 0 var(--grass-deep);cursor:pointer}
+.go:active{transform:translateY(3px);box-shadow:0 1px 0 var(--grass-deep)}
+.go:disabled{opacity:.5;cursor:not-allowed}
+.ghost{min-height:44px;padding:0 16px;border-radius:14px;border:1.5px solid var(--line2);background:#fff;color:var(--ink);font:600 15px var(--f-b);cursor:pointer}
+.warn{border-radius:14px;padding:12px 14px;background:#FFF1F3;border:2px solid #F5A3B4;color:#9F1239;font-weight:600}
+.tip{border-radius:14px;padding:12px 14px;background:#FFF8DB;border:1.5px solid #F2D45A;font-size:14.5px}
+.fields{display:grid;gap:12px;margin-top:10px}
+label span{display:block;font-size:12.5px;font-weight:700;color:var(--grass-deep);margin-bottom:5px}
+input{width:100%;font:16px var(--f-b);padding:11px 13px;border-radius:12px;border:2px solid var(--line2);color:var(--ink)}
+input:focus{outline:none;border-color:var(--grass);box-shadow:0 0 0 3px rgba(47,164,99,.2)}
+.checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.chk{border-radius:14px;padding:10px;text-align:center;background:#F3F8EC;border:1.5px solid rgba(124,194,66,.28);font-weight:700;font-size:14px;color:var(--mist)}
+.chk i{display:block;font-style:normal;font-size:22px;line-height:1.2}
+.chk.ok{background:var(--grass);color:#fff;border-color:var(--grass-deep)}
+.chk.bad{background:#FFF1F3;color:#9F1239;border-color:#F5A3B4}
+pre{background:#0f241a;color:#cfe9d9;border-radius:14px;padding:12px;font:12.5px/1.5 var(--f-m);height:220px;overflow:auto;white-space:pre-wrap;margin:12px 0 0}
+esp-web-install-button button[slot=activate]{all:unset}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--mist);font-size:14px}
+@media(max-width:520px){.checks{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <small>기후행동 실천모임 에코쌤즈</small>
+  <h1><b>공기 보드</b> 설치</h1>
+  <p>컴퓨터에서 한 번만 하면 끝나요</p>
+</header>
+<main>
+  <div class="warn" id="nosup" hidden>이 브라우저는 보드에 연결할 수 없어요. 컴퓨터의 <b>크롬</b>, <b>엣지</b>, <b>웨일</b>에서 이 주소를 열어 주세요. (휴대폰·사파리에서는 안 돼요)</div>
+
+  <section class="card">
+    <div class="step"><span class="num">1</span><h2>보드를 컴퓨터에 꽂기</h2></div>
+    <ul>
+      <li>센서 케이블을 보드의 <b>SENSOR</b> 소켓에 꽂아요.</li>
+      <li>USB-C 케이블로 보드를 컴퓨터에 연결하고, 보드 스위치를 <b>ON</b>으로 켜요.</li>
+      <li>이지온·아두이노 프로그램이 켜져 있으면 꺼 주세요. (보드를 같이 쓰면 연결이 안 돼요)</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <div class="step"><span class="num">2</span><h2>프로그램 넣기</h2></div>
+    <p>아래 버튼 → 목록에서 <b>USB 장치(COM…)</b>를 고르고 <b>연결</b> → <b>설치(Install)</b>를 누르세요. 1~2분 걸려요.</p>
+    <esp-web-install-button manifest="/air-fw/manifest.json">
+      <button slot="activate" class="go">보드에 프로그램 넣기</button>
+      <span slot="unsupported" class="warn" style="display:block">이 브라우저는 지원하지 않아요. 컴퓨터의 크롬·엣지·웨일에서 열어 주세요.</span>
+      <span slot="not-allowed" class="warn" style="display:block">https 주소에서만 쓸 수 있어요.</span>
+    </esp-web-install-button>
+    <div class="tip" style="margin-top:12px">
+      <b>목록에 아무것도 안 보이면</b><br>
+      · 케이블이 충전 전용일 수 있어요. 데이터가 되는 USB-C 케이블로 바꿔 보세요.<br>
+      · 보드의 <b>BOOT</b> 버튼을 누른 채로 <b>RST</b>를 한 번 눌렀다 떼고, 다시 시도해 보세요.<br>
+      · 학교 컴퓨터에서 드라이버가 없다고 나오면 이지온 자료실(ezon.ai)의 보드 드라이버를 설치해 주세요.
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="step"><span class="num">3</span><h2>핫스팟 정보 넣기</h2></div>
+    <p>설치가 끝나면 설치 창을 닫고, 핫스팟 이름·비밀번호를 넣어 주세요. 보드에만 저장돼요.</p>
+    <div class="row"><button class="go" id="conn" type="button">보드 연결</button><span class="muted" id="cstat">아직 연결 안 됨</span></div>
+    <form class="fields" id="form">
+      <label><span>핫스팟(와이파이) 이름</span><input id="ssid" required maxlength="32" placeholder="예: 이정연의 iPhone" autocomplete="off"></label>
+      <label><span>비밀번호</span><input id="pass" type="password" maxlength="63" autocomplete="off"></label>
+      <label><span>측정 장소 (나중에 앱에서도 바꿀 수 있어요)</span><input id="place" maxlength="30" placeholder="예: 한강 둔치"></label>
+      <div class="row"><button class="go" id="save" type="submit" disabled>보드에 저장하기</button><label class="muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="showpw" style="width:auto">비밀번호 보기</label></div>
+    </form>
+    <div class="tip" style="margin-top:12px">아이폰 핫스팟은 <b>설정 → 개인용 핫스팟</b>에서 '다른 사람의 연결 허용'과 <b>'호환성 최대화'</b>를 켜 두세요. 이름은 <b>설정 → 일반 → 정보 → 이름</b>에 있어요.</div>
+  </section>
+
+  <section class="card">
+    <div class="step"><span class="num">4</span><h2>잘 되는지 확인</h2></div>
+    <div class="checks">
+      <div class="chk" id="c-sensor"><i>·</i>센서</div>
+      <div class="chk" id="c-wifi"><i>·</i>와이파이</div>
+      <div class="chk" id="c-up"><i>·</i>기록 올리기</div>
+    </div>
+    <p class="muted" id="board">세 칸이 모두 초록색이 되면 끝! 휴대폰에서 에코쌤즈 → <b>공기</b> 탭을 열어 보세요. (첫 기록은 1~2분 뒤에 올라와요)</p>
+    <pre id="log" aria-live="polite"></pre>
+  </section>
+</main>
+<script>
+{
+const $ = (id) => document.getElementById(id);
+if (!("serial" in navigator)) $("nosup").hidden = false;
+let port = null, writer = null, buf = "";
+const logEl = $("log");
+const log = (t) => { logEl.textContent += t; if (logEl.textContent.length > 20000) logEl.textContent = logEl.textContent.slice(-15000); logEl.scrollTop = logEl.scrollHeight; };
+const mark = (id, ok) => { const el = $(id); el.classList.toggle("ok", ok === true); el.classList.toggle("bad", ok === false); el.querySelector("i").textContent = ok === true ? "✓" : ok === false ? "!" : "·"; };
+function onLine(l) {
+  if (l.includes("[센서]")) mark("c-sensor", l.includes("발견"));
+  if (l.startsWith("EZCO2 INFO")) {
+    const g = (k) => (l.match(new RegExp(k + "=([^ ]*)")) || [])[1] || "";
+    mark("c-sensor", g("sensor") === "1"); if (g("wifi") === "1") mark("c-wifi", true);
+    $("board").textContent = `보드 ${g("dev").toUpperCase()} · 버전 ${g("ver")}`;
+    if (!$("ssid").value) $("ssid").value = (l.match(/ssid=(.*?) place=/) || [])[1] || "";
+    if (!$("place").value) $("place").value = (l.match(/place=(.*?) wifi=/) || [])[1] || "";
+  }
+  if (l.includes("[와이파이] 연결됨")) mark("c-wifi", true);
+  if (l.includes("[와이파이] 끊김")) mark("c-wifi", false);
+  if (l.includes("[저장소]")) mark("c-up", l.includes("올림"));
+  if (l.startsWith("EZCO2 OK")) { $("cstat").textContent = "저장했어요 · 보드가 다시 시작해요"; }
+}
+async function readLoop() {
+  const dec = new TextDecoderStream(); port.readable.pipeTo(dec.writable).catch(() => {});
+  const rd = dec.readable.getReader();
+  try { for (;;) { const { value, done } = await rd.read(); if (done) break; log(value); buf += value; let i;
+    while ((i = buf.indexOf("\n")) >= 0) { onLine(buf.slice(0, i).replace(/\r$/, "")); buf = buf.slice(i + 1); } } }
+  catch (e) { log("\n[연결이 끊겼어요]\n"); }
+  $("cstat").textContent = "연결 끊김"; $("save").disabled = true; port = null;
+}
+async function send(t) { const enc = new TextEncoder(); const w = port.writable.getWriter(); await w.write(enc.encode(t)); w.releaseLock(); }
+$("conn").onclick = async () => {
+  if (!("serial" in navigator)) return;
+  try {
+    port = await navigator.serial.requestPort(); await port.open({ baudRate: 115200 });
+    try { await port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (e) {}
+    $("cstat").textContent = "연결됨"; $("save").disabled = false; readLoop();
+    setTimeout(() => port && send("INFO\n"), 1500);
+  } catch (e) { $("cstat").textContent = e.name === "NotFoundError" ? "취소했어요" : "연결 실패: 설치 창이 열려 있으면 닫고 다시 눌러 주세요"; }
+};
+$("showpw").onchange = (e) => { $("pass").type = e.target.checked ? "text" : "password"; };
+$("form").onsubmit = async (e) => {
+  e.preventDefault(); if (!port) return;
+  const clean = (s) => s.replace(/[\t\r\n]/g, " ").trim();
+  mark("c-wifi", null); mark("c-up", null);
+  await send(`SET\t${clean($("ssid").value)}\t${$("pass").value.replace(/[\t\r\n]/g, "")}\t${clean($("place").value)}\n`);
+  $("cstat").textContent = "보내는 중…";
+};
+}
+</script>
+</body>
+</html>
