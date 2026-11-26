@@ -2304,7 +2304,7 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
         : html`<div class="grid gap-2">${boards.map((b) => { const cp = (cfgs.get(b.dev) || {}).place, cur = cp || b.place, alive = now - b.end < 600000;
           return html`<div key=${b.dev} class="air-row" style=${{ cursor: "default" }}>
             <span class="air-dot" style=${{ background: alive ? "var(--grass)" : "#B8C7BD" }}></span>
-            ${editDev === b.dev ? html`<form class="flex gap-2 flex-1 min-w-0" onSubmit=${(e) => { e.preventDefault(); const v = editPlace.trim(); if (!v) return; onSaveCfg(b.dev, v); setEditDev(null); say("장소 이름을 바꿨어요"); }}>
+            ${editDev === b.dev ? html`<form class="flex gap-2 flex-1 min-w-0" onSubmit=${(e) => { e.preventDefault(); const v = editPlace.trim(); if (!v) return; onStart(b.dev, v); setEditDev(null); }}>
                 <input class="air-thr flex-1 min-w-0" style=${{ textAlign: "left", fontFamily: "var(--f-body)", fontSize: "16px" }} maxlength="30" value=${editPlace} onInput=${(e) => setEditPlace(e.target.value)} autofocus />
                 <button type="submit" class="btn-ghost">저장</button></form>`
               : html`<span class="grid text-left min-w-0 flex-1"><b class="truncate">${cur}</b><small class="text-mist">보드 ${b.dev.toUpperCase()} · 마지막 기록 ${agoTxt(b.end)}${cp && cp !== b.place ? " · 장소 바꾸는 중" : ""}</small></span>

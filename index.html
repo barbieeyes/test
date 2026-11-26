@@ -531,7 +531,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>window.__BUILD__ = "20261126145257";</script>
+<script>window.__BUILD__ = "20261126145656";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -3370,7 +3370,7 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
         : html`<div class="grid gap-2">${boards.map((b) => { const cp = (cfgs.get(b.dev) || {}).place, cur = cp || b.place, alive = now - b.end < 600000;
           return html`<div key=${b.dev} class="air-row" style=${{ cursor: "default" }}>
             <span class="air-dot" style=${{ background: alive ? "var(--grass)" : "#B8C7BD" }}></span>
-            ${editDev === b.dev ? html`<form class="flex gap-2 flex-1 min-w-0" onSubmit=${(e) => { e.preventDefault(); const v = editPlace.trim(); if (!v) return; onSaveCfg(b.dev, v); setEditDev(null); say("장소 이름을 바꿨어요"); }}>
+            ${editDev === b.dev ? html`<form class="flex gap-2 flex-1 min-w-0" onSubmit=${(e) => { e.preventDefault(); const v = editPlace.trim(); if (!v) return; onStart(b.dev, v); setEditDev(null); }}>
                 <input class="air-thr flex-1 min-w-0" style=${{ textAlign: "left", fontFamily: "var(--f-body)", fontSize: "16px" }} maxlength="30" value=${editPlace} onInput=${(e) => setEditPlace(e.target.value)} autofocus />
                 <button type="submit" class="btn-ghost">저장</button></form>`
               : html`<span class="grid text-left min-w-0 flex-1"><b class="truncate">${cur}</b><small class="text-mist">보드 ${b.dev.toUpperCase()} · 마지막 기록 ${agoTxt(b.end)}${cp && cp !== b.place ? " · 장소 바꾸는 중" : ""}</small></span>
