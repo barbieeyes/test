@@ -35,7 +35,7 @@ static String wifiSsid, wifiPass;
 static Preferences prefs;
 #define WIFI_SSID wifiSsid.c_str()
 #define WIFI_PASS wifiPass.c_str()
-#define FW_VERSION "1.3.5"
+#define FW_VERSION "1.3.6"
 
 // 에코쌤즈 팀 저장소 (앱과 같은 공개 키 · 팀 비밀번호)
 const char* SB_URL   = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
@@ -87,20 +87,33 @@ static bool verifyBus() {
   }
   return true;
 }
+static bool quietScan = false;
 static bool tryPins(int sda, int scl) {
   if (sda < 0 || scl < 0 || sda == scl) return false;
-  Wire.end(); Wire.begin(sda, scl, 100000); delay(20);
+  Wire.end(); Wire.begin(sda, scl, 100000); delay(quietScan ? 3 : 20);
   sensor = NONE;
   if (probe(0x62)) { sensor = SCD4X; addr = 0x62; } else if (probe(0x61)) { sensor = SCD30; addr = 0x61; }
   if (sensor == NONE) return false;
   dbgLeft = 0;
-  if (!verifyBus()) { Serial.printf("[센서] SDA=%d SCL=%d 는 가짜 대답이라 건너뜀\n", sda, scl); sensor = NONE; return false; }
+  if (!verifyBus()) { if (!quietScan) Serial.printf("[센서] SDA=%d SCL=%d 는 가짜 대답이라 건너뜀\n", sda, scl); sensor = NONE; return false; }
   dbgLeft = 6;
   Serial.printf("[센서] %s 확인 완료 SDA=%d SCL=%d\n", sensor == SCD4X ? "SCD4x" : "SCD30", sda, scl);
   prefs.putInt("sda", sda); prefs.putInt("scl", scl);
   return true;
 }
+static void applyEnable() {  // 지난번에 찾은 '센서 포트 켜기' 핀
+  int en = prefs.getInt("en", -1), lv = prefs.getInt("enlv", 1);
+  if (en >= 0) { pinMode(en, OUTPUT); digitalWrite(en, lv); delay(300); Serial.printf("[센서] 포트 켜기 핀 %d = %s\n", en, lv ? "HIGH" : "LOW"); }
+}
+static bool scanPairs(const int* pins, int n, int skip) {
+  for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+    if (pins[i] == pins[j] || pins[i] == skip || pins[j] == skip) continue;
+    if (tryPins(pins[i], pins[j])) return true;
+  }
+  return false;
+}
 static bool findSensor() {
+  applyEnable();
   // 지난번에 찾은 핀부터
   int ps = prefs.getInt("sda", -1), pc = prefs.getInt("scl", -1);
   if (tryPins(FORCE_SDA, FORCE_SCL) || tryPins(ps, pc)) return true;
@@ -112,11 +125,27 @@ static bool findSensor() {
   const int pins[] = {21, 22, 18, 19, 32, 33, 25, 26, 27, 4, 5, 13, 14, 15, 16, 17, 23, 2, 12};
 #endif
   const int n = sizeof(pins) / sizeof(pins[0]);
-  for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
-    if (pins[i] == pins[j]) continue;
-    if (tryPins(pins[i], pins[j])) return true;
+  // 각 핀의 상태(풀업 켰을 때 HIGH가 정상) — LOW면 무언가 잡아당기고 있음
+  { String lv; Wire.end(); for (int i = 0; i < n; i++) { if (i > 0 && pins[i] == pins[0]) continue; pinMode(pins[i], INPUT_PULLUP); delay(2); lv += String(pins[i]) + (digitalRead(pins[i]) ? ":H " : ":L "); }
+    Serial.printf("[핀 상태] %s\n", lv.c_str()); }
+  if (scanPairs(pins, n, -99)) return true;
+  // 못 찾으면: 센서 포트를 켜는 핀이 따로 있을 수 있어 하나씩 켜/꺼 보며 다시 찾기
+  Serial.println("[센서] 센서 포트를 켜는 핀을 찾는 중… (1~2분)");
+  quietScan = true;
+  for (int e = 0; e < n; e++) for (int lv = 1; lv >= 0; lv--) {
+    int en = pins[e];
+    if (e > 0 && en == pins[0]) continue;
+    Wire.end(); pinMode(en, OUTPUT); digitalWrite(en, lv); delay(400);
+    if (scanPairs(pins, n, en)) {
+      quietScan = false;
+      prefs.putInt("en", en); prefs.putInt("enlv", lv);
+      Serial.printf("[센서] 찾았어요! 포트 켜기 핀 %d = %s\n", en, lv ? "HIGH" : "LOW");
+      return true;
+    }
+    pinMode(en, INPUT);
   }
-  Serial.println("[센서] 찾지 못했어요. 케이블이 SENSOR 소켓에 끝까지 꽂혔는지 확인해 주세요.");
+  quietScan = false;
+  Serial.println("[센서] 찾지 못했어요. 이지메이커에 SENSOR 포트 핀 번호를 문의해 주세요.");
   sensor = NONE;
   return false;
 }
