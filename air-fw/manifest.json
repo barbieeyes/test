@@ -1,7 +1,7 @@
 {
   "name": "에코쌤즈 공기 보드 (EZ-CO2 WiFi)",
-  "version": "1.3.3",
-  "new_install_prompt_erase": false,
+  "version": "1.3.4",
+  "new_install_prompt_erase": true,
   "new_install_improv_wait_time": 0,
   "builds": [
     {
