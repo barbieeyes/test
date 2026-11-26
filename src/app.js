@@ -99,6 +99,7 @@ const TABS = [
   { id: "today", label: "오늘", icon: "Sun" },
   { id: "solo", label: "따로", icon: "House" },
   { id: "team", label: "같이", icon: "School" },
+  { id: "air", label: "공기", icon: "Wind" },
   { id: "map", label: "지도", icon: "Map" },
   { id: "activity", label: "활동", icon: "Users" },
   { id: "archive", label: "아카이브", icon: "Film" },
@@ -642,7 +643,7 @@ function Hero({ children }) {
 /** 언제나 위에 있는 이동 막대: 뒤로 · 처음(로고) · 멤버 전환 · 설정 · 나가기 */
 function NavBar({ tab, name, canBack, onBack, onHome, onSwitch, onSettings, onLogout, hasKey }) {
   const t = TABS.find((x) => x.id === tab) || TABS[0];
-  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "따로 또 같이" }[tab];
+  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", air: "우리 교실 공기 탐사", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "따로 또 같이" }[tab];
   return html`<div class="strip">
     <div class="strip-in">
       <button type="button" class="nav-btn" onClick=${onBack} aria-label=${canBack ? "뒤로 가기" : "처음 화면으로"} disabled=${!canBack && tab === "today"}>
@@ -1986,6 +1987,260 @@ async function buildAllZip({ records, acts, meetings }, onStep) {
 }
 
 /* ---------- 앱 ---------- */
+/* ---------- 공기 탐사 (EZMAKER nano + CO₂ 센서, 블루투스) ----------
+ * 5초 측정값은 이 휴대폰(ecossam-air IndexedDB)에만 두고,
+ * 1분 평균을 '하루 × 장소 × 휴대폰'마다 기록 하나(kind: "air")로 묶어 팀 저장소에 올린다.
+ * 보드 펌웨어(EZ_CO2_Logger)와 같은 17바이트 패킷 형식. */
+const AIR_SVC = "6e400001-b5a3-f393-e0a9-e50e24dc4c02", AIR_DATA = "6e400003-b5a3-f393-e0a9-e50e24dc4c02", AIR_CMD = "6e400002-b5a3-f393-e0a9-e50e24dc4c02";
+const LS_AIR = "ecossam.air.v1";
+const airCfg = { get() { return store.get(LS_AIR, {}) || {}; }, set(p) { store.set(LS_AIR, { ...this.get(), ...p }); } };
+const airDevId = () => { let d = airCfg.get().dev; if (!d) { d = Math.random().toString(36).slice(2, 8); airCfg.set({ dev: d }); } return d; };
+const airHash = (s) => { let x = 7; for (const ch of String(s)) x = (x * 31 + ch.codePointAt(0)) >>> 0; return x.toString(36); };
+const AIR_LV = [[800, "좋음", "#2FA463"], [1000, "보통", "#B9A30A"], [2000, "환기 필요", "#E07B12"], [1e9, "즉시 환기", "#D9365A"]];
+const airLv = (v) => AIR_LV.find((l) => v < l[0]);
+const AIR_COL = { co2: "#2FA463", t: "#D98E04", h: "#2B9BD6" };
+const airRaw = {
+  _p: null,
+  open() {
+    if (this._p) return this._p;
+    this._p = new Promise((res) => { try { const rq = indexedDB.open("ecossam-air", 1);
+      rq.onupgradeneeded = () => { const s = rq.result.createObjectStore("raw", { keyPath: "id" }); s.createIndex("ts", "ts"); };
+      rq.onsuccess = () => res(rq.result); rq.onerror = () => res(null); } catch (e) { res(null); } });
+    return this._p;
+  },
+  async put(list) { const d = await this.open(); if (!d || !list.length) return;
+    await new Promise((res) => { try { const t = d.transaction("raw", "readwrite"); const s = t.objectStore("raw"); list.forEach((r) => s.put(r)); t.oncomplete = res; t.onerror = res; t.onabort = res; } catch (e) { res(); } }); },
+  async since(ts) { const d = await this.open(); if (!d) return [];
+    return new Promise((res) => { try { const out = []; const c = d.transaction("raw").objectStore("raw").index("ts").openCursor(IDBKeyRange.lowerBound(ts));
+      c.onsuccess = (e) => { const cur = e.target.result; if (cur) { out.push(cur.value); cur.continue(); } else res(out); }; c.onerror = () => res(out); } catch (e) { res([]); } }); },
+};
+const AIR = {
+  st: "idle", msg: "", dev: null, want: false, retry: 0, live: null, recent: [], loaded: false,
+  buckets: new Map(), pendRaw: [], mine: new Map(), subs: new Set(), hooks: { getItem: () => null, save: async () => {}, me: "" },
+  emit() { this.subs.forEach((f) => { try { f(); } catch (e) {} }); },
+  sub(f) { this.subs.add(f); return () => this.subs.delete(f); },
+  set(st, msg) { this.st = st; this.msg = msg || ""; this.emit(); },
+  async init() { if (this.loaded) return; this.loaded = true;
+    const rows = await airRaw.since(Date.now() - 86400000); rows.sort((a, b) => a.ts - b.ts); this.recent = rows; this.live = rows[rows.length - 1] || null; this.emit(); },
+  async connect() {
+    if (!navigator.bluetooth) { this.set("idle", "이 브라우저는 블루투스를 쓸 수 없어요. 아이폰은 Bluefy 앱에서, 안드로이드·PC는 크롬에서 에코쌤즈를 열어 주세요."); return; }
+    if (!(airCfg.get().place || "").trim()) { this.set("idle", "먼저 측정 장소를 적어 주세요."); return; }
+    try {
+      this.dev = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "EZ-CO2" }], optionalServices: [AIR_SVC] });
+      this.dev.addEventListener("gattserverdisconnected", () => this.onDisc());
+      this.want = true; await this.link();
+    } catch (e) { if (e && e.name !== "NotFoundError") this.set("idle", "연결 실패: " + (e.message || e)); }
+  },
+  async link() {
+    this.set("wait", "연결 중…");
+    const srv = await this.dev.gatt.connect();
+    const svc = await srv.getPrimaryService(AIR_SVC);
+    const data = await svc.getCharacteristic(AIR_DATA), cmd = await svc.getCharacteristic(AIR_CMD);
+    data.addEventListener("characteristicvaluechanged", (e) => this.onPacket(e.target.value));
+    await data.startNotifications();
+    const last = airCfg.get().last || { boot: 0, seq: -1 };
+    const b = new DataView(new ArrayBuffer(7)); b.setUint8(0, 72); b.setUint16(1, last.seq < 0 ? 0xFFFF ^ last.boot : last.boot, true); b.setUint32(3, Math.max(0, last.seq) >>> 0, true);
+    try { await (cmd.writeValueWithResponse ? cmd.writeValueWithResponse(b) : cmd.writeValue(b)); } catch (e) {}
+    this.retry = 0; this.set("on", "");
+  },
+  onDisc() { this.flush(true);
+    if (!this.want) { this.set("idle", ""); return; }
+    this.set("wait", "다시 연결 중…");
+    const wait = Math.min(30000, 1500 * 2 ** this.retry++);
+    setTimeout(() => { if (this.want && this.dev) this.link().catch(() => this.onDisc()); }, wait);
+  },
+  disconnect() { this.want = false; if (this.dev && this.dev.gatt.connected) this.dev.gatt.disconnect(); else this.set("idle", ""); },
+  onPacket(dv) {
+    if (dv.byteLength < 17) return;
+    const type = dv.getUint8(0), boot = dv.getUint16(1, true), seq = dv.getUint32(3, true), age = dv.getUint32(7, true);
+    if (type === 3) { this.flush(false); return; }
+    const r = { id: boot + "-" + seq, ts: Date.now() - age * 1000, co2: dv.getUint16(11, true), t: +(dv.getInt16(13, true) / 100).toFixed(1), h: +(dv.getUint16(15, true) / 100).toFixed(1) };
+    if (!r.co2) return;
+    const last = airCfg.get().last || { boot: 0, seq: -1 };
+    if (boot !== last.boot || seq > last.seq) airCfg.set({ last: { boot, seq } });
+    this.pendRaw.push(r); if (this.pendRaw.length >= 100) { const p = this.pendRaw; this.pendRaw = []; airRaw.put(p); }
+    const place = (airCfg.get().place || "").trim() || "장소 미정";
+    const m = Math.floor(r.ts / 60000) * 60000, key = m + "|" + place;
+    const bk = this.buckets.get(key) || { m, place, n: 0, c: 0, t: 0, h: 0 }; bk.n++; bk.c += r.co2; bk.t += r.t; bk.h += r.h; this.buckets.set(key, bk);
+    if (!this.recent.length || r.ts >= this.recent[this.recent.length - 1].ts) this.recent.push(r);
+    else { const i = this.recent.findIndex((x) => x.ts > r.ts); this.recent.splice(i < 0 ? this.recent.length : i, 0, r); }
+    const cut = Date.now() - 86400000; while (this.recent.length && this.recent[0].ts < cut) this.recent.shift();
+    if (type === 1) { this.live = r; }
+    this.emit();
+  },
+  /** 끝난 1분 구간을 평균 내서 '하루 × 장소' 기록에 붙이고 저장 */
+  async flush(all) {
+    if (this.pendRaw.length) { const p = this.pendRaw; this.pendRaw = []; airRaw.put(p); }
+    const cur = Math.floor(Date.now() / 60000) * 60000, groups = new Map();
+    for (const [k, b] of this.buckets) { if (!all && b.m >= cur) continue; this.buckets.delete(k);
+      const id = `air_${airDevId()}_${ymd(b.m).replace(/-/g, "")}_${airHash(b.place)}`;
+      (groups.get(id) || groups.set(id, { place: b.place, day: ymd(b.m), pts: [] }).get(id)).pts.push([b.m, Math.round(b.c / b.n), +(b.t / b.n).toFixed(1), +(b.h / b.n).toFixed(1), b.n]); }
+    for (const [id, g] of groups) {
+      const base = this.mine.get(id) || this.hooks.getItem(id) || { id, kind: "air", place: g.place, day: g.day, researcher: this.hooks.me, dev: airDevId(), points: [] };
+      const mp = new Map((base.points || []).map((p) => [p[0], p]));
+      for (const p of g.pts) { const o = mp.get(p[0]); if (o && o[4]) { const n = o[4] + p[4]; mp.set(p[0], [p[0], Math.round((o[1] * o[4] + p[1] * p[4]) / n), +((o[2] * o[4] + p[2] * p[4]) / n).toFixed(1), +((o[3] * o[4] + p[3] * p[4]) / n).toFixed(1), n]); } else mp.set(p[0], p); }
+      const points = [...mp.values()].sort((a, b) => a[0] - b[0]);
+      const item = { ...base, points, ts: points[0][0], end: points[points.length - 1][0], updated: Date.now() };
+      this.mine.set(id, item);
+      try { await this.hooks.save(item); } catch (e) {}
+    }
+  },
+};
+setInterval(() => { if (AIR.buckets.size) AIR.flush(false); }, 20000);
+const airStats = (pts, k) => { if (!pts.length) return null; let mn = Infinity, mx = -Infinity, s = 0; for (const p of pts) { const v = p[k]; if (v < mn) mn = v; if (v > mx) mx = v; s += v; } return { mn, mx, avg: s / pts.length }; };
+const itemPts = (it) => (it.points || []).map((p) => ({ ts: p[0], co2: p[1], t: p[2], h: p[3] }));
+
+function drawAirChart(cv, pts, metric, t0, t1, thr) {
+  const W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1; if (!W) return;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr); g.clearRect(0, 0, W, H);
+  const mute = "#5F7A68", f = metric === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
+  let ps = pts.filter((p) => p.ts >= t0 && p.ts <= t1);
+  const maxN = Math.max(60, Math.floor(W));
+  if (ps.length > maxN) { const step = ps.length / maxN, o = [];
+    for (let i = 0; i < maxN; i++) { const s = ps.slice(Math.floor(i * step), Math.floor((i + 1) * step)); if (!s.length) continue;
+      o.push({ ts: s[s.length >> 1].ts, co2: s.reduce((a, b) => a + b.co2, 0) / s.length, t: s.reduce((a, b) => a + b.t, 0) / s.length, h: s.reduce((a, b) => a + b.h, 0) / s.length }); } ps = o; }
+  const L = W < 420 ? 42 : 54, R = 12, T = 14, B = 28;
+  if (!ps.length) { g.fillStyle = mute; g.textAlign = "center"; g.font = '16px Jua,sans-serif'; g.fillText("이 기간에 기록이 없어요", W / 2, H / 2); return; }
+  let lo = Math.min(...ps.map((p) => p[metric])), hi = Math.max(...ps.map((p) => p[metric]));
+  if (metric === "co2") { lo = Math.min(lo, 400); hi = Math.max(hi, 1100); }
+  const pad = (hi - lo) * 0.1 || 1; lo -= pad; hi += pad;
+  const x = (ts) => L + (ts - t0) / (t1 - t0) * (W - L - R), y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  if (metric === "co2") { let prev = lo; for (const [lim, , c] of AIR_LV) { const top = Math.min(lim, hi); if (top > prev) { g.fillStyle = c + "14"; g.fillRect(L, y(top), W - L - R, y(prev) - y(top)); } prev = Math.max(prev, lim); } }
+  g.fillStyle = mute; g.strokeStyle = "rgba(29,59,42,.1)"; g.lineWidth = 1; g.textAlign = "right"; g.textBaseline = "middle"; g.font = '11px "JetBrains Mono",monospace';
+  for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4, yy = y(v); g.beginPath(); g.moveTo(L, yy); g.lineTo(W - R, yy); g.stroke(); g.fillText(f(v), L - 6, yy); }
+  g.textAlign = "center"; g.textBaseline = "top"; const long = t1 - t0 > 86400000 * 1.5;
+  const ticks = W < 420 ? 3 : 5; for (let i = 0; i <= ticks; i++) { const ts = t0 + (t1 - t0) * i / ticks, d = new Date(ts);
+    const lab = long ? `${d.getMonth() + 1}/${d.getDate()}` : `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    g.fillText(lab, Math.min(W - R - 16, Math.max(L + 16, x(ts))), H - B + 9); }
+  if (metric === "co2" && thr > lo && thr < hi) { g.setLineDash([5, 4]); g.strokeStyle = "#D9365A"; g.beginPath(); g.moveTo(L, y(thr)); g.lineTo(W - R, y(thr)); g.stroke(); g.setLineDash([]); }
+  g.strokeStyle = AIR_COL[metric]; g.lineWidth = 2.5; g.lineJoin = "round"; g.lineCap = "round"; g.beginPath(); let prev = null;
+  for (const p of ps) { const X = x(p.ts), Y = y(p[metric]); if (!prev || p.ts - prev > 300000) g.moveTo(X, Y); else g.lineTo(X, Y); prev = p.ts; }
+  g.stroke();
+  const lp = ps[ps.length - 1]; g.fillStyle = "#fff"; g.strokeStyle = AIR_COL[metric]; g.beginPath(); g.arc(x(lp.ts), y(lp[metric]), 4.5, 0, 7); g.fill(); g.stroke();
+}
+function AirChart({ pts, metric, t0, t1, thr }) {
+  const ref = useRef(null), args = useRef(null); args.current = { pts, metric, t0, t1, thr };
+  useEffect(() => { const cv = ref.current; if (!cv) return; const draw = () => { const a = args.current; drawAirChart(cv, a.pts, a.metric, a.t0, a.t1, a.thr); };
+    const ro = new ResizeObserver(draw); ro.observe(cv); return () => ro.disconnect(); }, []);
+  useEffect(() => { const cv = ref.current; if (cv) drawAirChart(cv, pts, metric, t0, t1, thr); });
+  return html`<div class="air-fig"><canvas ref=${ref}></canvas></div>`;
+}
+const MetricChips = ({ v, set }) => html`<div class="flex gap-1.5 flex-wrap">${[["co2", "CO₂"], ["t", "온도"], ["h", "습도"]].map(([k, l]) =>
+  html`<button key=${k} type="button" class=${"chip" + (v === k ? " chip-on" : "")} aria-pressed=${v === k} onClick=${() => set(k)}>${l}</button>`)}</div>`;
+const airCsv = (pts) => "﻿시간,CO2(ppm),온도(C),습도(%)\n" + pts.map((p) => { const d = new Date(p.ts), q = (n) => String(n).padStart(2, "0");
+  return `${ymd(p.ts)} ${q(d.getHours())}:${q(d.getMinutes())}:${q(d.getSeconds())},${Math.round(p.co2)},${p.t},${p.h}`; }).join("\n");
+
+function AirView({ me, airs, onDelete, say }) {
+  const [, force] = useState(0);
+  useEffect(() => { AIR.init(); return AIR.sub(() => force((n) => n + 1)); }, []);
+  const cfg = airCfg.get();
+  const [place, setPlace] = useState(cfg.place || "");
+  const [thr, setThr] = useState(cfg.thr || 1000);
+  const [metric, setMetric] = useState("co2"), [range, setRange] = useState(3600000);
+  const [openId, setOpenId] = useState(null), [m2, setM2] = useState("co2");
+  const [ask, setAsk] = useState(null);
+  const live = AIR.live, on = AIR.st === "on", wait = AIR.st === "wait";
+  const fresh = live && Date.now() - live.ts < 120000;
+  const lv = live ? airLv(live.co2) : null;
+  const frac = live ? Math.max(0, Math.min(1, (live.co2 - 400) / 2100)) : 0;
+  const now = Date.now();
+  const list = useMemo(() => airs.filter((a) => (a.points || []).length).sort((a, b) => (b.end || b.ts) - (a.end || a.ts)), [airs]);
+  const places = [...new Set(list.map((a) => a.place))].slice(0, 6);
+  const open = list.find((a) => a.id === openId);
+  const savePlace = (v) => { setPlace(v); airCfg.set({ place: v }); };
+  const rec = AIR.recent;
+  const st = airStats(rec.filter((p) => p.ts >= now - range), metric);
+  const f = metric === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
+  return html`<div class="grid gap-4">
+    ${on && fresh && live.co2 >= thr && html`<div class="air-alarm" role="alert"><${Icon} name="Wind" size=${20} />CO₂ ${live.co2.toLocaleString()}ppm · 기준(${Number(thr).toLocaleString()}ppm)을 넘었어요. 창문을 열어 환기해 주세요!</div>`}
+    <section class="glass p-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Wind" size=${18} />지금 공기</h2>
+        <span class=${"air-conn" + (on ? " on" : wait ? " wait" : "")}><i></i>${on ? "기록 중" : wait ? (AIR.msg || "연결 중…") : "연결 안 됨"}</span></div>
+      <label class="fld mb-3"><span class="lbl">측정 장소</span>
+        <input class="air-place" type="text" maxlength="30" placeholder="예: 3학년 2반 교실" value=${place} onInput=${(e) => savePlace(e.target.value)} /></label>
+      <div class="air-live">
+        <div class="air-gauge">
+          <svg viewBox="0 0 128 82" aria-hidden="true">
+            <defs><linearGradient id="airg" x1="0" x2="1"><stop offset="0" stop-color="#2FA463"/><stop offset=".35" stop-color="#C6DE3A"/><stop offset=".62" stop-color="#F5B70B"/><stop offset="1" stop-color="#D9365A"/></linearGradient></defs>
+            <path d="M12 70 A52 52 0 0 1 116 70" fill="none" stroke="#E6EFDC" stroke-width="10" stroke-linecap="round"/>
+            <path d="M12 70 A52 52 0 0 1 116 70" fill="none" stroke="url(#airg)" stroke-width="10" stroke-linecap="round" stroke-dasharray=${`${(Math.PI * 52 * frac).toFixed(1)} 200`} style=${{ transition: "stroke-dasharray .8s ease" }}/>
+            <text x="64" y="58" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="24" font-weight="700" fill="#1D3B2A">${live ? live.co2.toLocaleString() : "––"}</text>
+            <text x="64" y="72" text-anchor="middle" font-size="9" fill="#5F7A68">CO₂ ppm</text>
+          </svg>
+          <span class="air-lv" style=${{ background: lv ? lv[2] : "#94A3B8" }}>${lv ? lv[1] : "측정 대기 중"}</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-1 gap-2.5">
+          <div class="stat air-temp"><div class="lbl">온도</div><b class="mono text-[26px]">${live ? live.t.toFixed(1) : "––"}</b><small class="text-mist"> ℃</small></div>
+          <div class="stat air-hum"><div class="lbl">습도</div><b class="mono text-[26px]">${live ? live.h.toFixed(1) : "––"}</b><small class="text-mist"> %</small></div>
+        </div>
+      </div>
+      <p class="text-[13px] text-mist mt-2">${live ? `마지막 측정 ${fmtDate(live.ts)}${fresh ? "" : " · 지금은 새 값이 안 들어와요"}` : "보드와 연결하면 5초마다 측정하고, 1분 평균을 팀 기록으로 올려요."}</p>
+      ${AIR.msg && !wait && html`<div class="err mt-2" role="alert">${AIR.msg}</div>`}
+      <div class="flex gap-2 mt-3 flex-wrap">
+        ${on || wait ? html`<button type="button" class="btn-ghost" onClick=${() => AIR.disconnect()}><${Icon} name="BluetoothOff" size=${16} />연결 끊기</button>`
+          : html`<button type="button" class="gate-go flex-1" onClick=${() => AIR.connect()}>보드 연결하고 기록 시작</button>`}
+      </div>
+    </section>
+
+    <section class="glass p-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Activity" size=${18} />이 휴대폰 실시간 그래프</h2></div>
+      <div class="flex justify-between gap-2 flex-wrap"><${MetricChips} v=${metric} set=${setMetric} />
+        <div class="flex gap-1.5 flex-wrap">${[[3600000, "1시간"], [21600000, "6시간"], [86400000, "24시간"]].map(([v, l]) =>
+          html`<button key=${v} type="button" class=${"chip" + (range === v ? " chip-on" : "")} aria-pressed=${range === v} onClick=${() => setRange(v)}>${l}</button>`)}</div></div>
+      <${AirChart} pts=${rec} metric=${metric} t0=${now - range} t1=${now} thr=${thr} />
+      <div class="grid grid-cols-3 gap-2 mt-2 text-center">${[["최저", "mn"], ["평균", "avg"], ["최고", "mx"]].map(([l, k]) =>
+        html`<div key=${k} class="stat"><div class="lbl">${l}</div><b class="mono text-[17px]">${st ? f(st[k]) : "–"}</b></div>`)}</div>
+      <div class="flex justify-end mt-2"><button type="button" class="btn-ghost" onClick=${async () => { const rows = (await airRaw.since(0)).sort((a, b) => a.ts - b.ts);
+        if (!rows.length) { say("이 휴대폰에 저장된 측정값이 없어요"); return; } saveFile(`공기_5초원본_${ymd(Date.now())}.csv`, airCsv(rows), "text/csv"); say(`5초 측정값 ${rows.length.toLocaleString()}개를 받았어요`); }}>
+        <${Icon} name="Download" size=${15} />5초 원본 CSV (이 휴대폰)</button></div>
+    </section>
+
+    <section class="glass p-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-1"><h2 class="pill-h"><${Icon} name="School" size=${18} />우리 공기 기록</h2>
+        <span class="text-[12.5px] text-mist">1분 평균 · 팀 모두 함께 봐요</span></div>
+      ${places.length > 1 && html`<p class="text-[12.5px] text-mist mb-2">측정한 곳: ${places.join(" · ")}</p>`}
+      ${!list.length ? html`<p class="text-[14px] text-mist py-5 text-center">아직 공기 기록이 없어요. 보드를 연결하면 1분마다 쌓여요.</p>`
+        : html`<div class="grid gap-2 mt-2">${list.slice(0, 60).map((a) => { const s = airStats(itemPts(a), "co2"), l = airLv(s.avg), mins = a.points.length;
+          return html`<button key=${a.id} type="button" class=${"air-row" + (a.id === openId ? " on" : "")} onClick=${() => setOpenId(a.id === openId ? null : a.id)}>
+            <span class="air-dot" style=${{ background: l[2] }}></span>
+            <span class="grid text-left min-w-0"><b class="truncate">${a.place}</b><small class="text-mist">${fmtDay(a.ts)} · ${hm(a.ts).replace(/(\d\d)(\d\d)/, "$1:$2")}–${hm(a.end || a.ts).replace(/(\d\d)(\d\d)/, "$1:$2")} · ${mins}분</small></span>
+            <span class="ml-auto text-right shrink-0"><b class="mono">${Math.round(s.avg).toLocaleString()}</b><small class="text-mist"> 평균</small><br/><small class="mono text-mist">최고 ${s.mx.toLocaleString()}</small></span></button>`; })}</div>`}
+      ${open && (() => { const pts = itemPts(open), s2 = airStats(pts, m2), f2 = m2 === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
+        const over = pts.filter((p) => p.co2 >= thr).length;
+        return html`<div class="air-detail mt-3">
+          <div class="flex items-center gap-2 flex-wrap mb-2"><b class="font-display text-[19px]" style=${{ color: "var(--grass-deep)" }}>${open.place}</b><span class="text-[13px] text-mist">${fmtDay(open.ts)}</span>
+            <button type="button" class="icon-btn ml-auto" onClick=${() => setOpenId(null)} aria-label="닫기"><${Icon} name="X" size=${18} /></button></div>
+          <${MetricChips} v=${m2} set=${setM2} />
+          <${AirChart} pts=${pts} metric=${m2} t0=${open.ts - 60000} t1=${(open.end || open.ts) + 60000} thr=${thr} />
+          <div class="grid grid-cols-3 gap-2 mt-2 text-center">${[["최저", "mn"], ["평균", "avg"], ["최고", "mx"]].map(([l, k]) =>
+            html`<div key=${k} class="stat"><div class="lbl">${l}</div><b class="mono text-[17px]">${s2 ? f2(s2[k]) : "–"}</b></div>`)}</div>
+          <p class="text-[13px] text-mist mt-2">${over ? `기준(${Number(thr).toLocaleString()}ppm)을 넘은 시간: 약 ${over}분` : `기준(${Number(thr).toLocaleString()}ppm)을 넘은 적 없어요`}</p>
+          <div class="flex gap-2 mt-2 flex-wrap">
+            <button type="button" class="btn-ghost" onClick=${() => saveFile(`공기_${open.place}_${open.day || ymd(open.ts)}.csv`, airCsv(pts), "text/csv")}><${Icon} name="Download" size=${15} />1분 평균 CSV</button>
+            <button type="button" class="btn-ghost ml-auto" style=${{ color: "var(--rose)" }} onClick=${() => setAsk(open)}><${Icon} name="Trash2" size=${15} />이 기록 지우기</button></div>
+        </div>`; })()}
+    </section>
+
+    <section class="glass p-4">
+      <h2 class="pill-h mb-3"><${Icon} name="Bell" size=${18} />알림 기준</h2>
+      <div class="flex items-center gap-2 flex-wrap"><label for="airThr" class="text-[13px] text-mist">CO₂가 이 값을 넘으면 경고</label>
+        <input id="airThr" class="air-thr" type="number" min="400" max="40000" step="50" value=${thr} onChange=${(e) => { const v = +e.target.value || 1000; setThr(v); airCfg.set({ thr: v }); }} /><span class="text-[13px] text-mist">ppm</span></div>
+      <div class="air-scale">${AIR_LV.map(([lim, l, c], i) => html`<div key=${l} style=${{ background: c }}>${l}<br/>${i === 0 ? "~800" : i === 3 ? "2,000~" : `${AIR_LV[i - 1][0].toLocaleString()}~${lim.toLocaleString()}`}</div>`)}</div>
+      <div class="insight mt-3 text-[13.5px]"><b>처음 사용할 때</b>
+        <ol class="list-decimal pl-5 mt-1 grid gap-1">
+          <li>아이폰은 App Store의 <b>Bluefy</b> 앱에서 에코쌤즈를 여세요. (사파리는 블루투스 연결이 안 돼요)</li>
+          <li>보드 전원을 켜고 측정 장소를 적은 뒤 <b>보드 연결</b> → <b>EZ-CO2</b>를 고르세요.</li>
+          <li>연결이 끊겨도 보드가 약 4시간치를 보관했다가, 다시 연결하면 빠진 기록을 채워 넣어요.</li>
+        </ol></div>
+    </section>
+
+    ${ask && html`<div class="modal-bg" onClick=${() => setAsk(null)}><div class="modal max-w-sm" role="dialog" aria-modal="true" onClick=${(e) => e.stopPropagation()}>
+      <p class="text-[15px] mb-4">${ask.place} · ${fmtDay(ask.ts)} 공기 기록을 지울까요? 팀 모두의 화면에서 사라지고 되돌릴 수 없어요.</p>
+      <div class="flex justify-end gap-2"><button type="button" class="btn-ghost" onClick=${() => setAsk(null)}>취소</button>
+        <button type="button" class="btn-danger" onClick=${() => { onDelete(ask.id); AIR.mine.delete(ask.id); setAsk(null); setOpenId(null); }}>지우기</button></div></div></div>`}
+  </div>`;
+}
+
 function App() {
   const saved = store.get(LS_SET, {});
   const [settings, setSettings] = useState({ apiKey: saved.apiKey || "", model: saved.model || DEFAULT_MODEL });
@@ -1996,6 +2251,8 @@ function App() {
   const [acts, setActs] = useState([]);
   const [actEdit, setActEdit] = useState(null);
   const [meetings, setMeetings] = useState([]);
+  const [airs, setAirs] = useState([]);
+  const airRef = useRef(airs); airRef.current = airs;
   const [meetEdit, setMeetEdit] = useState(null);
   const [teamSub, setTeamSub] = useState("plants");
   const [showSwitch, setShowSwitch] = useState(false);
@@ -2043,7 +2300,7 @@ function App() {
     if (old && Array.isArray(old)) { for (const r of old) { if (!r.sample) await db.put({ mode: "team", ...r }); } store.del(LS_OLD); all = await db.all(); }
     if (!all.length && !store.get("ecossam.v2.seeded", false)) { for (const r of sampleRecords()) await db.put(r); store.set("ecossam.v2.seeded", true); all = await db.all(); }
     all.sort((a, b) => upKey(b) - upKey(a));
-    setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting")); setLoaded(true);
+    setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting")); setAirs(all.filter((r) => r.kind === "air")); setLoaded(true);
     syncNow();
   })(); }, []);
 
@@ -2054,6 +2311,8 @@ function App() {
     const all = (await db.all()).sort((a, b) => upKey(b) - upKey(a));
     if (!all.filter((r) => !r.sample).length && recRef.current.some((r) => !r.sample)) return; // 저장소가 잠깐 비어 보여도 화면의 기록은 지키기
     setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting"));
+    // 이 휴대폰이 지금 쓰는 공기 기록은 메모리의 최신본을 우선(동기화 중 덮어쓰기 방지)
+    setAirs(all.filter((r) => r.kind === "air").map((a) => { const m = AIR.mine.get(a.id); return m && (m.points || []).length > (a.points || []).length ? m : a; }));
   };
   const syncNow = async () => {
     if (syncing.current) { syncAgain.current = true; return; }
@@ -2112,6 +2371,16 @@ function App() {
     } finally { migrating.current = false; }
   };
   const delCloud = (id, kind) => { const q = store.get(LS_DELQ, []); q.push({ id, kind }); store.set(LS_DELQ, q); };
+  // 공기 탐사: 1분 평균 기록을 저장하고 팀 저장소로 올리기
+  const airSyncT = useRef(null);
+  AIR.hooks.me = me;
+  AIR.hooks.getItem = (id) => airRef.current.find((a) => a.id === id) || null;
+  AIR.hooks.save = async (item) => {
+    setAirs((as) => [item, ...as.filter((a) => a.id !== item.id)]);
+    await putLocal(item);
+    clearTimeout(airSyncT.current); airSyncT.current = setTimeout(syncNow, 1500);
+  };
+  const deleteAir = async (id) => { await db.del(id); delCloud(id, "air"); setTimeout(syncNow, 200); setAirs((as) => as.filter((a) => a.id !== id)); say("공기 기록을 지웠어요"); };
 
   const loadWx = useCallback(async (lat, lng, fromGps) => {
     setWState("loading");
@@ -2225,6 +2494,7 @@ function App() {
         : tab === "solo" ? html`<${SoloView} me=${me} records=${records} gps=${gps} onAdd=${addRecord} onOpen=${setOpenId} say=${say} />`
         : tab === "team" ? html`<${TeamView} records=${records} meetings=${meetings} sub=${teamSub} setSub=${setTeamSub} onAdd=${addRecord} onOpen=${setOpenId}
             onAddMeeting=${() => setMeetEdit({ isNew: true })} onOpenMeeting=${(m) => setMeetEdit(m)} onExportMinutes=${exportMinutes} />`
+        : tab === "air" ? html`<${AirView} me=${me} airs=${airs} onDelete=${deleteAir} say=${say} />`
         : tab === "activity" ? html`<${ActivityView} me=${me} acts=${acts} onAdd=${() => setActEdit({ isNew: true })} onOpen=${(a) => setActEdit(a)} />`
         : tab === "map" ? html`<${MapView} records=${records} gps=${gps} follow=${follow} setFollow=${setFollow} onMapPick=${onMapPick} onOpen=${setOpenId} openId=${openId} />`
         : html`<${ArchiveView} records=${records} acts=${acts} meetings=${meetings} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onOpenMeeting=${(m) => setMeetEdit(m)} onClearSamples=${clearSamples} onImport=${importJSON} sync=${sync} onSync=${syncNow} />`}
