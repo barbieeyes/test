@@ -1,0 +1,16 @@
+{
+  "name": "에코쌤즈 · 따로 또 같이 광합성 지도",
+  "short_name": "에코쌤즈",
+  "description": "기후행동 실천모임 에코쌤즈 — 우리 지역 광합성 지도와 협의회 기록",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#2FA463",
+  "theme_color": "#2FA463",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
