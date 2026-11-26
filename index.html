@@ -600,7 +600,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script>window.__BUILD__ = "20261127072110";</script>
+<script>window.__BUILD__ = "20261127072406";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -3836,7 +3836,8 @@ function co2Slope(pts) {
 }
 /** 규모 비교: ppm/분 × 부피(L) → g CO₂/분 (25℃, 1기압: 1mol = 24.45L, CO₂ 44.01g) */
 const gPerMin = (rate, liters) => Math.abs(rate) * 1e-6 * liters / 24.45 * 44.01;
-function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, say }) {
+function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, onRenameSess, say }) {
+  const [rn, setRn] = useState(null); // 장소 이름 고치기 {id, v}
   const [, force] = useState(0);
   useEffect(() => { AIR.init(); return AIR.sub(() => force((n) => n + 1)); }, []);
   useEffect(() => { const t = setInterval(() => force((n) => n + 1), 30000); return () => clearInterval(t); }, []);
@@ -4060,7 +4061,12 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
       ${openSess && (() => { const pts = openSess.pts, s2 = pts.length ? airStats(pts, m2) : null, f2 = m2 === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
         const over = pts.filter((p) => p.co2 >= thr).length, t1 = openSess.end || now;
         return html`<div class="air-detail mt-3">
-          <div class="flex items-center gap-2 flex-wrap mb-2"><b class="font-display text-[19px]" style=${{ color: "var(--grass-deep)" }}>${openSess.place}</b>
+          <div class="flex items-center gap-2 flex-wrap mb-2">${rn && rn.id === openSess.id
+              ? html`<form class="flex gap-1.5 flex-1 min-w-0" onSubmit=${async (e) => { e.preventDefault(); const v = rn.v.trim(); if (!v) { say("장소 이름을 적어 주세요"); return; } await onRenameSess(openSess, v); setRn(null); }}>
+                  <input class="air-place flex-1 min-w-0" type="text" maxlength="40" value=${rn.v} onInput=${(e) => setRn({ ...rn, v: e.target.value })} autoFocus />
+                  <button type="submit" class="mini-btn on">저장</button><button type="button" class="mini-btn" onClick=${() => setRn(null)}>취소</button></form>`
+              : html`<b class="font-display text-[19px]" style=${{ color: "var(--grass-deep)" }}>${openSess.place}</b>
+                <button type="button" class="mini-btn" onClick=${() => setRn({ id: openSess.id, v: openSess.place })}><${Icon} name="Pencil" size=${12} />이름 고치기</button>`}
             <span class="text-[13px] text-mist">${fmtDay(openSess.start)} ${hhmm(openSess.start)}–${openSess.end ? hhmm(openSess.end) : "지금"}</span>
             <button type="button" class="icon-btn ml-auto" onClick=${() => setOpenKey(null)} aria-label="닫기"><${Icon} name="X" size=${18} /></button></div>
           <${MetricChips} v=${m2} set=${setM2} />
@@ -4324,6 +4330,7 @@ function App() {
     await saveAirCfg(dev, place);
     await putAir({ id: `air_sess_${dev}_${t}`, kind: "air_sess", dev, place, start: t, end: null, researcher: me, ts: t, ...extra }); say(`'${place}' 측정을 시작했어요`); };
   const stopAirSess = async (s) => { const t = Date.now(); await putAir({ ...s, end: t, ts: t }); say(`'${s.place}' 측정을 끝냈어요`); };
+  const renameAirSess = async (s, place) => { await putAir({ ...s, place, ts: Date.now() }); say(`장소 이름을 '${place}'로 고쳤어요`); };
   const delAirSess = async (s) => { await db.del(s.id); delCloud(s.id, "air_sess"); setTimeout(syncNow, 200); setAirs((as) => as.filter((a) => a.id !== s.id)); say("측정 기록을 지웠어요"); };
 
   const loadWx = useCallback(async (lat, lng, fromGps) => {
@@ -4438,7 +4445,7 @@ function App() {
         : tab === "solo" ? html`<${SoloView} me=${me} records=${records} gps=${gps} onAdd=${addRecord} onOpen=${setOpenId} say=${say} />`
         : tab === "team" ? html`<${TeamView} records=${records} meetings=${meetings} sub=${teamSub} setSub=${setTeamSub} onAdd=${addRecord} onOpen=${setOpenId}
             onAddMeeting=${() => setMeetEdit({ isNew: true })} onOpenMeeting=${(m) => setMeetEdit(m)} onExportMinutes=${exportMinutes} />`
-        : tab === "air" ? html`<${AirView} me=${me} airs=${airs} onDelete=${deleteAir} onSaveCfg=${saveAirCfg} onStart=${startAirSess} onStop=${stopAirSess} onDelSess=${delAirSess} say=${say} />`
+        : tab === "air" ? html`<${AirView} me=${me} airs=${airs} onDelete=${deleteAir} onSaveCfg=${saveAirCfg} onStart=${startAirSess} onStop=${stopAirSess} onDelSess=${delAirSess} onRenameSess=${renameAirSess} say=${say} />`
         : tab === "rx" ? html`<${DiagView} me=${me} records=${records} airs=${airs} rxs=${rxs} onSaveRx=${putRx} onDelRx=${delRx} onOpen=${setOpenId} say=${say} />`
         : tab === "activity" ? html`<${ActivityView} me=${me} acts=${acts} onAdd=${() => setActEdit({ isNew: true })} onOpen=${(a) => setActEdit(a)} />`
         : tab === "map" ? html`<${MapView} records=${records} gps=${gps} follow=${follow} setFollow=${setFollow} onMapPick=${onMapPick} onOpen=${setOpenId} openId=${openId} />`
