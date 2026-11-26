@@ -637,7 +637,7 @@ function Hero({ children }) {
       ${children}
       <h1 class="hero-title"><span class="y">기후행동 실천모임</span> <span class="w">에코쌤즈</span></h1>
       <div class="hero-sub">함께 배우고, 함께 실천하는 기후행동!</div>
-      <div class="hero-motto"><span class="m-solo">따로</span><span class="m-amp">또</span><span class="m-team">같이</span><span class="m-rest">우리 지역 광합성 지도</span></div>
+      <div class="hero-motto"><span class="m-solo">따로</span><span class="m-amp">피고,</span><span class="m-team">같이</span><span class="m-amp">숨 쉬다</span><span class="m-rest">생활권과 학교의 생태·공기 데이터로 진단하고 실천하는 학교 기후행동</span></div>
     </div>
     <svg class="hero-art" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMax slice" role="img"
       aria-label="텀블러, 지구, 장바구니 캐릭터가 언덕과 풀잎 사이에서 웃고 있는 그림" dangerouslySetInnerHTML=${{ __html: ART }}></svg>
@@ -1120,13 +1120,28 @@ function MeetBar({ meetings = [], onAdd, onList }) {
   </div>`;
 }
 
-function TodayView({ me, records, meetings = [], weather, wState, wErr, gps, onRefresh, onAdd, onOpen, goTab, onAddMeeting, onMeetings }) {
+function TodayView({ me, records, meetings = [], airs = [], rxs = [], weather, wState, wErr, gps, onRefresh, onAdd, onOpen, goTab, onAddMeeting, onMeetings }) {
   const solo = records.filter((r) => r.mode === "solo"), team = records.filter((r) => r.mode === "team");
   const mineToday = solo.filter((r) => r.researcher === me && fmtDay(r.ts) === fmtDay(Date.now())).length;
   const teamToday = team.filter((r) => fmtDay(r.ts) === fmtDay(Date.now())).length;
   const recent = records.slice(0, 6);
   const sp = (a) => new Set(a.map(speciesKey).filter(Boolean)).size;
+  const hoodsN = new Set(solo.map((r) => { const t = recTheme(r); return t ? r.researcher + t.key : null; }).filter(Boolean)).size;
+  const sessN = airs.filter((a) => a.kind === "air_sess").length;
+  const rxN = (t) => rxs.filter((x) => x.type === t).length;
+  const flow = [
+    ["solo", "1", "따로 · 생활권 탐사", `${hoodsN}개 동네 · ${solo.length}건`, "House"],
+    ["team", "2", "같이 · 학교 탐사", `식물 ${team.length}건 · CO₂ ${sessN}회`, "School"],
+    ["rx", "3", "학교 환경 진단", "녹지 · 공기", "Stethoscope"],
+    ["rx", "4", "세 가지 실천", `환기 ${rxN("vent")} · 녹지 ${rxN("green")} · 이름표 ${new Set(rxs.filter((x) => x.type === "tag").flatMap((x) => x.ids || [])).size}`, "ClipboardCheck"],
+  ];
   return html`<div class="grid gap-4">
+    <section class="mission">
+      <span class="mission-k">우리가 하는 일</span>
+      <p>생활권과 학교에서 모은 <b>생태·공기 데이터</b>로 학교 환경을 진단하고, <b>교실 환기 규칙</b> · <b>교정 녹지 개선</b> · <b>자생식물 QR 이름표</b> 세 가지 실천으로 잇는 데이터 기반 학교 기후행동</p>
+      <div class="mission-flow">${flow.map(([tab, n, t, sub, ic], i) => html`<button key=${n} type="button" onClick=${() => goTab(tab)}>
+        <span class="mf-n">${n}</span><span class="grid text-left min-w-0"><b>${t}</b><small>${sub}</small></span></button>`)}</div>
+    </section>
     <div class="duo">
       <button type="button" class="duo-b duo-solo" onClick=${() => onAdd("solo")}>
         <span class="duo-k">따로</span><b>우리 동네 식물 기록</b><small>${getHome(me).label} 주변 · 오늘 ${mineToday}건</small>
@@ -3146,7 +3161,7 @@ function App() {
     ${tab === "today" && html`<${Hero} />`}
     <main class="wrap pb-28">
       ${!loaded ? html`<div class="boot" style=${{ minHeight: "30vh" }}>기록을 불러오는 중…</div>`
-        : tab === "today" ? html`<${TodayView} me=${me} records=${records} weather=${weather} wState=${wState} wErr=${wErr} gps=${!!gps}
+        : tab === "today" ? html`<${TodayView} me=${me} records=${records} airs=${airs} rxs=${rxs} weather=${weather} wState=${wState} wErr=${wErr} gps=${!!gps}
             onRefresh=${() => { const q = gps; if (q) loadWx(q.lat, q.lng, true); else { const hm = getHome(me); loadWx(hm.lat, hm.lng, false); } }} onAdd=${addRecord} onOpen=${setOpenId} goTab=${setTab}
             meetings=${meetings} onAddMeeting=${() => setMeetEdit({ isNew: true })} onMeetings=${() => { setTeamSub("meetings"); setTab("team"); }} />`
         : tab === "solo" ? html`<${SoloView} me=${me} records=${records} gps=${gps} onAdd=${addRecord} onOpen=${setOpenId} say=${say} />`
