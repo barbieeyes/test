@@ -3,8 +3,8 @@
   const TEAM = "기후행동 실천모임 에코쌤즈";
   /** 식재(사람이 심은) / 자생(저절로 자란) — 프레임 테두리 색 */
   const ORIGIN_INFO = {
-    planted: { label: "식재", long: "심은 식물", color: "#C8743A" },
-    wild: { label: "자생", long: "저절로 자란 식물", color: "#2E8B57" },
+    planted: { label: "심은", long: "사람이 심은 식물", color: "#C8743A" },
+    wild: { label: "저절로", long: "저절로 자란 식물", color: "#2E8B57" },
   };
   const MODE_INFO = {
     solo: { label: "따로", place: "우리 동네", color: "#2B9BD6", deep: "#1C6E9C" },

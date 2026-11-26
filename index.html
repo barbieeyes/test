@@ -577,6 +577,9 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 .sd-eco{background:#EEF7F0}.sd-eco span,.sd-eco i{color:#1F7A3E}.sd-air{background:#EAF2FB}.sd-air span,.sd-air i{color:#2563A8}
 .st-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.st-acts button{display:grid;justify-items:center;gap:3px;background:#F2F8F3;border-radius:12px;padding:8px 4px;text-align:center;color:#1F7A3E}.st-acts b{font-size:12.5px;color:#14301F;line-height:1.25}.st-acts small{font-size:11px;color:#5F7368}
 .scale-big{display:flex;align-items:baseline;justify-content:center;gap:10px;flex-wrap:wrap;background:#14301F;color:#fff;border-radius:16px;padding:14px;margin-top:10px;font-family:var(--f-display);font-size:18px}.scale-big b{color:#E8A33D;font-size:22px}.scale-big em{font-style:normal;font-size:30px;color:#FFD58A}
+.vchk{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:#F2F8F3;border:1.5px solid #CFE5D4;border-radius:14px;padding:8px 12px;margin-bottom:10px}
+.vchk-st{font-size:12px;font-weight:700;border-radius:99px;padding:1px 9px}.vchk-st.ok{background:#1F7A3E;color:#fff}.vchk-st.no{background:#C0620A;color:#fff}
+.mini-btn.on{background:#1F7A3E;color:#fff;border-color:#1F7A3E}
 /* QR 식물 카드 */
 .pp{max-width:520px;margin:0 auto;padding:16px 16px 40px;display:grid;gap:14px}
 .pp-top{display:grid;gap:2px}.pp-top b{font-size:22px;color:#14301F}
@@ -597,7 +600,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script>window.__BUILD__ = "20261127012613";</script>
+<script>window.__BUILD__ = "20261127072110";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -675,8 +678,8 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
   const TEAM = "기후행동 실천모임 에코쌤즈";
   /** 식재(사람이 심은) / 자생(저절로 자란) — 프레임 테두리 색 */
   const ORIGIN_INFO = {
-    planted: { label: "식재", long: "심은 식물", color: "#C8743A" },
-    wild: { label: "자생", long: "저절로 자란 식물", color: "#2E8B57" },
+    planted: { label: "심은", long: "사람이 심은 식물", color: "#C8743A" },
+    wild: { label: "저절로", long: "저절로 자란 식물", color: "#2E8B57" },
   };
   const MODE_INFO = {
     solo: { label: "따로", place: "우리 동네", color: "#2B9BD6", deep: "#1C6E9C" },
@@ -1210,7 +1213,7 @@ const ORIGIN_SEED = { mvqlrnqlwrnos: "planted", mvqmcp3swc0a8: "planted", mvqmdz
   mvw3d19w7he19: "planted", mvw3i724v15t4: "planted", mvw3jd9m5oqhi: "planted", mvw3k4jpxc3ms: "wild", mvw3ks85izjq5: "planted", mvw3ng069xvf3: "wild",
   mvw3owljhmmej: "wild", mvw3q2azt124h: "wild", mvw3rdf1t8swl: "wild", mvw3ucbnjgcmc: "planted", mvw3wem8oz0wd: "planted", mvw515vquhjsm: "planted",
   mvw521hlvqpt0: "planted", mvw55qur5gmav: "planted" };
-const ORIGINS = [["planted", "식재 · 심은 식물"], ["wild", "자생 · 저절로 자란"], ["", "잘 모르겠음"]];
+const ORIGINS = [["planted", "심은 식물"], ["wild", "저절로 자란 식물"], ["", "잘 모르겠음"]];
 const FRAME_V = 2; // 프레임 디자인 판 (바뀌면 예전 사진을 새 테두리로 다시 찍는다)
 const TEAM_HABITATS = ["화단", "운동장 가장자리", "담장·울타리", "텃밭·생태정원", "교정 나무", "틈새"];
 /** 목록 정렬: 나중에 올린(저장한) 기록이 위로. 예전 기록은 찍은 시각으로 */
@@ -1980,6 +1983,7 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say, read
     const why = z.n <= 3 ? "기록이 적어요 · 조사를 더 하거나 녹지가 비어 있는 곳" : z.sp <= 2 ? `${z.n}건인데 ${z.sp}종뿐 · 획일적이에요` : med && z.pot < med * 0.7 ? "광합성 잠재력이 다른 구역보다 낮아요" : z.wild === 0 ? "저절로 자란 식물이 하나도 없어요" : "";
     return { ...z, why }; }), [team]);
   const noZone = team.filter((r) => !r.habitat).length;
+  const vAll = allReal.filter((r) => r.verified), vOk = vAll.filter((r) => r.verified.ok).length;
   const tWild = team.filter((r) => r.origin === "wild").length, tPl = team.filter((r) => r.origin === "planted").length;
   const tPot = team.length ? team.reduce((a, r) => a + potOf(r), 0) / team.length : 0;
   const spCount = useMemo(() => { const m = new Map(); team.forEach((r) => m.set(r.koreanName, (m.get(r.koreanName) || 0) + 1)); return [...m.entries()].sort((a, b) => b[1] - a[1]); }, [team]);
@@ -2089,6 +2093,7 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say, read
           ${z.why ? html`<span class="dg-flag">빈 구역 후보</span>` : null}<small class="text-mist">${z.n}건 · ${z.sp}종 · 잠재력 ${z.pot.toFixed(2)}</small></div>
         <div class="dg-bar"><i style=${{ width: (z.n ? (z.n - z.wild) / Math.max(...zones.map((x) => x.n), 1) * 100 : 0) + "%", background: EM.ORIGIN_INFO.planted.color }}></i><i style=${{ width: (z.wild / Math.max(...zones.map((x) => x.n), 1) * 100) + "%", background: EM.ORIGIN_INFO.wild.color }}></i></div>
         ${z.why ? html`<small class="text-[12px]" style=${{ color: "#B8651A" }}>${z.why}</small>` : null}</div>`)}</div>
+      <div class="dg-exp mt-3"><b>AI 동정 사람 확인</b><span>확인 <b class="mono">${vAll.length}</b>건</span>${vAll.length ? html`<span>정확도 <b class="mono" style=${{ color: "#1F7A3E" }}>${Math.round((vOk / vAll.length) * 100)}%</b></span>` : html`<small>기록 상세에서 '맞아요/틀렸어요'를 눌러 확인해요 (20건 이상 권장)</small>`}</div>
       ${noZone ? html`<p class="text-[12px] text-mist mt-2">구역을 안 고른 기록 ${noZone}건은 빠져 있어요. 기록 상세의 '고치기'에서 구역을 정하면 진단이 더 정확해져요.</p>` : null}
       <p class="text-[12px] text-mist mt-2">광합성 잠재력은 '맑은 날 한낮' 같은 조건으로 계산한 비교용 추정값이에요. 지도 탭 → 같이 → <b>격자 분석</b>에서 15m 칸별로 빈 구역을 볼 수 있어요. 기록이 적은 곳은 '비어 있음'일 수도 '조사 안 됨'일 수도 있어요.</p>`}
     </section>
@@ -2473,7 +2478,7 @@ function TeamView({ records, meetings, sub, setSub, onAdd, onOpen, onAddMeeting,
           <dl>
             <dt>과</dt><dd>${(r.ai && r.ai.taxonomy && r.ai.taxonomy.family) || "–"}</dd>
             <dt>유형</dt><dd>${M.PS_TYPES[r.psType].label} · ${r.growthForm}</dd>
-            ${r.origin && EM.ORIGIN_INFO[r.origin] ? html`<dt>식재</dt><dd style=${{ color: EM.ORIGIN_INFO[r.origin].color, fontWeight: 700 }}>${EM.ORIGIN_INFO[r.origin].label} · ${EM.ORIGIN_INFO[r.origin].long}</dd>` : null}
+            ${r.origin && EM.ORIGIN_INFO[r.origin] ? html`<dt>구분</dt><dd style=${{ color: EM.ORIGIN_INFO[r.origin].color, fontWeight: 700 }}>${EM.ORIGIN_INFO[r.origin].label} · ${EM.ORIGIN_INFO[r.origin].long}</dd>` : null}
             <dt>채집</dt><dd>${fmtDay(r.ts)}${g.length > 1 ? ` 외 ${g.length - 1}회` : ""}</dd>
             <dt>채집자</dt><dd>${who.map((n) => html`<span key=${n} class="inline-flex items-center gap-1 mr-1.5"><${Dot} color=${rColor(n.split("·")[0])} size=${7} />${n}</span>`)}</dd>
             <dt>탄소</dt><dd class="mono">${fix(r.model.gco2, 2)} g/h·m²</dd>
@@ -2942,7 +2947,8 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
   };
   const preview = { id: "draft", ts: shotTs, mode, researcher, lat: p.lat, lng: p.lng, ai, weather: w, model: est,
     koreanName: f.koreanName, scientificName: f.scientificName, confidence: ai ? ai.confidence : null, growthForm: f.growthForm, psType: f.psType };
-  const canSave = !!(f.koreanName.trim() || raw) && !saving;
+  const needZone = mode === "team" && !f.habitat; // 같이(학교) 기록은 구역을 꼭 골라야 진단에 들어가요
+  const canSave = !!(f.koreanName.trim() || raw) && !saving && !needZone;
   const save = async () => {
     setSaving(true);
     let photo = null;
@@ -3029,7 +3035,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
               onClick=${() => { if (t.key === spot) return; const oh = home, nh = spotHome(t.key); setSpot(t.key);
                 setF((q) => ({ ...q, habitat: "", place: !q.place || q.place === oh.label ? nh.label : q.place }));
                 if (!draft.pos && pos && pos.source === "home") setPos({ lat: nh.lat, lng: nh.lng, accuracy: null, source: "home" }); }}>${t.place} · ${t.tag}</${Chip}>`)}</div></div>`}
-          <div class="sm:col-span-2"><${Label}>${th ? `서식지 · ${th.tag}` : "교정 어디에서"}</${Label}>
+          <div class="sm:col-span-2"><${Label}>${th ? `서식지 · ${th.tag}` : html`교정 어디에서 <b style=${{ color: "#C0620A" }}>*꼭 골라요</b>`}</${Label}>
             <div class="flex flex-wrap gap-1.5">${(th ? th.habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${f.habitat === h} color=${m.color}
               onClick=${() => setF({ ...f, habitat: f.habitat === h ? "" : h })}>${h}</${Chip}>`)}</div></div>
           <label class="fld sm:col-span-2"><span>장소 이름</span><input id="fPlace" value=${f.place} onInput=${(e) => setF({ ...f, place: e.target.value })}
@@ -3045,7 +3051,7 @@ function RecordModal({ draft, researcher, weather, settings, gps, onClose, onSav
         <label class="fld"><span>현장 메모</span><textarea id="fNote" rows="2" value=${f.notes} onInput=${(e) => setF({ ...f, notes: e.target.value })} placeholder="군락 크기, 그늘 여부, 함께 본 생물 등"></textarea></label>
         <button type="button" class="btn-save" onClick=${save} disabled=${!canSave} style=${{ background: m.color, borderColor: m.deep, boxShadow: `0 4px 0 ${m.deep}` }}>
           <${Icon} name="Save" size=${18} />${saving ? "프레임 입혀 저장하는 중…" : `${m.label} 기록 저장`}</button>
-        ${!canSave && !saving && html`<p class="text-[12px] text-mist -mt-2 text-center">사진을 넣거나 국명을 적으면 저장할 수 있어요.</p>`}
+        ${!canSave && !saving && html`<p class="text-[12px] -mt-2 text-center" style=${{ color: needZone && (f.koreanName.trim() || raw) ? "#C0620A" : undefined }}>${needZone && (f.koreanName.trim() || raw) ? "'교정 어디에서'를 골라야 저장돼요. 학교 진단 지도에 쓰여요." : "사진을 넣거나 국명을 적으면 저장할 수 있어요."}</p>`}
       </div>
     </div>
   </div>`;
@@ -3136,7 +3142,7 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
           <label class="fld"><span>국명</span><input id="eKor" value=${ed.koreanName} onInput=${(e) => setEd({ ...ed, koreanName: e.target.value })} placeholder="예: 마름" /></label>
           <label class="fld"><span>학명</span><input id="eSci" class="italic" value=${ed.scientificName} onInput=${(e) => setEd({ ...ed, scientificName: e.target.value })} placeholder="예: Trapa japonica" /></label>
         </div>
-        <div class="w-full"><${Label}>식재 · 자생</${Label}><div class="flex flex-wrap gap-1.5">${ORIGINS.map(([k, l]) => html`<${Chip} key=${k || "none"} on=${ed.origin === k} color=${k ? EM.ORIGIN_INFO[k].color : "#5F7A68"} onClick=${() => setEd({ ...ed, origin: k })}>${l}</${Chip}>`)}</div></div>
+        <div class="w-full"><${Label}>심은 · 저절로 자란</${Label}><div class="flex flex-wrap gap-1.5">${ORIGINS.map(([k, l]) => html`<${Chip} key=${k || "none"} on=${ed.origin === k} color=${k ? EM.ORIGIN_INFO[k].color : "#5F7A68"} onClick=${() => setEd({ ...ed, origin: k })}>${l}</${Chip}>`)}</div></div>
         ${rec.mode === "solo" && spotsOf(rec.researcher).length > 1 && html`<div class="w-full"><${Label}>어느 동네?</${Label}><div class="flex flex-wrap gap-1.5">${spotsOf(rec.researcher).map((t) => html`<${Chip} key=${t.key} on=${ed.spot === t.key} onClick=${() => setEd({ ...ed, spot: t.key, habitat: ed.spot === t.key ? ed.habitat : "" })}>${t.place} · ${t.tag}</${Chip}>`)}</div></div>`}
         <div class="w-full"><${Label}>서식지</${Label}><div class="flex flex-wrap gap-1.5">${(rec.mode === "solo" && themeOf(rec.researcher, ed.spot) ? themeOf(rec.researcher, ed.spot).habitats : TEAM_HABITATS).map((h) => html`<${Chip} key=${h} on=${ed.habitat === h} onClick=${() => setEd({ ...ed, habitat: ed.habitat === h ? "" : h })}>${h}</${Chip}>`)}</div></div>
         <div class="w-full"><${Label}>생활형</${Label}><div class="flex flex-wrap gap-1.5">${FORM_LIST.map((g) => html`<${Chip} key=${g} on=${ed.growthForm === g} onClick=${() => setEd({ ...ed, growthForm: g })}>${g}</${Chip}>`)}</div></div>
@@ -3150,6 +3156,12 @@ function DetailModal({ rec, me, settings, onClose, onDelete, onUpdate, onOpenSet
       ${rec.photo && html`<img src=${rec.photo} alt=${rec.koreanName || "식물 사진"} class="detail-photo" />`}
       ${rec.photo && html`<div class="flex justify-end -mt-1 mb-3"><button type="button" class="link-btn" onClick=${() => openSaver([{ url: rec.photo, name: `에코쌤즈_${rec.koreanName || "식물"}_${ymd(rec.ts)}.jpg` }], "프레임 사진 앨범에 저장")}>
         <${Icon} name="ImageDown" size=${14} />앨범에 저장</button></div>`}
+      ${!rec.sample && !student && html`<div class="vchk">
+        <span class="text-[13px]"><b>사람 확인</b> · AI가 찾은 이름이 맞나요?</span>
+        ${rec.verified ? html`<span class=${"vchk-st " + (rec.verified.ok ? "ok" : "no")}>${rec.verified.ok ? "✓ 맞아요" : "✗ 틀렸어요 (고침)"} · ${rec.verified.by}</span>` : null}
+        <div class="flex gap-1.5 ml-auto">
+          <button type="button" class=${"mini-btn" + (rec.verified && rec.verified.ok ? " on" : "")} onClick=${() => onUpdate({ ...rec, verified: { ok: true, by: me, at: Date.now(), name: rec.koreanName } })}>맞아요</button>
+          <button type="button" class=${"mini-btn" + (rec.verified && !rec.verified.ok ? " on" : "")} onClick=${() => { onUpdate({ ...rec, verified: { ok: false, by: me, at: Date.now(), name: rec.koreanName } }); openEdit(); }}>틀렸어요 → 고치기</button></div></div>`}
       <${AnalysisCard} rec=${rec} />
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 text-[12px]">
         ${[["기온", fix(rec.weather.temp) + "℃"], ["습도", fix(rec.weather.rh, 0) + "%"], ["운량", fix(rec.weather.cloud, 0) + "%"], ["일사량", fix(rec.weather.sw, 0) + " W/m²"]]
