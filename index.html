@@ -568,7 +568,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script>window.__BUILD__ = "20261127000439";</script>
+<script>window.__BUILD__ = "20261127002825";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -1190,6 +1190,9 @@ const STUDENT = { name: "송그린", color: "#E8A33D", pin: "0707" }; // 학생 
 const TEAM_PIN = "2144"; // 팀 공용 입장 비밀번호 (화면 잠금용이며 보안 장치는 아님)
 const MODES = EM.MODE_INFO; // solo = 따로(우리 동네), team = 같이(학교)
 const FORM_LIST = ["목본", "초본", "양치식물", "이끼류"];
+// '같이'는 넷이 함께 모은 기록이라 사람별 색 대신 군락별 초록 계열로 표시해요
+const TEAM_GREEN = { "목본": "#1F6B3A", "초본": "#43A047", "양치식물": "#2A9D8F", "이끼류": "#9BBF3B" };
+const pinColor = (r) => r.mode === "team" ? (TEAM_GREEN[r.growthForm] || "#6BAF5B") : rColor(r.researcher);
 const PS_LIST = ["C3", "C4", "CAM"];
 const DEFAULT_CENTER = [37.4775, 127.1420];
 const DEFAULT_MODEL = "claude-sonnet-5-5";
@@ -2369,7 +2372,7 @@ function LocPicker({ pos, onPick, color }) {
 }
 
 /* ---------- 지도 ---------- */
-function MapPanel({ records, homes, selectedId, onSelect, onMapPick, gpsPos, follow, setFollow }) {
+function MapPanel({ records, homes, selectedId, onSelect, onMapPick, gpsPos, follow, setFollow, mode }) {
   const elRef = useRef(null), mapRef = useRef(null), layerRef = useRef(null), meRef = useRef(null), pickRef = useRef(onMapPick);
   const [ok, setOk] = useState(true);
   pickRef.current = onMapPick;
@@ -2397,7 +2400,7 @@ function MapPanel({ records, homes, selectedId, onSelect, onMapPick, gpsPos, fol
     records.forEach((r) => {
       const act = M.activity(r.weather.ppfd), sel = r.id === selectedId;
       const icon = L.divIcon({ className: "", iconSize: [30, 30], iconAnchor: [15, 15],
-        html: `<span class="pin pin-${act.key} pin-${r.mode}${sel ? " pin-sel" : ""}${r.sample ? " pin-sample" : ""}" style="--rc:${rColor(r.researcher)}"><i></i><b></b></span>` });
+        html: `<span class="pin pin-${act.key} pin-${r.mode}${sel ? " pin-sel" : ""}${r.sample ? " pin-sample" : ""}" style="--rc:${pinColor(r)}"><i></i><b></b></span>` });
       const m = L.marker([r.lat, r.lng], { icon, title: `${MODES[r.mode].label} · ${r.koreanName || "미동정"} · ${act.label}` });
       m.on("click", (e) => { L.DomEvent.stopPropagation(e); onSelect(r.id); });
       m.addTo(layer);
@@ -2420,8 +2423,11 @@ function MapPanel({ records, homes, selectedId, onSelect, onMapPick, gpsPos, fol
       <button type="button" class="tool" onClick=${fit}><${Icon} name="Maximize2" size=${16} /><span>전체 보기</span></button>
     </div>
     <div class="legend">
-      ${RESEARCHERS.map((r) => html`<span key=${r.name} class="flex items-center gap-1"><${Dot} color=${r.color} size=${10} />${r.name}</span>`)}
-      <span class="text-mist">● 따로 ■ 같이 · 빨리 깜빡일수록 광합성 활발</span>
+      ${mode === "team"
+        ? html`${FORM_LIST.map((g) => html`<span key=${g} class="flex items-center gap-1"><span style=${{ width: 10, height: 10, borderRadius: 2, background: TEAM_GREEN[g], display: "inline-block" }}></span>${g}</span>`)}
+          <span class="text-mist">■ 같이 · 넷이 함께 모은 학교 식물 · 빨리 깜빡일수록 광합성 활발</span>`
+        : html`${RESEARCHERS.map((r) => html`<span key=${r.name} class="flex items-center gap-1"><${Dot} color=${r.color} size=${10} />${r.name}</span>`)}
+          <span class="text-mist">● 따로(사람별 색) ${mode === "all" ? "■ 같이(초록 · 군락별)" : ""} · 빨리 깜빡일수록 광합성 활발</span>`}
     </div>
   </div>`;
 }
@@ -2438,16 +2444,16 @@ function MapView({ records, gps, follow, setFollow, onMapPick, onOpen, openId })
     <div class="glass p-3 grid gap-2">
       <div class="seg3" role="group" aria-label="따로 또 같이 보기">
         ${[["all", "모두"], ["solo", "따로 · 우리 동네"], ["team", "같이 · 학교"]].map(([k, l]) => html`<button key=${k} type="button"
-          class=${"seg3-b" + (fMode === k ? " on" : "") + " s-" + k} onClick=${() => setFMode(k)}>${l}</button>`)}
+          class=${"seg3-b" + (fMode === k ? " on" : "") + " s-" + k} onClick=${() => { setFMode(k); if (k === "team") setFWho("all"); }}>${l}</button>`)}
       </div>
-      <div class="flex flex-wrap gap-1.5 items-center"><span class="lbl mr-1 mb-0">연구원</span>
+      ${fMode !== "team" && html`<div class="flex flex-wrap gap-1.5 items-center"><span class="lbl mr-1 mb-0">연구원</span>
         <${Chip} on=${fWho === "all"} onClick=${() => setFWho("all")}>전체</${Chip}>
-        ${RESEARCHERS.map((r) => html`<${Chip} key=${r.name} on=${fWho === r.name} color=${r.color} onClick=${() => setFWho(r.name)}><${Dot} color=${fWho === r.name ? "#fff" : r.color} size=${6} />${r.name}</${Chip}>`)}</div>
+        ${RESEARCHERS.map((r) => html`<${Chip} key=${r.name} on=${fWho === r.name} color=${r.color} onClick=${() => setFWho(r.name)}><${Dot} color=${fWho === r.name ? "#fff" : r.color} size=${6} />${r.name}</${Chip}>`)}</div>`}
       <div class="flex flex-wrap gap-1.5 items-center"><span class="lbl mr-1 mb-0">군락</span>
         <${Chip} on=${fForm === "all"} onClick=${() => setFForm("all")}>전체</${Chip}>
-        ${FORM_LIST.map((g) => html`<${Chip} key=${g} on=${fForm === g} onClick=${() => setFForm(g)}>${g}</${Chip}>`)}</div>
+        ${FORM_LIST.map((g) => html`<${Chip} key=${g} on=${fForm === g} color=${fMode === "team" ? TEAM_GREEN[g] : undefined} onClick=${() => setFForm(g)}>${fMode === "team" ? html`<span style=${{ width: 8, height: 8, borderRadius: 2, background: fForm === g ? "#fff" : TEAM_GREEN[g], display: "inline-block", marginRight: 4 }}></span>` : null}${g}</${Chip}>`)}</div>
     </div>
-    <${MapPanel} records=${filtered} homes=${homes} selectedId=${openId} onSelect=${onOpen} onMapPick=${onMapPick} gpsPos=${gps} follow=${follow} setFollow=${setFollow} />
+    <${MapPanel} records=${filtered} homes=${homes} selectedId=${openId} onSelect=${onOpen} onMapPick=${onMapPick} gpsPos=${gps} follow=${follow} setFollow=${setFollow} mode=${fMode} />
     <p class="text-[12px] text-mist -mt-1">⌂는 각자의 우리 동네, 동그라미는 따로·네모는 같이 기록이에요. 왼쪽 위 겹 버튼으로 위성사진·일반 지도를 바꿀 수 있고, 지도를 누르면 그 자리에 새 기록을 만들어요.</p>
     <section class="glass p-3 grid gap-2">
       <div class="flex items-center gap-2 flex-wrap">
@@ -2459,7 +2465,7 @@ function MapView({ records, gps, follow, setFollow, onMapPick, onOpen, openId })
         ${filtered.slice(0, 40).map((r, i) => { const act = M.activity(r.weather.ppfd); return html`<button key=${r.id} type="button" class="rank-row" onClick=${() => onOpen(r.id)}>
           <span class="mono rank-i">${i + 1}</span>
           ${r.photo ? html`<img src=${r.photo} alt="" />` : html`<span class="rank-ph"><${Icon} name="Leaf" size=${16} /></span>`}
-          <span class="min-w-0 flex-1 text-left"><b>${r.koreanName || "미동정"}</b><small><${ModeTag} mode=${r.mode} small=${true} /> ${r.researcher} · ${r.place || MODES[r.mode].place}</small></span>
+          <span class="min-w-0 flex-1 text-left"><b>${r.koreanName || "미동정"}</b><small><${ModeTag} mode=${r.mode} small=${true} /> ${r.mode === "team" ? (r.habitat || "교정") : r.researcher} · ${r.place || MODES[r.mode].place}</small></span>
           <span class="text-right"><b class="mono">${fix(r.model.gco2, 2)}</b><small style=${{ color: ACT_COLOR[act.key] }}>PAR ${r.weather.par}</small></span>
         </button>`; })}
         ${!filtered.length && html`<div class="empty-note">조건에 맞는 기록이 없어요.</div>`}
