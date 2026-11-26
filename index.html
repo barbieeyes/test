@@ -525,7 +525,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>window.__BUILD__ = "20261126093019";</script>
+<script>window.__BUILD__ = "20261126094948";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -3190,34 +3190,67 @@ const MetricChips = ({ v, set }) => html`<div class="flex gap-1.5 flex-wrap">${[
 const airCsv = (pts) => "﻿시간,CO2(ppm),온도(C),습도(%)\n" + pts.map((p) => { const d = new Date(p.ts), q = (n) => String(n).padStart(2, "0");
   return `${ymd(p.ts)} ${q(d.getHours())}:${q(d.getMinutes())}:${q(d.getSeconds())},${Math.round(p.co2)},${p.t},${p.h}`; }).join("\n");
 
-function AirView({ me, airs, onDelete, say }) {
+/** 같은 보드(휴대폰)·같은 날·같은 장소의 기록(와이파이 보드는 1시간 단위)을 하나로 묶기 */
+function groupAirs(airs) {
+  const g = new Map();
+  for (const a of airs) {
+    if (a.kind !== "air" || !(a.points || []).length) continue;
+    const dev = a.dev || (a.id.split("_")[1] || "?"), day = a.day || ymd(a.ts);
+    const key = `${dev}|${day}|${a.place}`;
+    const x = g.get(key) || { key, dev, day, place: a.place, src: a.src || "ble", ids: [], pm: new Map() };
+    x.ids.push(a.id); for (const p of a.points) x.pm.set(p[0], p); g.set(key, x);
+  }
+  return [...g.values()].map((x) => { const points = [...x.pm.values()].sort((a, b) => a[0] - b[0]);
+    return { key: x.key, dev: x.dev, day: x.day, place: x.place, src: x.src, ids: x.ids, points, ts: points[0][0], end: points[points.length - 1][0] }; })
+    .sort((a, b) => b.end - a.end);
+}
+const agoTxt = (ts) => { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? "방금" : m < 60 ? `${m}분 전` : m < 1440 ? `${Math.round(m / 60)}시간 전` : fmtDate(ts); };
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+function AirView({ me, airs, onDelete, onSaveCfg, say }) {
   const [, force] = useState(0);
   useEffect(() => { AIR.init(); return AIR.sub(() => force((n) => n + 1)); }, []);
+  useEffect(() => { const t = setInterval(() => force((n) => n + 1), 30000); return () => clearInterval(t); }, []);
   const cfg = airCfg.get();
   const [place, setPlace] = useState(cfg.place || "");
   const [thr, setThr] = useState(cfg.thr || 1000);
   const [metric, setMetric] = useState("co2"), [range, setRange] = useState(3600000);
-  const [openId, setOpenId] = useState(null), [m2, setM2] = useState("co2");
-  const [ask, setAsk] = useState(null);
-  const live = AIR.live, on = AIR.st === "on", wait = AIR.st === "wait";
-  const fresh = live && Date.now() - live.ts < 120000;
+  const [openKey, setOpenKey] = useState(null), [m2, setM2] = useState("co2");
+  const [ask, setAsk] = useState(null), [showBle, setShowBle] = useState(false);
+  const [editDev, setEditDev] = useState(null), [editPlace, setEditPlace] = useState("");
+  const [boardSel, setBoardSel] = useState(null);
+  const now = Date.now();
+  const groups = useMemo(() => groupAirs(airs), [airs]);
+  const cfgs = useMemo(() => new Map(airs.filter((a) => a.kind === "air_cfg").map((c) => [c.dev, c])), [airs]);
+  // 와이파이 보드 목록: 보드마다 가장 최근 값
+  const boards = useMemo(() => { const m = new Map();
+    for (const gq of groups) { if (gq.src !== "wifi") continue; const b = m.get(gq.dev); if (!b || gq.end > b.end) m.set(gq.dev, gq); }
+    return [...m.values()].sort((a, b) => b.end - a.end); }, [groups]);
+  const board = boards.find((b) => b.dev === boardSel) || boards[0] || null;
+  const bLast = board ? board.points[board.points.length - 1] : null;
+  // 지금 공기: 블루투스로 막 받은 값이 있으면 그것, 아니면 와이파이 보드의 최근 1분 평균
+  const bleLive = AIR.live && now - AIR.live.ts < 120000 ? AIR.live : null;
+  const live = bleLive || (bLast ? { ts: bLast[0], co2: bLast[1], t: bLast[2], h: bLast[3] } : null);
+  const fresh = live && now - live.ts < (bleLive ? 120000 : 600000);
+  const on = AIR.st === "on", wait = AIR.st === "wait";
   const lv = live ? airLv(live.co2) : null;
   const frac = live ? Math.max(0, Math.min(1, (live.co2 - 400) / 2100)) : 0;
-  const now = Date.now();
-  const list = useMemo(() => airs.filter((a) => (a.points || []).length).sort((a, b) => (b.end || b.ts) - (a.end || a.ts)), [airs]);
-  const places = [...new Set(list.map((a) => a.place))].slice(0, 6);
-  const open = list.find((a) => a.id === openId);
+  const open = groups.find((x) => x.key === openKey);
   const savePlace = (v) => { setPlace(v); airCfg.set({ place: v }); };
-  const rec = AIR.recent;
-  const st = airStats(rec.filter((p) => p.ts >= now - range), metric);
+  // 실시간 그래프: 블루투스 값이 있으면 그것, 없으면 선택한 보드의 기록
+  const blePts = AIR.recent.filter((p) => p.ts >= now - range);
+  const boardPts = board ? groups.filter((x) => x.dev === board.dev).flatMap((x) => itemPts(x)).filter((p) => p.ts >= now - range).sort((a, b) => a.ts - b.ts) : [];
+  const chartPts = blePts.length ? blePts : boardPts;
+  const st = airStats(chartPts, metric);
   const f = metric === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
+  const srcLabel = bleLive ? "블루투스 · 5초마다" : board ? `보드 ${board.dev.toUpperCase()} · ${(cfgs.get(board.dev) || {}).place || board.place} · 1분 평균` : "";
   return html`<div class="grid gap-4">
-    ${on && fresh && live.co2 >= thr && html`<div class="air-alarm" role="alert"><${Icon} name="Wind" size=${20} />CO₂ ${live.co2.toLocaleString()}ppm · 기준(${Number(thr).toLocaleString()}ppm)을 넘었어요. 창문을 열어 환기해 주세요!</div>`}
+    ${fresh && live.co2 >= thr && html`<div class="air-alarm" role="alert"><${Icon} name="Wind" size=${20} />CO₂ ${live.co2.toLocaleString()}ppm · 기준(${Number(thr).toLocaleString()}ppm)을 넘었어요. 환기하거나 자리를 옮겨 주세요!</div>`}
     <section class="glass p-4">
       <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Wind" size=${18} />지금 공기</h2>
-        <span class=${"air-conn" + (on ? " on" : wait ? " wait" : "")}><i></i>${on ? "기록 중" : wait ? (AIR.msg || "연결 중…") : "연결 안 됨"}</span></div>
-      <label class="fld mb-3"><span class="lbl">측정 장소</span>
-        <input class="air-place" type="text" maxlength="30" placeholder="예: 3학년 2반 교실" value=${place} onInput=${(e) => savePlace(e.target.value)} /></label>
+        <span class=${"air-conn" + (fresh ? " on" : on || wait ? " wait" : "")}><i></i>${fresh ? (bleLive ? "블루투스 기록 중" : "보드 기록 중") : on || wait ? "연결 중…" : live ? "새 값 기다리는 중" : "아직 기록 없음"}</span></div>
+      ${boards.length > 1 && !bleLive && html`<div class="flex gap-1.5 flex-wrap mb-3">${boards.map((b) => html`<button key=${b.dev} type="button" class=${"chip" + (board && b.dev === board.dev ? " chip-on" : "")} onClick=${() => setBoardSel(b.dev)}>
+        ${(cfgs.get(b.dev) || {}).place || b.place}</button>`)}</div>`}
       <div class="air-live">
         <div class="air-gauge">
           <svg viewBox="0 0 128 82" aria-hidden="true">
@@ -3234,51 +3267,65 @@ function AirView({ me, airs, onDelete, say }) {
           <div class="stat air-hum"><div class="lbl">습도</div><b class="mono text-[26px]">${live ? live.h.toFixed(1) : "––"}</b><small class="text-mist"> %</small></div>
         </div>
       </div>
-      <p class="text-[13px] text-mist mt-2">${live ? `마지막 측정 ${fmtDate(live.ts)}${fresh ? "" : " · 지금은 새 값이 안 들어와요"}` : "보드와 연결하면 5초마다 측정하고, 1분 평균을 팀 기록으로 올려요."}</p>
-      ${AIR.msg && !wait && html`<div class="err mt-2" role="alert">${AIR.msg}</div>`}
-      <div class="flex gap-2 mt-3 flex-wrap">
-        ${on || wait ? html`<button type="button" class="btn-ghost" onClick=${() => AIR.disconnect()}><${Icon} name="BluetoothOff" size=${16} />연결 끊기</button>`
-          : html`<button type="button" class="gate-go flex-1" onClick=${() => AIR.connect()}>보드 연결하고 기록 시작</button>`}
-      </div>
+      <p class="text-[13px] text-mist mt-2">${live ? `${srcLabel} · ${agoTxt(live.ts)}${fresh ? "" : " · 보드 전원과 핫스팟을 확인해 주세요"}`
+        : "보드를 켜고 휴대폰 핫스팟을 켜 두면, 1분마다 여기에 새 값이 올라와요."}</p>
     </section>
 
     <section class="glass p-4">
-      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Activity" size=${18} />이 휴대폰 실시간 그래프</h2></div>
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Activity" size=${18} />실시간 그래프</h2>
+        <span class="text-[12.5px] text-mist">${blePts.length ? "블루투스 5초 값" : board ? "보드 1분 평균" : ""}</span></div>
       <div class="flex justify-between gap-2 flex-wrap"><${MetricChips} v=${metric} set=${setMetric} />
         <div class="flex gap-1.5 flex-wrap">${[[3600000, "1시간"], [21600000, "6시간"], [86400000, "24시간"]].map(([v, l]) =>
           html`<button key=${v} type="button" class=${"chip" + (range === v ? " chip-on" : "")} aria-pressed=${range === v} onClick=${() => setRange(v)}>${l}</button>`)}</div></div>
-      <${AirChart} pts=${rec} metric=${metric} t0=${now - range} t1=${now} thr=${thr} />
+      <${AirChart} pts=${chartPts} metric=${metric} t0=${now - range} t1=${now} thr=${thr} />
       <div class="grid grid-cols-3 gap-2 mt-2 text-center">${[["최저", "mn"], ["평균", "avg"], ["최고", "mx"]].map(([l, k]) =>
         html`<div key=${k} class="stat"><div class="lbl">${l}</div><b class="mono text-[17px]">${st ? f(st[k]) : "–"}</b></div>`)}</div>
-      <div class="flex justify-end mt-2"><button type="button" class="btn-ghost" onClick=${async () => { const rows = (await airRaw.since(0)).sort((a, b) => a.ts - b.ts);
-        if (!rows.length) { say("이 휴대폰에 저장된 측정값이 없어요"); return; } saveFile(`공기_5초원본_${ymd(Date.now())}.csv`, airCsv(rows), "text/csv"); say(`5초 측정값 ${rows.length.toLocaleString()}개를 받았어요`); }}>
-        <${Icon} name="Download" size=${15} />5초 원본 CSV (이 휴대폰)</button></div>
     </section>
 
     <section class="glass p-4">
       <div class="flex items-center justify-between gap-2 flex-wrap mb-1"><h2 class="pill-h"><${Icon} name="School" size=${18} />우리 공기 기록</h2>
         <span class="text-[12.5px] text-mist">1분 평균 · 팀 모두 함께 봐요</span></div>
-      ${places.length > 1 && html`<p class="text-[12.5px] text-mist mb-2">측정한 곳: ${places.join(" · ")}</p>`}
-      ${!list.length ? html`<p class="text-[14px] text-mist py-5 text-center">아직 공기 기록이 없어요. 보드를 연결하면 1분마다 쌓여요.</p>`
-        : html`<div class="grid gap-2 mt-2">${list.slice(0, 60).map((a) => { const s = airStats(itemPts(a), "co2"), l = airLv(s.avg), mins = a.points.length;
-          return html`<button key=${a.id} type="button" class=${"air-row" + (a.id === openId ? " on" : "")} onClick=${() => setOpenId(a.id === openId ? null : a.id)}>
+      ${!groups.length ? html`<p class="text-[14px] text-mist py-5 text-center">아직 공기 기록이 없어요. 보드를 켜면 1분마다 쌓여요.</p>`
+        : html`<div class="grid gap-2 mt-2">${groups.slice(0, 60).map((a) => { const s = airStats(itemPts(a), "co2"), l = airLv(s.avg);
+          return html`<button key=${a.key} type="button" class=${"air-row" + (a.key === openKey ? " on" : "")} onClick=${() => setOpenKey(a.key === openKey ? null : a.key)}>
             <span class="air-dot" style=${{ background: l[2] }}></span>
-            <span class="grid text-left min-w-0"><b class="truncate">${a.place}</b><small class="text-mist">${fmtDay(a.ts)} · ${hm(a.ts).replace(/(\d\d)(\d\d)/, "$1:$2")}–${hm(a.end || a.ts).replace(/(\d\d)(\d\d)/, "$1:$2")} · ${mins}분</small></span>
+            <span class="grid text-left min-w-0"><b class="truncate">${a.place}</b><small class="text-mist">${fmtDay(a.ts)} · ${hm(a.ts).replace(/(\d\d)(\d\d)/, "$1:$2")}–${hm(a.end).replace(/(\d\d)(\d\d)/, "$1:$2")} · ${a.points.length}분 · ${a.src === "wifi" ? "보드 " + a.dev.toUpperCase() : "블루투스"}</small></span>
             <span class="ml-auto text-right shrink-0"><b class="mono">${Math.round(s.avg).toLocaleString()}</b><small class="text-mist"> 평균</small><br/><small class="mono text-mist">최고 ${s.mx.toLocaleString()}</small></span></button>`; })}</div>`}
       ${open && (() => { const pts = itemPts(open), s2 = airStats(pts, m2), f2 = m2 === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
         const over = pts.filter((p) => p.co2 >= thr).length;
         return html`<div class="air-detail mt-3">
           <div class="flex items-center gap-2 flex-wrap mb-2"><b class="font-display text-[19px]" style=${{ color: "var(--grass-deep)" }}>${open.place}</b><span class="text-[13px] text-mist">${fmtDay(open.ts)}</span>
-            <button type="button" class="icon-btn ml-auto" onClick=${() => setOpenId(null)} aria-label="닫기"><${Icon} name="X" size=${18} /></button></div>
+            <button type="button" class="icon-btn ml-auto" onClick=${() => setOpenKey(null)} aria-label="닫기"><${Icon} name="X" size=${18} /></button></div>
           <${MetricChips} v=${m2} set=${setM2} />
-          <${AirChart} pts=${pts} metric=${m2} t0=${open.ts - 60000} t1=${(open.end || open.ts) + 60000} thr=${thr} />
+          <${AirChart} pts=${pts} metric=${m2} t0=${open.ts - 60000} t1=${open.end + 60000} thr=${thr} />
           <div class="grid grid-cols-3 gap-2 mt-2 text-center">${[["최저", "mn"], ["평균", "avg"], ["최고", "mx"]].map(([l, k]) =>
             html`<div key=${k} class="stat"><div class="lbl">${l}</div><b class="mono text-[17px]">${s2 ? f2(s2[k]) : "–"}</b></div>`)}</div>
           <p class="text-[13px] text-mist mt-2">${over ? `기준(${Number(thr).toLocaleString()}ppm)을 넘은 시간: 약 ${over}분` : `기준(${Number(thr).toLocaleString()}ppm)을 넘은 적 없어요`}</p>
           <div class="flex gap-2 mt-2 flex-wrap">
-            <button type="button" class="btn-ghost" onClick=${() => saveFile(`공기_${open.place}_${open.day || ymd(open.ts)}.csv`, airCsv(pts), "text/csv")}><${Icon} name="Download" size=${15} />1분 평균 CSV</button>
+            <button type="button" class="btn-ghost" onClick=${() => saveFile(`공기_${open.place}_${open.day}.csv`, airCsv(pts), "text/csv")}><${Icon} name="Download" size=${15} />1분 평균 CSV</button>
             <button type="button" class="btn-ghost ml-auto" style=${{ color: "var(--rose)" }} onClick=${() => setAsk(open)}><${Icon} name="Trash2" size=${15} />이 기록 지우기</button></div>
         </div>`; })()}
+    </section>
+
+    <section class="glass p-4">
+      <h2 class="pill-h mb-3"><${Icon} name="Wifi" size=${18} />와이파이 보드</h2>
+      ${!boards.length ? html`<p class="text-[13.5px] text-mist">아직 기록을 올린 보드가 없어요. 보드에 와이파이 펌웨어(EZ_CO2_WiFi)를 올리고 핫스팟 이름·비밀번호를 적어 주세요.</p>`
+        : html`<div class="grid gap-2">${boards.map((b) => { const cp = (cfgs.get(b.dev) || {}).place, cur = cp || b.place, alive = now - b.end < 600000;
+          return html`<div key=${b.dev} class="air-row" style=${{ cursor: "default" }}>
+            <span class="air-dot" style=${{ background: alive ? "var(--grass)" : "#B8C7BD" }}></span>
+            ${editDev === b.dev ? html`<form class="flex gap-2 flex-1 min-w-0" onSubmit=${(e) => { e.preventDefault(); const v = editPlace.trim(); if (!v) return; onSaveCfg(b.dev, v); setEditDev(null); say("장소를 바꿨어요 · 보드가 5분 안에 받아 가요"); }}>
+                <input class="air-thr flex-1 min-w-0" style=${{ textAlign: "left", fontFamily: "var(--f-body)", fontSize: "16px" }} maxlength="30" value=${editPlace} onInput=${(e) => setEditPlace(e.target.value)} autofocus />
+                <button type="submit" class="btn-ghost">저장</button></form>`
+              : html`<span class="grid text-left min-w-0 flex-1"><b class="truncate">${cur}</b><small class="text-mist">보드 ${b.dev.toUpperCase()} · 마지막 기록 ${agoTxt(b.end)}${cp && cp !== b.place ? " · 장소 바꾸는 중" : ""}</small></span>
+                <button type="button" class="btn-ghost shrink-0" onClick=${() => { setEditDev(b.dev); setEditPlace(cur); }}><${Icon} name="MapPin" size=${15} />장소 바꾸기</button>`}
+          </div>`; })}</div>`}
+      <div class="insight mt-3 text-[13.5px]"><b>야외에서 쓸 때</b>
+        <ol class="list-decimal pl-5 mt-1 grid gap-1">
+          <li>아이폰 설정 → 개인용 핫스팟 → <b>'다른 사람의 연결 허용'</b>과 <b>'호환성 최대화'</b>를 켜세요.</li>
+          <li>보드를 보조배터리에 연결해 켜면, 핫스팟에 붙어서 1분마다 기록을 올려요.</li>
+          <li>데이터가 안 터지는 곳에서도 보드에 저장해 뒀다가 다시 연결되면 한꺼번에 올라와요.</li>
+          <li>이 화면은 사파리·네이버 등 평소 쓰는 브라우저 그대로 보면 돼요.</li>
+        </ol></div>
     </section>
 
     <section class="glass p-4">
@@ -3286,18 +3333,28 @@ function AirView({ me, airs, onDelete, say }) {
       <div class="flex items-center gap-2 flex-wrap"><label for="airThr" class="text-[13px] text-mist">CO₂가 이 값을 넘으면 경고</label>
         <input id="airThr" class="air-thr" type="number" min="400" max="40000" step="50" value=${thr} onChange=${(e) => { const v = +e.target.value || 1000; setThr(v); airCfg.set({ thr: v }); }} /><span class="text-[13px] text-mist">ppm</span></div>
       <div class="air-scale">${AIR_LV.map(([lim, l, c], i) => html`<div key=${l} style=${{ background: c }}>${l}<br/>${i === 0 ? "~800" : i === 3 ? "2,000~" : `${AIR_LV[i - 1][0].toLocaleString()}~${lim.toLocaleString()}`}</div>`)}</div>
-      <div class="insight mt-3 text-[13.5px]"><b>처음 사용할 때</b>
-        <ol class="list-decimal pl-5 mt-1 grid gap-1">
-          <li>아이폰은 App Store의 <b>Bluefy</b> 앱에서 에코쌤즈를 여세요. (사파리는 블루투스 연결이 안 돼요)</li>
-          <li>보드 전원을 켜고 측정 장소를 적은 뒤 <b>보드 연결</b> → <b>EZ-CO2</b>를 고르세요.</li>
-          <li>연결이 끊겨도 보드가 약 4시간치를 보관했다가, 다시 연결하면 빠진 기록을 채워 넣어요.</li>
-        </ol></div>
     </section>
+
+    ${!isIOS() && html`<section class="glass p-4">
+      <button type="button" class="flex items-center gap-2 w-full text-left" onClick=${() => setShowBle(!showBle)} aria-expanded=${showBle}>
+        <${Icon} name="Bluetooth" size=${18} /><b class="flex-1">블루투스로 바로 연결 (안드로이드·PC 크롬)</b><${Icon} name=${showBle || on || wait ? "ChevronUp" : "ChevronDown"} size=${18} /></button>
+      ${(showBle || on || wait) && html`<div class="mt-3 grid gap-3">
+        <p class="text-[13px] text-mist">블루투스 펌웨어(EZ_CO2_Logger)를 올린 보드에만 쓸 수 있어요. 5초 값은 이 기기에, 1분 평균은 팀 기록으로 올라가요.</p>
+        <label class="fld"><span class="lbl">측정 장소</span>
+          <input class="air-place" type="text" maxlength="30" placeholder="예: 3학년 2반 교실" value=${place} onInput=${(e) => savePlace(e.target.value)} /></label>
+        ${AIR.msg && !wait && html`<div class="err" role="alert">${AIR.msg}</div>`}
+        ${on || wait ? html`<button type="button" class="btn-ghost" onClick=${() => AIR.disconnect()}><${Icon} name="BluetoothOff" size=${16} />연결 끊기 ${wait ? "· " + (AIR.msg || "연결 중…") : ""}</button>`
+          : html`<button type="button" class="btn-save" onClick=${() => AIR.connect()}>보드 연결하고 기록 시작</button>`}
+        <button type="button" class="btn-ghost justify-self-start" onClick=${async () => { const rows = (await airRaw.since(0)).sort((a, b) => a.ts - b.ts);
+          if (!rows.length) { say("이 기기에 저장된 5초 측정값이 없어요"); return; } saveFile(`공기_5초원본_${ymd(Date.now())}.csv`, airCsv(rows), "text/csv"); }}>
+          <${Icon} name="Download" size=${15} />5초 원본 CSV (이 기기)</button>
+      </div>`}
+    </section>`}
 
     ${ask && html`<div class="modal-bg" onClick=${() => setAsk(null)}><div class="modal max-w-sm" role="dialog" aria-modal="true" onClick=${(e) => e.stopPropagation()}>
       <p class="text-[15px] mb-4">${ask.place} · ${fmtDay(ask.ts)} 공기 기록을 지울까요? 팀 모두의 화면에서 사라지고 되돌릴 수 없어요.</p>
       <div class="flex justify-end gap-2"><button type="button" class="btn-ghost" onClick=${() => setAsk(null)}>취소</button>
-        <button type="button" class="btn-danger" onClick=${() => { onDelete(ask.id); AIR.mine.delete(ask.id); setAsk(null); setOpenId(null); }}>지우기</button></div></div></div>`}
+        <button type="button" class="btn-danger" onClick=${() => { onDelete(ask.ids); ask.ids.forEach((id) => AIR.mine.delete(id)); setAsk(null); setOpenKey(null); }}>지우기</button></div></div></div>`}
   </div>`;
 }
 
@@ -3360,7 +3417,7 @@ function App() {
     if (old && Array.isArray(old)) { for (const r of old) { if (!r.sample) await db.put({ mode: "team", ...r }); } store.del(LS_OLD); all = await db.all(); }
     if (!all.length && !store.get("ecossam.v2.seeded", false)) { for (const r of sampleRecords()) await db.put(r); store.set("ecossam.v2.seeded", true); all = await db.all(); }
     all.sort((a, b) => upKey(b) - upKey(a));
-    setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting")); setAirs(all.filter((r) => r.kind === "air")); setLoaded(true);
+    setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting")); setAirs(all.filter((r) => r.kind === "air" || r.kind === "air_cfg")); setLoaded(true);
     syncNow();
   })(); }, []);
 
@@ -3372,7 +3429,7 @@ function App() {
     if (!all.filter((r) => !r.sample).length && recRef.current.some((r) => !r.sample)) return; // 저장소가 잠깐 비어 보여도 화면의 기록은 지키기
     setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting"));
     // 이 휴대폰이 지금 쓰는 공기 기록은 메모리의 최신본을 우선(동기화 중 덮어쓰기 방지)
-    setAirs(all.filter((r) => r.kind === "air").map((a) => { const m = AIR.mine.get(a.id); return m && (m.points || []).length > (a.points || []).length ? m : a; }));
+    setAirs(all.filter((r) => r.kind === "air" || r.kind === "air_cfg").map((a) => { const m = AIR.mine.get(a.id); return m && (m.points || []).length > (a.points || []).length ? m : a; }));
   };
   const syncNow = async () => {
     if (syncing.current) { syncAgain.current = true; return; }
@@ -3409,8 +3466,9 @@ function App() {
   useEffect(() => {
     const vis = () => { if (document.visibilityState === "visible") syncNow(); };
     const iv = setInterval(() => { if (document.visibilityState === "visible") syncNow(); }, 25000);
+    const iv2 = setInterval(() => { if (document.visibilityState === "visible" && tabRef.current === "air") syncNow(); }, 15000);
     document.addEventListener("visibilitychange", vis); window.addEventListener("online", syncNow);
-    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", vis); window.removeEventListener("online", syncNow); };
+    return () => { clearInterval(iv); clearInterval(iv2); document.removeEventListener("visibilitychange", vis); window.removeEventListener("online", syncNow); };
   }, []);
   const putLocal = (item) => db.put({ ...item, _dirty: true });
   // 예전 사진을 새 프레임(식재·자생 테두리)으로 다시 찍기 — 원본(raw)이 있는 식물 기록만, 한 번에 하나씩
@@ -3440,7 +3498,9 @@ function App() {
     await putLocal(item);
     clearTimeout(airSyncT.current); airSyncT.current = setTimeout(syncNow, 1500);
   };
-  const deleteAir = async (id) => { await db.del(id); delCloud(id, "air"); setTimeout(syncNow, 200); setAirs((as) => as.filter((a) => a.id !== id)); say("공기 기록을 지웠어요"); };
+  const deleteAir = async (ids) => { for (const id of ids) { await db.del(id); delCloud(id, "air"); } setTimeout(syncNow, 200); setAirs((as) => as.filter((a) => !ids.includes(a.id))); say("공기 기록을 지웠어요"); };
+  const saveAirCfg = async (dev, place) => { const it = { id: "air_cfg_" + dev, kind: "air_cfg", dev, place, researcher: me, ts: Date.now() };
+    setAirs((as) => [it, ...as.filter((a) => a.id !== it.id)]); await putLocal(it); setTimeout(syncNow, 200); };
 
   const loadWx = useCallback(async (lat, lng, fromGps) => {
     setWState("loading");
@@ -3554,7 +3614,7 @@ function App() {
         : tab === "solo" ? html`<${SoloView} me=${me} records=${records} gps=${gps} onAdd=${addRecord} onOpen=${setOpenId} say=${say} />`
         : tab === "team" ? html`<${TeamView} records=${records} meetings=${meetings} sub=${teamSub} setSub=${setTeamSub} onAdd=${addRecord} onOpen=${setOpenId}
             onAddMeeting=${() => setMeetEdit({ isNew: true })} onOpenMeeting=${(m) => setMeetEdit(m)} onExportMinutes=${exportMinutes} />`
-        : tab === "air" ? html`<${AirView} me=${me} airs=${airs} onDelete=${deleteAir} say=${say} />`
+        : tab === "air" ? html`<${AirView} me=${me} airs=${airs} onDelete=${deleteAir} onSaveCfg=${saveAirCfg} say=${say} />`
         : tab === "activity" ? html`<${ActivityView} me=${me} acts=${acts} onAdd=${() => setActEdit({ isNew: true })} onOpen=${(a) => setActEdit(a)} />`
         : tab === "map" ? html`<${MapView} records=${records} gps=${gps} follow=${follow} setFollow=${setFollow} onMapPick=${onMapPick} onOpen=${setOpenId} openId=${openId} />`
         : html`<${ArchiveView} records=${records} acts=${acts} meetings=${meetings} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onOpenMeeting=${(m) => setMeetEdit(m)} onClearSamples=${clearSamples} onImport=${importJSON} sync=${sync} onSync=${syncNow} />`}
