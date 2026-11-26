@@ -35,7 +35,7 @@ static String wifiSsid, wifiPass;
 static Preferences prefs;
 #define WIFI_SSID wifiSsid.c_str()
 #define WIFI_PASS wifiPass.c_str()
-#define FW_VERSION "1.3"
+#define FW_VERSION "1.3.2"
 
 // 에코쌤즈 팀 저장소 (앱과 같은 공개 키 · 팀 비밀번호)
 const char* SB_URL   = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
@@ -117,8 +117,9 @@ static String fmtLocal(uint32_t ep, const char* f) { time_t tt = ep; struct tm t
 //  /q/<…>.txt                       : 그 시간 묶음의 장소 이름
 //  /u/<…>                           : 아직 안 올린 묶음 표시
 static String placeHash(const String& s) { uint32_t x = 7; for (size_t i = 0; i < s.length(); i++) x = x * 31 + (uint8_t)s[i]; char b[10]; snprintf(b, sizeof(b), "%07lx", (unsigned long)(x & 0xFFFFFFF)); return String(b); }
+static std::vector<MinRec> ramQ;  // 저장 공간을 못 쓸 때 메모리에 보관
 static void saveMin(const MinRec& r) {
-  if (!fsOk) return;
+  if (!fsOk) { if (ramQ.size() < 1440) ramQ.push_back(r); Serial.printf("[기록] CO2 %u ppm (메모리 보관 %u개)\n", r.co2, (unsigned)ramQ.size()); return; }
   String key = fmtLocal(r.ep, "%Y%m%d%H") + "_" + placeHash(place);
   String bin = "/q/" + key + ".bin";
   if (!LittleFS.exists(bin)) { File p = LittleFS.open("/q/" + key + ".txt", "w"); if (p) { p.print(place); p.close(); } }
@@ -179,7 +180,27 @@ static bool uploadKey(const String& key) {
   }
   return ok;
 }
+static bool uploadRam() {  // 메모리에 있는 기록을 시간 묶음별로 올림
+  static uint32_t sentEp = 0; static size_t sentN = 0;
+  if (ramQ.empty() || (ramQ.back().ep == sentEp && ramQ.size() == sentN)) return true;
+  String key0 = fmtLocal(ramQ[0].ep, "%Y%m%d%H"); std::vector<MinRec> grp, rest;
+  for (auto& r : ramQ) (fmtLocal(r.ep, "%Y%m%d%H") == key0 ? grp : rest).push_back(r);
+  String key = key0 + "_" + placeHash(place), id = "air_" + devId + "_" + key, day = fmtLocal(grp[0].ep, "%Y-%m-%d"), pts; uint32_t last = 0;
+  for (auto& x : grp) { uint32_t m = x.ep / 60 * 60; if (m == last) continue; last = m;
+    if (pts.length()) pts += ','; pts += "[" + msStr(m) + "," + String(x.co2) + "," + String(x.t / 100.0, 1) + "," + String(x.h / 100.0, 1) + "," + String(x.n) + "]"; }
+  String ts = msStr(grp.front().ep / 60 * 60), end = msStr(grp.back().ep / 60 * 60);
+  String data = "{\"id\":\"" + id + "\",\"kind\":\"air\",\"src\":\"wifi\",\"dev\":\"" + devId + "\",\"place\":\"" + jesc(place) + "\",\"day\":\"" + day +
+                "\",\"ts\":" + ts + ",\"end\":" + end + ",\"updated\":" + msStr((uint32_t)time(nullptr)) + ",\"points\":[" + pts + "]}";
+  String body = "[{\"id\":\"" + id + "\",\"kind\":\"air\",\"author\":null,\"ts\":" + ts + ",\"deleted\":false,\"data\":" + data + "}]";
+  if (!sbRequest("POST", "/rest/v1/eco_items?on_conflict=id", body, nullptr)) return false;
+  Serial.printf("[저장소] %s 올림 (%u분, 메모리)\n", key.c_str(), (unsigned)grp.size());
+  // 지난 시간 묶음은 보냈으니 비우고, 지금 시간 묶음은 계속 쌓아서 다시 보냄
+  if (key0 != fmtLocal(time(nullptr), "%Y%m%d%H")) { ramQ = rest; sentEp = 0; sentN = 0; return true; }
+  sentEp = ramQ.back().ep; sentN = ramQ.size();
+  return true;
+}
 static void uploadPending() {
+  if (!fsOk) { uploadRam(); return; }
   int done = 0;
   for (auto& key : listDir("/u")) { if (!uploadKey(key)) break; if (++done >= 4) break; }
 }
@@ -296,7 +317,8 @@ void setup() {
   Serial.println("\n=== EZ-CO2 WiFi ===");
   uint64_t mac = ESP.getEfuseMac(); char b[8]; snprintf(b, sizeof(b), "%02x%02x%02x", (unsigned)((mac >> 24) & 0xFF), (unsigned)((mac >> 32) & 0xFF), (unsigned)((mac >> 40) & 0xFF)); devId = b;
   Serial.printf("[보드] 이름: 보드 %s\n", devId.c_str());
-  fsOk = LittleFS.begin(true);
+  fsOk = LittleFS.begin(false);
+  if (!fsOk) { Serial.println("[저장] 저장 공간을 새로 만드는 중… (처음 한 번, 10초쯤)"); LittleFS.end(); if (LittleFS.format()) fsOk = LittleFS.begin(false); }
   if (fsOk) { LittleFS.mkdir("/q"); LittleFS.mkdir("/u"); File f = LittleFS.open("/place.txt", "r"); if (f) { place = f.readString(); f.close(); place.trim(); } }
   else Serial.println("[저장] 저장 공간을 열지 못했어요 (Partition Scheme 확인). 인터넷이 될 때만 기록돼요.");
   if (!place.length()) place = prefs.getString("place", PLACE_DEFAULT);
