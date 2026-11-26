@@ -23,6 +23,8 @@
 #include <vector>
 #include <algorithm>
 #include <Preferences.h>
+#include <WebServer.h>
+#include <DNSServer.h>
 
 // ==== 설치 페이지에서 입력하면 보드에 저장돼요. 직접 적어도 됩니다 ====
 const char* WIFI_SSID_DEFAULT = "";      // 핫스팟(와이파이) 이름, 예: "이정연의 iPhone"
@@ -33,7 +35,7 @@ static String wifiSsid, wifiPass;
 static Preferences prefs;
 #define WIFI_SSID wifiSsid.c_str()
 #define WIFI_PASS wifiPass.c_str()
-#define FW_VERSION "1.1"
+#define FW_VERSION "1.3"
 
 // 에코쌤즈 팀 저장소 (앱과 같은 공개 키 · 팀 비밀번호)
 const char* SB_URL   = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
@@ -210,6 +212,61 @@ static void flushPre() {  // 시계가 맞춰지면 메모리에 있던 기록�
   pre.clear();
 }
 
+// ===== 휴대폰으로 설정하기: 보드가 'EZ-CO2-설정-xxxx' 와이파이를 엶 =====
+static WebServer web(80);
+static DNSServer dns;
+static bool apOn = false;
+static uint32_t apSince = 0, staLostSince = 0;
+static uint16_t lastCo2 = 0; static float lastT = 0, lastH = 0;
+static String apName() { String d = devId; d.toUpperCase(); return "EZ-CO2-SETUP-" + d.substring(2); }
+static String hesc(const String& s) { String o; for (size_t i = 0; i < s.length(); i++) { char c = s[i]; if (c == '<') o += "&lt;"; else if (c == '>') o += "&gt;"; else if (c == '"') o += "&quot;"; else if (c == '&') o += "&amp;"; else o += c; } return o; }
+static void sendPage(const String& msg) {
+  bool on = WiFi.status() == WL_CONNECTED; String d = devId; d.toUpperCase();
+  String h = F("<!doctype html><html lang=ko><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>공기 보드 설정</title><style>"
+    "body{margin:0;font:17px/1.6 -apple-system,system-ui,sans-serif;background:#F6FAF2;color:#1D3B2A}"
+    "header{background:#2FA463;color:#fff;padding:18px;text-align:center;border-bottom:4px solid #C6DE3A}h1{margin:0;font-size:24px}"
+    "main{max-width:480px;margin:0 auto;padding:16px}.c{background:#fff;border:1.5px solid #dde6dc;border-radius:18px;padding:16px;margin-bottom:14px}"
+    "label{display:block;font-size:13px;font-weight:700;color:#1E7F4A;margin:12px 0 4px}input{width:100%;box-sizing:border-box;font-size:17px;padding:12px;border:2px solid #cfd9d2;border-radius:12px}"
+    "button{width:100%;margin-top:16px;padding:14px;font-size:19px;font-weight:700;border-radius:14px;border:2.5px solid #1E7F4A;background:#FFEB3B;color:#1D3B2A}"
+    ".s{display:flex;gap:8px;flex-wrap:wrap}.s span{flex:1;min-width:90px;text-align:center;padding:8px;border-radius:12px;background:#F3F8EC;font-weight:700;font-size:14px}.ok{background:#2FA463!important;color:#fff}"
+    ".m{padding:12px;border-radius:12px;background:#FFF8DB;border:1.5px solid #F2D45A;margin-bottom:14px}small{color:#5F7A68}</style></head><body><header><h1>에코쌤즈 공기 보드</h1><small style='color:#fff'>보드 ");
+  h += d + "</small></header><main>";
+  if (msg.length()) h += "<div class=m>" + msg + "</div>";
+  h += "<div class=c><div class=s><span class='" + String(sensor != NONE ? "ok" : "") + "'>센서 " + (sensor != NONE ? "✓" : "✕") + "</span><span class='" + String(on ? "ok" : "") + "'>와이파이 " + (on ? "✓" : "✕") + "</span></div>";
+  if (lastCo2) h += "<p style='text-align:center;margin:12px 0 0'>지금 CO₂ <b>" + String(lastCo2) + "</b> ppm · " + String(lastT, 1) + "℃ · " + String(lastH, 0) + "%</p>";
+  h += "</div><form class=c method=post action=/save><b>핫스팟(와이파이) 정보</b><br><small>아이폰: 설정 → 개인용 핫스팟 → '호환성 최대화' 켜기</small>"
+       "<label>핫스팟 이름</label><input name=s maxlength=32 required value=\"" + hesc(wifiSsid) + "\" placeholder='예: 이정연의 iPhone'>"
+       "<label>비밀번호</label><input name=p type=password maxlength=63 placeholder='" + String(wifiPass.length() ? "(바꾸지 않으려면 비워 두세요)" : "") + "'>"
+       "<label>측정 장소</label><input name=l maxlength=30 value=\"" + hesc(place) + "\">"
+       "<button>저장하고 다시 시작</button></form><p><small>저장하면 보드가 다시 시작해서 핫스팟에 연결해요. 이 설정 와이파이는 핫스팟에 연결되고 몇 분 뒤 꺼져요.</small></p></main></body></html>";
+  web.send(200, "text/html; charset=utf-8", h);
+}
+static void startAP() {
+  if (apOn) return;
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(apName().c_str());
+  delay(100);
+  dns.start(53, "*", WiFi.softAPIP());
+  web.on("/", HTTP_GET, []() { sendPage(""); });
+  web.on("/save", HTTP_POST, []() {
+    String ss = web.arg("s"), pw = web.arg("p"), pl = web.arg("l"); ss.trim(); pl.trim();
+    if (!ss.length()) { sendPage("핫스팟 이름을 적어 주세요."); return; }
+    prefs.putString("ssid", ss); if (pw.length()) prefs.putString("pass", pw);
+    if (pl.length()) { prefs.putString("place", pl); if (fsOk) { File f = LittleFS.open("/place.txt", "w"); if (f) { f.print(pl); f.close(); } } }
+    sendPage("저장했어요! 보드가 다시 시작해요. 이제 휴대폰 핫스팟을 켜 두세요.");
+    delay(1500); ESP.restart();
+  });
+  web.onNotFound([]() { web.sendHeader("Location", "http://" + WiFi.softAPIP().toString() + "/", true); web.send(302, "text/plain", ""); });
+  web.begin();
+  apOn = true; apSince = millis();
+  Serial.printf("[설정] 휴대폰 와이파이에서 '%s'에 연결하면 설정 화면이 떠요\n", apName().c_str());
+}
+static void stopAP() {
+  if (!apOn) return;
+  web.stop(); dns.stop(); WiFi.softAPdisconnect(true); WiFi.mode(WIFI_STA);
+  apOn = false; Serial.println("[설정] 설정 와이파이를 껐어요");
+}
+
 // 설치 페이지(웹 시리얼)에서 보내는 명령
 //   INFO                       → 보드 정보
 //   SET<tab>이름<tab>비밀번호<tab>장소   → 저장 후 다시 시작
@@ -233,7 +290,7 @@ static void serialCmd() {
 }
 
 void setup() {
-  Serial.begin(115200); delay(300);
+  Serial.begin(115200); { uint32_t t0 = millis(); while (!Serial && millis() - t0 < 2000) delay(10); } delay(200);
   prefs.begin("ezco2", false);
   wifiSsid = prefs.getString("ssid", WIFI_SSID_DEFAULT); wifiPass = prefs.getString("pass", WIFI_PASS_DEFAULT);
   Serial.println("\n=== EZ-CO2 WiFi ===");
@@ -246,7 +303,7 @@ void setup() {
   Serial.printf("[장소] %s\n", place.c_str());
   if (findSensor()) startSensor();
   WiFi.mode(WIFI_STA); WiFi.setAutoReconnect(true);
-  if (strlen(WIFI_SSID)) WiFi.begin(WIFI_SSID, WIFI_PASS); else Serial.println("[와이파이] 핫스팟 이름이 아직 없어요. 설치 페이지에서 입력해 주세요.");
+  if (strlen(WIFI_SSID)) WiFi.begin(WIFI_SSID, WIFI_PASS); else { Serial.println("[와이파이] 핫스팟 정보가 아직 없어요."); startAP(); }
   configTzTime("KST-9", "pool.ntp.org", "time.google.com", "time.cloudflare.com");
 }
 
@@ -258,13 +315,19 @@ void loop() {
   // 와이파이 상태
   bool on = WiFi.status() == WL_CONNECTED;
   if (on != wasOn) { wasOn = on; Serial.println(on ? "[와이파이] 연결됨" : "[와이파이] 끊김 · 기록은 보드에 쌓여요"); if (on) { lastUp = 0; lastCfg = 0; } }
-  if (!on && strlen(WIFI_SSID) && now - lastWifi > 30000) { lastWifi = now; WiFi.disconnect(); WiFi.begin(WIFI_SSID, WIFI_PASS); }
+  if (apOn) { dns.processNextRequest(); web.handleClient(); }
+  if (on) staLostSince = 0; else if (!staLostSince) staLostSince = now;
+  // 핫스팟에 1분 넘게 못 붙으면 설정 와이파이를 켬 / 연결되고 5분 지나면(설정 중인 사람 없으면) 끔
+  if (!apOn && (!strlen(WIFI_SSID) || (staLostSince && now - staLostSince > 60000))) startAP();
+  if (apOn && on && now - apSince > 300000 && WiFi.softAPgetStationNum() == 0) stopAP();
+  bool someoneSetting = apOn && WiFi.softAPgetStationNum() > 0;
+  if (!on && !someoneSetting && strlen(WIFI_SSID) && now - lastWifi > 30000) { lastWifi = now; WiFi.disconnect(); WiFi.begin(WIFI_SSID, WIFI_PASS); }
 
   // 센서
   if (sensor == NONE) { if (now - lastRetry > 10000) { lastRetry = now; if (findSensor()) startSensor(); } }
   else if (now - lastPoll >= 1000) {
     lastPoll = now; uint16_t co2; float t, h;
-    if (readSensor(co2, t, h)) { if (!winN) winStart = now; winN++; sc += co2; st += t; sh += h; }
+    if (readSensor(co2, t, h)) { if (!winN) winStart = now; winN++; sc += co2; st += t; sh += h; lastCo2 = co2; lastT = t; lastH = h; }
   }
   if (winN && now - winStart >= 60000) closeWindow();
   flushPre();
