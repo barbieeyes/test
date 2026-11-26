@@ -99,7 +99,7 @@ const TABS = [
   { id: "today", label: "오늘", icon: "Sun" },
   { id: "solo", label: "따로", icon: "House" },
   { id: "team", label: "같이", icon: "School" },
-  { id: "air", label: "공기질", icon: "Wind" },
+  { id: "air", label: "CO₂", icon: "Wind" },
   { id: "map", label: "지도", icon: "Map" },
   { id: "activity", label: "활동", icon: "Users" },
   { id: "archive", label: "아카이브", icon: "Film" },
@@ -643,7 +643,7 @@ function Hero({ children }) {
 /** 언제나 위에 있는 이동 막대: 뒤로 · 처음(로고) · 멤버 전환 · 설정 · 나가기 */
 function NavBar({ tab, name, canBack, onBack, onHome, onSwitch, onSettings, onLogout, hasKey }) {
   const t = TABS.find((x) => x.id === tab) || TABS[0];
-  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", air: "공기질 측정 · CO₂·온도·습도", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "따로 또 같이" }[tab];
+  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", air: "식물과 이산화탄소 · 실험과 장소 비교", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "따로 또 같이" }[tab];
   return html`<div class="strip">
     <div class="strip-in">
       <button type="button" class="nav-btn" onClick=${onBack} aria-label=${canBack ? "뒤로 가기" : "처음 화면으로"} disabled=${!canBack && tab === "today"}>
@@ -2211,6 +2211,15 @@ function groupAirs(airs) {
 const agoTxt = (ts) => { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? "방금" : m < 60 ? `${m}분 전` : m < 1440 ? `${Math.round(m / 60)}시간 전` : fmtDate(ts); };
 const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
+/* 식물 실험: 밀폐 용기 속 CO₂가 1분에 얼마나 바뀌었나 (최소제곱 기울기) */
+const EXP_COND = { light: ["빛 있음", "#2FA463", "Sun"], dark: ["어둡게", "#475569", "Moon"], empty: ["빈 용기", "#94A3B8", "Box"] };
+function co2Slope(pts) {
+  if (!pts || pts.length < 2) return null;
+  const t0 = pts[0].ts, xs = pts.map((p) => (p.ts - t0) / 60000), ys = pts.map((p) => p.co2), n = xs.length;
+  const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0, sxx = 0; for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; }
+  return { rate: sxx ? sxy / sxx : 0, delta: ys[n - 1] - ys[0], first: ys[0], last: ys[n - 1], min: xs[n - 1] };
+}
 function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, say }) {
   const [, force] = useState(0);
   useEffect(() => { AIR.init(); return AIR.sub(() => force((n) => n + 1)); }, []);
@@ -2224,6 +2233,7 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
   const [editDev, setEditDev] = useState(null), [editPlace, setEditPlace] = useState("");
   const [boardSel, setBoardSel] = useState(null);
   const [newPlace, setNewPlace] = useState(""), [busy, setBusy] = useState(false);
+  const [mkind, setMkind] = useState("place"), [cond, setCond] = useState("light"), [plant, setPlant] = useState("");
   const [fixOn, setFixOn] = useState(cfg.fix !== false);
   const toggleFix = () => { const v = !fixOn; setFixOn(v); airCfg.set({ fix: v }); };
   const clean = (ps) => fixOn ? airCleanSegs(ps) : ps;
@@ -2284,7 +2294,14 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
   const st = airStats(chartPts, metric);
   const f = metric === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
   const srcLabel = bleLive ? "블루투스 · 5초마다" : board ? `보드 ${board.dev.toUpperCase()} · ${(cfgs.get(board.dev) || {}).place || board.place} · 1분 평균` : "";
+  const exps = sessions.filter((x) => x.type === "exp");
   return html`<div class="grid gap-4">
+    <section class="glass p-4 text-[13.5px] leading-relaxed">
+      <b class="font-display text-[16px]" style=${{ color: "var(--grass-deep)" }}>이 탭으로 보는 두 가지</b>
+      <div class="grid gap-1 mt-1.5">
+        <span><b>식물 실험</b> · 밀폐 용기 속 식물이 빛을 받으면 CO₂가 줄고, 어두우면 늘어요. 식물 기록에 뜨는 광합성 '계산값'을 직접 확인해요.</span>
+        <span><b>장소 비교</b> · 바깥 공기는 바람에 섞여서 식물 효과보다 사람·차가 내뿜는 CO₂가 더 크게 보여요. 어디서 CO₂가 생기는지 비교해요.</span></div>
+    </section>
     ${fresh && live.co2 >= thr && html`<div class="air-alarm" role="alert"><${Icon} name="Wind" size=${20} />CO₂ ${live.co2.toLocaleString()}ppm · 기준(${Number(thr).toLocaleString()}ppm)을 넘었어요. 환기하거나 자리를 옮겨 주세요!</div>`}
     ${board && html`<section class=${"glass p-4 air-meas" + (curSess ? " on" : "")}>
       ${curSess ? html`<div class="grid gap-3">
@@ -2292,13 +2309,25 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
             <b class="font-display text-[20px] truncate" style=${{ color: "var(--grass-deep)" }}>${curSess.place}</b></div>
           <small class="text-mist text-[13.5px]">${fmtDay(curSess.start)} ${hhmm(curSess.start)}부터 · ${durTxt(now - curSess.start)}째 · 1분 기록 ${curSess.pts.length}개</small>
           <button type="button" class="btn-danger air-big w-full" disabled=${busy} onClick=${async () => { setBusy(true); try { await onStop(curSess); } finally { setBusy(false); } }}><${Icon} name="Square" size=${17} />측정 종료</button></div>`
-        : html`<form class="grid gap-2" onSubmit=${async (e) => { e.preventDefault(); const v = newPlace.trim(); if (!v) { say("측정 장소를 먼저 적어 주세요"); return; }
-            setBusy(true); try { await onStart(board.dev, v); setNewPlace(""); } finally { setBusy(false); } }}>
+        : html`<form class="grid gap-2" onSubmit=${async (e) => { e.preventDefault();
+            if (mkind === "exp") { const pl = plant.trim(); if (cond !== "empty" && !pl) { say("어떤 식물을 넣었는지 적어 주세요"); return; }
+              const label = cond === "empty" ? "빈 용기 (대조)" : `${pl} · ${EXP_COND[cond][0]}`;
+              setBusy(true); try { await onStart(board.dev, label, { type: "exp", cond, plant: cond === "empty" ? "" : pl }); } finally { setBusy(false); } return; }
+            const v = newPlace.trim(); if (!v) { say("측정 장소를 먼저 적어 주세요"); return; }
+            setBusy(true); try { await onStart(board.dev, v, { type: "place" }); setNewPlace(""); } finally { setBusy(false); } }}>
+          <div class="seg3">${[["place", "장소 비교"], ["exp", "식물 실험 (밀폐 용기)"]].map(([k, l]) => html`<button key=${k} type="button" class=${"seg3-b" + (mkind === k ? " on" : "")} onClick=${() => setMkind(k)}>${l}</button>`)}</div>
+          ${mkind === "exp" ? html`<div class="grid gap-2">
+            <div class="flex gap-1.5 flex-wrap">${Object.entries(EXP_COND).map(([k, [l, c, ic]]) => html`<button key=${k} type="button" class=${"chip" + (cond === k ? " chip-on" : "")} onClick=${() => setCond(k)}><${Icon} name=${ic} size=${13} />${l}</button>`)}</div>
+            ${cond !== "empty" && html`<label class="fld"><span class="lbl"><${Icon} name="Leaf" size=${14} /> 용기에 넣은 식물</span>
+              <input class="air-place" type="text" maxlength="30" placeholder="예: 상추 화분, 스킨답서스" value=${plant} onInput=${(e) => setPlant(e.target.value)} /></label>`}
+            <small class="text-mist text-[12.5px]">보드(센서)와 식물을 투명 용기에 넣고 뚜껑을 닫은 뒤 시작하세요. 15~20분 재고 종료해요. ${cond === "dark" ? "용기를 은박지나 상자로 덮어 빛을 막아요." : cond === "empty" ? "식물 없이 재서, 줄어든 게 정말 식물 때문인지 확인해요." : "햇빛이나 밝은 조명 아래에 두어요."}</small>
+            <button type="submit" class="btn-save air-big w-full" disabled=${busy}><${Icon} name="Play" size=${17} />실험 시작</button></div>`
+          : html`<div class="grid gap-2">
           <label class="fld"><span class="lbl"><${Icon} name="MapPin" size=${14} /> 어디에서 재나요?</span>
             <input class="air-place" type="text" maxlength="30" placeholder="예: 3학년 2반 교실, 운동장, 과학실" value=${newPlace} onInput=${(e) => setNewPlace(e.target.value)} /></label>
           ${recentPlaces.length > 0 && html`<div class="flex gap-1.5 flex-wrap">${recentPlaces.map((pl) => html`<button key=${pl} type="button" class=${"chip" + (newPlace === pl ? " chip-on" : "")} onClick=${() => setNewPlace(pl)}>${pl}</button>`)}</div>`}
           <button type="submit" class="btn-save air-big w-full" disabled=${busy}><${Icon} name="Play" size=${17} />측정 시작</button>
-          <small class="text-mist text-[12.5px]">시작을 누른 때부터 종료할 때까지가 한 번의 측정 기록으로 남아요. 날짜·시각·장소가 같이 저장돼요.</small></form>`}
+          <small class="text-mist text-[12.5px]">시작을 누른 때부터 종료할 때까지가 한 번의 측정 기록으로 남아요. 날짜·시각·장소가 같이 저장돼요.</small></div>`}</form>`}
     </section>`}
 
     <section class="glass p-4">
@@ -2340,9 +2369,22 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
         html`<div key=${k} class="stat"><div class="lbl">${l}</div><b class="mono text-[17px]">${st ? f(st[k]) : "–"}</b></div>`)}</div>
     </section>
 
+    ${exps.length > 0 && html`<section class="glass p-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Leaf" size=${18} />식물 실험 결과</h2>
+        <span class="text-[12.5px] text-mist">밀폐 용기 · 1분에 바뀐 CO₂</span></div>
+      <div class="grid gap-2.5">${exps.slice(0, 30).map((x) => { const r = co2Slope(x.pts), c = EXP_COND[x.cond] || EXP_COND.light, dn = r && r.rate < 0;
+        const w = r ? Math.min(100, Math.abs(r.rate) / 20 * 100) : 0;
+        return html`<div key=${x.id} class="grid gap-1">
+          <div class="flex items-center gap-2"><span class="chip" style=${{ borderColor: c[1], color: c[1], padding: "2px 8px" }}><${Icon} name=${c[2]} size=${12} />${c[0]}</span>
+            <b class="truncate flex-1 min-w-0 text-[14.5px]">${x.cond === "empty" ? "빈 용기 (대조)" : x.plant || x.place}</b>
+            ${r ? html`<b class="mono text-[16px]" style=${{ color: dn ? "#2FA463" : "#C0620A" }}>${r.rate > 0 ? "+" : ""}${r.rate.toFixed(1)}</b><small class="text-mist">ppm/분</small>` : html`<small class="text-mist">${x.end ? "값 부족" : "측정 중…"}</small>`}</div>
+          ${r && html`<div class="air-bar"><i style=${{ width: w.toFixed(1) + "%", background: dn ? "#2FA463" : "#E8A33D" }}></i></div>
+          <small class="text-mist text-[12px]">${fmtDay(x.start)} ${hhmm(x.start)} · ${Math.round(r.min)}분 동안 ${Math.round(r.first).toLocaleString()} → ${Math.round(r.last).toLocaleString()}ppm (${r.delta > 0 ? "+" : ""}${Math.round(r.delta)}) · ${dn ? "줄었어요" : Math.abs(r.rate) < 0.5 ? "거의 그대로" : "늘었어요"}</small>`}</div>`; })}</div>
+      <p class="text-[12px] text-mist mt-3 leading-relaxed">빛 있음에서 줄고(초록), 어둡게에서 늘고(주황), 빈 용기는 거의 그대로면 → 식물의 광합성과 호흡이 확인된 거예요. 같은 식물로 빛·어둡게를 번갈아 재면 비교가 쉬워요.</p>
+    </section>`}
     ${(() => { const since = cmpRange === "today" ? new Date(new Date().setHours(0, 0, 0, 0)).getTime() : cmpRange === "7d" ? now - 7 * 86400000 : 0;
       const by = new Map();
-      for (const x of sessions) { if ((x.end || now) < since) continue; const ps = x.pts.filter((p) => p.ts >= since); if (!ps.length) continue;
+      for (const x of sessions) { if (x.type === "exp" || (x.end || now) < since) continue; const ps = x.pts.filter((p) => p.ts >= since); if (!ps.length) continue;
         const k = x.place.trim(), o = by.get(k) || { place: k, pts: [], n: 0 }; o.pts.push(...ps); o.n++; by.set(k, o); }
       const rows = [...by.values()].map((o) => ({ ...o, st: airStats(o.pts, cmpMetric) })).sort((a, b) => b.st.avg - a.st.avg);
       const unit = cmpMetric === "co2" ? "ppm" : cmpMetric === "t" ? "℃" : "%", f = cmpMetric === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
@@ -2629,10 +2671,10 @@ function App() {
     setAirs((as) => [it, ...as.filter((a) => a.id !== it.id)]); await putLocal(it); setTimeout(syncNow, 200); };
   const putAir = async (it) => { setAirs((as) => [it, ...as.filter((a) => a.id !== it.id)]); await putLocal(it); setTimeout(syncNow, 200); };
   // 측정 시작: 장소를 보드에 알려 주고(보드 기록 이름표), 측정 구간(air_sess)을 새로 만들어요
-  const startAirSess = async (dev, place) => { const t = Date.now();
+  const startAirSess = async (dev, place, extra = {}) => { const t = Date.now();
     for (const o of airRef.current.filter((a) => a.kind === "air_sess" && a.dev === dev && !a.end)) await putAir({ ...o, end: t, ts: t });
     await saveAirCfg(dev, place);
-    await putAir({ id: `air_sess_${dev}_${t}`, kind: "air_sess", dev, place, start: t, end: null, researcher: me, ts: t }); say(`'${place}' 측정을 시작했어요`); };
+    await putAir({ id: `air_sess_${dev}_${t}`, kind: "air_sess", dev, place, start: t, end: null, researcher: me, ts: t, ...extra }); say(`'${place}' 측정을 시작했어요`); };
   const stopAirSess = async (s) => { const t = Date.now(); await putAir({ ...s, end: t, ts: t }); say(`'${s.place}' 측정을 끝냈어요`); };
   const delAirSess = async (s) => { await db.del(s.id); delCloud(s.id, "air_sess"); setTimeout(syncNow, 200); setAirs((as) => as.filter((a) => a.id !== s.id)); say("측정 기록을 지웠어요"); };
 
