@@ -144,7 +144,7 @@ async function readLoop() {
     try { const ps = await navigator.serial.getPorts(); const p = ps.find((x) => x === old) || ps[0];
       if (p) { await p.open({ baudRate: 115200 }); port = p; } } catch (e) {}
   }
-  if (port) { $("cstat").textContent = "연결됨"; $("save").disabled = false; readLoop(); setTimeout(() => port && send("INFO\n"), 2500); }
+  if (port) { $("cstat").textContent = "연결됨"; $("save").disabled = false; readLoop(); setTimeout(() => port && send("INFO\n").catch(() => {}), 3000); }
   else $("cstat").textContent = "연결 끊김 · '보드 연결'을 다시 눌러 주세요";
 }
 async function send(t) { const enc = new TextEncoder(); const w = port.writable.getWriter(); await w.write(enc.encode(t)); w.releaseLock(); }
@@ -152,12 +152,11 @@ $("conn").onclick = async () => {
   if (!("serial" in navigator)) return;
   try {
     port = await navigator.serial.requestPort(); await port.open({ baudRate: 115200 });
-    try { await port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (e) {}
     $("cstat").textContent = "연결됨"; $("save").disabled = false; readLoop();
-    setTimeout(() => port && send("INFO\n"), 1500);
+    setTimeout(() => port && send("INFO\n").catch(() => {}), 800);
   } catch (e) { $("cstat").textContent = e.name === "NotFoundError" ? "취소했어요" : "연결 실패: 설치 창이 열려 있으면 닫고 다시 눌러 주세요"; }
 };
-setInterval(() => { if (port) send("INFO\n").catch(() => {}); }, 10000);
+setInterval(() => { if (port) send("INFO\n").catch(() => {}); }, 5000);
 $("showpw").onchange = (e) => { $("pass").type = e.target.checked ? "text" : "password"; };
 $("form").onsubmit = async (e) => {
   e.preventDefault(); if (!port) return;
