@@ -778,7 +778,45 @@ function PlantPage({ id }) {
   </div>`;
 }
 
-function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
+/** 성과 공유: 로그인 없이 보는 결과 페이지 (?share=1) — 학교 식물 지도 + 진단 + 처방전 실행 현황 */
+function SharePage() {
+  const [data, setData] = useState(null), [err, setErr] = useState("");
+  useEffect(() => { (async () => {
+    try { let since = "", rows = [];
+      for (let g = 0; g < 40; g++) { const r = await cloud.pull(since); rows = rows.concat(r); if (r.length < 500) break; since = r[r.length - 1].updated_at; }
+      const live = new Map(); for (const r of rows) { if (r.deleted) live.delete(r.id); else if (r.data && r.data.id) live.set(r.id, { ...r.data, kind: r.data.kind || (r.kind === "plant" ? undefined : r.kind) }); }
+      const all = [...live.values()];
+      setData({ records: all.filter((x) => !x.kind && !x.sample), airs: all.filter((x) => x.kind === "air" || x.kind === "air_cfg" || x.kind === "air_sess"), rxs: all.filter((x) => x.kind === "rx") }); }
+    catch (e) { setErr("결과를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요."); } })(); }, []);
+  const school = data ? data.records.filter((r) => r.mode === "team") : [];
+  const nSp = new Set((data ? data.records : []).map((r) => r.koreanName).filter(Boolean)).size;
+  return html`<div class="app tab-is-rx">
+    <div class="strip"><div class="strip-in"><span class="nav-logo"><span class="strip-team">기후행동 실천모임 <b>에코쌤즈</b> · 성과 공유</span>
+      <span class="strip-title"><${Icon} name="Sprout" size=${18} />따로 피고, 같이 숨 쉬다<small>따로 기록하고, 함께 바꾸다</small></span></span></div></div>
+    <main class="wrap pb-12 pt-3 grid gap-4">
+      ${!data ? html`<div class="boot" style=${{ minHeight: "40vh" }}>${err || "결과를 불러오는 중…"}</div>` : html`
+      <section class="glass p-4">
+        <p class="text-[14px] leading-relaxed">교사 네 명이 각자 사는 서울 동네에서 따로 식물을 기록하며 문제를 발견하고, 학생들과 우리 학교의 식물과 공기를 같이 진단해 세 가지 실천(환기 규칙 · 녹지 처방전 · 자생식물 이름표)으로 이어 가고 있어요.</p>
+        <div class="grid grid-cols-3 gap-2 text-center mt-3">
+          <div class="stat"><div class="lbl">식물 기록</div><b class="mono text-[20px]">${data.records.length}</b></div>
+          <div class="stat"><div class="lbl">종</div><b class="mono text-[20px]">${nSp}</b></div>
+          <div class="stat"><div class="lbl">학교 기록</div><b class="mono text-[20px]">${school.length}</b></div></div>
+      </section>
+      <section class="grid gap-2"><h2 class="pill-h"><${Icon} name="Map" size=${18} />우리 학교 식물 지도</h2>
+        <${MapPanel} records=${school} homes=${[]} selectedId=${null} onSelect=${(id) => { location.href = `${APP_URL}/?p=${encodeURIComponent(id)}`; }} onMapPick=${() => {}} gpsPos=${null} follow=${false} setFollow=${() => {}} mode="team" />
+        <small class="text-mist text-[12px]">네모를 누르면 그 식물의 사진과 정보가 열려요. 동네 기록은 지도에 싣지 않아요.</small></section>
+      <${DiagView} me="" records=${data.records} airs=${data.airs} rxs=${data.rxs} onSaveRx=${() => {}} onDelRx=${() => {}} onOpen=${() => {}} say=${() => {}} readOnly=${true} />`}
+      <a class="pp-go" href=${APP_URL}>에코쌤즈 광합성 지도 (팀 입장)</a>
+    </main></div>`;
+}
+
+function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say, readOnly }) {
+  const [doneF, setDoneF] = useState(null);
+  const saveDone = async (g) => { await onSaveRx({ ...g, status: "done", plantedAt: doneF.date || Date.now(), photo: doneF.photo || g.photo || null, doneNote: (doneF.note || "").trim() }); setDoneF(null); say("실행 기록을 남겼어요"); };
+  const pickDonePhoto = async (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; try { setDoneF((d) => ({ ...d, busy: true })); const u = await resizeImage(f, 1280, 0.85); setDoneF((d) => ({ ...d, photo: u, busy: false })); } catch (er) { setDoneF((d) => ({ ...d, busy: false })); say("사진을 읽지 못했어요"); } };
+  const shareUrl = `${APP_URL}/?share=1`;
+  const [showShare, setShowShare] = useState(false);
+  const shareQr = useMemo(() => { try { const q = window.qrcode(0, "M"); q.addData(shareUrl); q.make(); return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); } catch (e) { return ""; } }, []);
   const thr = airCfg.get().thr || 1000;
   const team = useMemo(() => records.filter((r) => r.mode === "team" && !r.sample), [records]);
   const allReal = useMemo(() => records.filter((r) => !r.sample), [records]);
@@ -862,6 +900,12 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
       <b class="font-display text-[17px]" style=${{ color: "var(--grass-deep)" }}>따로 기록하고, 함께 바꾸다</b>
       <p class="text-[13px] text-mist mt-1">각자 사는 동네에서 따로 걸으며 문제를 발견하고, 학생들과 우리 학교에서 같이 확인하고 바꿔요.</p>
       <ol class="dg-steps mt-3">${steps.map(([n, t, s, ok]) => html`<li key=${n} class=${ok ? "ok" : ""}><span>${n}</span><b>${t}</b><small>${s}</small></li>`)}</ol>
+      ${!readOnly && html`<button type="button" class="mini-btn mt-3" onClick=${() => setShowShare(!showShare)}><${Icon} name="Share2" size=${13} />성과 공유 페이지 (로그인 없이 보기)</button>
+        ${showShare && html`<div class="dg-share mt-2"><div class="dg-share-qr" dangerouslySetInnerHTML=${{ __html: shareQr }}></div>
+          <div class="grid gap-1.5 min-w-0"><small class="text-mist">전시·보고서에 QR이나 링크로 넣으면 누구나 결과를 볼 수 있어요. 학교 식물 지도, 진단, 처방전 실행 현황이 보여요. (동네 기록은 동네 이름까지만)</small>
+            <code class="text-[12px] break-all">${shareUrl}</code>
+            <div class="flex gap-1.5 flex-wrap"><a class="mini-btn" href=${shareUrl} target="_blank" rel="noopener">열어 보기</a>
+              <button type="button" class="mini-btn" onClick=${async () => { try { await navigator.clipboard.writeText(shareUrl); say("링크를 복사했어요"); } catch (e) { say(shareUrl); } }}>링크 복사</button></div></div></div>`}`}
     </section>
 
     <section class="glass p-4">
@@ -922,7 +966,7 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
 
     <section class="glass p-4 dg-rx">
       <div class="flex items-center justify-between gap-2 flex-wrap mb-2"><h3 class="pill-h"><span class="dg-n">1</span>교실 환기 규칙</h3>
-        ${!vf && html`<button type="button" class="mini-btn" onClick=${() => setVf({ place: (ventNeed[0] || places[0] || {}).place || "", rule: VENT_PRESETS[0], start: Date.now() })}><${Icon} name="Plus" size=${13} />규칙 만들기</button>`}</div>
+        ${!vf && !readOnly && html`<button type="button" class="mini-btn" onClick=${() => setVf({ place: (ventNeed[0] || places[0] || {}).place || "", rule: VENT_PRESETS[0], start: Date.now() })}><${Icon} name="Plus" size=${13} />규칙 만들기</button>`}</div>
       <p class="text-[12.5px] text-mist">규칙을 정한 날 전후로 같은 장소의 CO₂를 비교해요. 감으로 하던 환기를 데이터로 바꿔요.</p>
       ${vf && html`<div class="dg-form">
         <label class="fld"><span class="lbl">장소</span><input type="text" maxlength="30" value=${vf.place} list="dgPlaces" onInput=${(e) => setVf({ ...vf, place: e.target.value })} placeholder="예: 3학년 1반 교실" />
@@ -935,7 +979,7 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
         const before = co2Sum(ss.filter((s) => s.start < v.start).flatMap((s) => s.pts), thr), after = co2Sum(ss.filter((s) => s.start >= v.start).flatMap((s) => s.pts), thr);
         return html`<div key=${v.id} class="dg-card">
           <div class="flex items-start gap-2"><div class="flex-1 min-w-0"><b>${v.place}</b><p class="text-[13.5px]">${v.rule}</p><small class="text-mist">${dayTxt(v.start)}부터 · ${v.researcher}</small></div>
-            <button type="button" class="icon-btn" aria-label="지우기" onClick=${() => onDelRx(v)}><${Icon} name="Trash2" size=${15} /></button></div>
+            ${!readOnly && html`<button type="button" class="icon-btn" aria-label="지우기" onClick=${() => onDelRx(v)}><${Icon} name="Trash2" size=${15} /></button>`}</div>
           <div class="dg-ba"><div><small>규칙 전</small>${before ? html`<b class="mono">${pct(before.share)}</b><small>기준 초과 · 평균 ${Math.round(before.avg)}</small>` : html`<small class="text-mist">측정 없음</small>`}</div>
             <${Icon} name="ArrowRight" size=${18} />
             <div><small>규칙 후</small>${after ? html`<b class="mono" style=${{ color: before && after.share < before.share ? "#2FA463" : "inherit" }}>${pct(after.share)}</b><small>기준 초과 · 평균 ${Math.round(after.avg)}</small>` : html`<small class="text-mist">규칙 후에 같은 장소를 재 주세요</small>`}</div></div>
@@ -944,7 +988,7 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
 
     <section class="glass p-4 dg-rx">
       <div class="flex items-center justify-between gap-2 flex-wrap mb-2"><h3 class="pill-h"><span class="dg-n">2</span>교정 녹지 처방전</h3>
-        ${!gf && html`<button type="button" class="mini-btn" onClick=${() => setGf({ zone: (flagged[0] || zones[0] || {}).h || TEAM_HABITATS[0], plants: [], memo: "" })}><${Icon} name="Plus" size=${13} />처방 추가</button>`}</div>
+        ${!gf && !readOnly && html`<button type="button" class="mini-btn" onClick=${() => setGf({ zone: (flagged[0] || zones[0] || {}).h || TEAM_HABITATS[0], plants: [], memo: "" })}><${Icon} name="Plus" size=${13} />처방 추가</button>`}</div>
       <p class="text-[12.5px] text-mist">진단에서 보완 후보로 나온 구역에, 그 자리에 맞는 우리 자생식물을 심자고 제안해요.</p>
       ${gf && html`<div class="dg-form">
         <div class="flex gap-1.5 flex-wrap">${TEAM_HABITATS.map((h) => { const z = zones.find((x) => x.h === h); return html`<${Chip} key=${h} on=${gf.zone === h} onClick=${() => setGf({ ...gf, zone: h, plants: [] })}>${h}${z && z.why ? " ⚑" : ""}</${Chip}>`; })}</div>
@@ -960,15 +1004,25 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
           <div class="flex items-start gap-2"><div class="flex-1 min-w-0"><b>${g.zone}</b> <span class="dg-st" style=${{ background: st[2] }}>${st[1]}</span>
             <p class="text-[14px] mt-1">${g.plants.join(" · ")}</p>${g.memo ? html`<p class="text-[13px] text-mist">${g.memo}</p>` : null}
             <small class="text-mist">${g.basis ? g.basis + " · " : ""}${dayTxt(g.ts)} · ${g.researcher}</small></div>
-            <button type="button" class="icon-btn" aria-label="지우기" onClick=${() => onDelRx(g)}><${Icon} name="Trash2" size=${15} /></button></div>
-          <div class="flex gap-1.5 mt-2">${RX_STATUS.map(([k, l]) => html`<${Chip} key=${k} on=${g.status === k} onClick=${() => onSaveRx({ ...g, status: k, ts: g.ts })}>${l}</${Chip}>`)}</div></div>`; })}</div>
+            ${!readOnly && html`<button type="button" class="icon-btn" aria-label="지우기" onClick=${() => onDelRx(g)}><${Icon} name="Trash2" size=${15} /></button>`}</div>
+          ${g.status === "done" && (g.photo || g.plantedAt) ? html`<div class="dg-done">${g.photo ? html`<img src=${g.photo} alt="심은 모습" />` : null}
+            <div class="min-w-0"><b>실행 기록</b><small>${g.plantedAt ? fmtDay(g.plantedAt) + "에 심음" : ""}</small>${g.doneNote ? html`<p>${g.doneNote}</p>` : null}</div></div>` : null}
+          ${!readOnly && html`<div class="flex gap-1.5 mt-2 flex-wrap">${RX_STATUS.map(([k, l]) => html`<${Chip} key=${k} on=${g.status === k} onClick=${() => { if (k === "done") setDoneF({ id: g.id, date: g.plantedAt || Date.now(), note: g.doneNote || "", photo: null }); else onSaveRx({ ...g, status: k }); }}>${l}</${Chip}>`)}</div>`}
+          ${doneF && doneF.id === g.id && html`<div class="dg-form">
+            <b class="text-[14px]">실행 기록 남기기 · 심은 날과 모습</b>
+            <label class="fld"><span class="lbl">심은 날</span><input type="date" value=${new Date(doneF.date - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)} onInput=${(e) => { const t = new Date(e.target.value + "T12:00").getTime(); if (t) setDoneF({ ...doneF, date: t }); }} /></label>
+            <label class="mini-btn" style=${{ justifySelf: "start", cursor: "pointer" }}><${Icon} name="Camera" size=${13} />${doneF.busy ? "읽는 중…" : doneF.photo ? "사진 바꾸기" : "심은 모습 사진"}<input type="file" accept="image/*" style=${{ display: "none" }} onChange=${pickDonePhoto} /></label>
+            ${doneF.photo && html`<img src=${doneF.photo} alt="" style=${{ maxHeight: 160, borderRadius: 10, objectFit: "cover" }} />`}
+            <label class="fld"><span class="lbl">메모 (몇 포기, 누구와, 무엇이 달라졌나)</span><input type="text" maxlength="120" value=${doneF.note} onInput=${(e) => setDoneF({ ...doneF, note: e.target.value })} placeholder="예: 송그린 학생 6명과 구절초 12포기, 화단 가장자리" /></label>
+            <div class="flex gap-2"><button type="button" class="btn-save flex-1" disabled=${doneF.busy} onClick=${() => saveDone(g)}>실행 완료로 저장</button><button type="button" class="btn-ghost" onClick=${() => setDoneF(null)}>취소</button></div></div>`}</div>`; })}</div>
     </section>
 
     <section class="glass p-4 dg-rx">
       <div class="flex items-center justify-between gap-2 flex-wrap mb-2"><h3 class="pill-h"><span class="dg-n">3</span>자생식물 이름표</h3>
         <span class="text-[12.5px] text-mist">만든 이름표 ${taggedIds.size}종</span></div>
       <p class="text-[12.5px] text-mist">교정 식물을 골라 QR 이름표를 인쇄해요. QR을 찍으면 로그인 없이 그 식물의 사진과 정보가 열려요.</p>
-      ${!tagList.length ? html`<p class="text-[14px] text-mist py-3 text-center">학교 식물 기록이 생기면 여기서 고를 수 있어요.</p>` : html`
+      ${readOnly ? html`<p class="text-[14px] mt-2">교정 식물 <b>${taggedIds.size}</b>종에 QR 이름표를 달았어요. 이름표 QR을 찍으면 그 식물의 사진과 정보가 열려요.</p>`
+      : !tagList.length ? html`<p class="text-[14px] text-mist py-3 text-center">학교 식물 기록이 생기면 여기서 고를 수 있어요.</p>` : html`
       <div class="flex gap-1.5 flex-wrap mt-2">
         <button type="button" class="mini-btn" onClick=${() => setPick(new Set(tagList.filter((r) => r.origin === "wild").map((r) => r.id)))}>자생식물 모두</button>
         <button type="button" class="mini-btn" onClick=${() => setPick(new Set())}>선택 해제</button></div>
@@ -1336,7 +1390,6 @@ function MapView({ records, gps, follow, setFollow, onMapPick, onOpen, openId })
     return [...a].sort(sort === "carbon" ? (x, y) => (y.model.gco2 || 0) - (x.model.gco2 || 0) : (x, y) => y.ts - x.ts);
   }, [records, fMode, fWho, fForm, sort]);
   const homes = useMemo(() => fMode === "team" ? [] : RESEARCHERS.filter((r) => fWho === "all" || r.name === fWho).map((r) => ({ name: r.name, ...getHome(r.name) })), [fMode, fWho]);
-  const sumG = filtered.reduce((s, r) => s + (r.model.gco2 || 0), 0);
   return html`<div class="grid gap-3">
     <div class="glass p-3 grid gap-2">
       <div class="seg3" role="group" aria-label="따로 또 같이 보기">
@@ -1354,9 +1407,9 @@ function MapView({ records, gps, follow, setFollow, onMapPick, onOpen, openId })
     <p class="text-[12px] text-mist -mt-1">⌂는 각자의 우리 동네, 동그라미는 따로·네모는 같이 기록이에요. 왼쪽 위 겹 버튼으로 위성사진·일반 지도를 바꿀 수 있고, 지도를 누르면 그 자리에 새 기록을 만들어요.</p>
     <section class="glass p-3 grid gap-2">
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="font-display text-[17px] text-snow">${filtered.length}곳 · 탄소 고정 합계 <span class="mono text-photon">${fix(sumG, 1)}</span> <small class="text-mist text-[12px]">g/h·m²</small></span>
+        <span class="font-display text-[17px] text-snow">${filtered.length}곳 <small class="text-mist text-[12px]">· 오른쪽 숫자는 찍은 순간 날씨로 계산한 광합성 추정값(g/h·m²)이라 더하지 않아요</small></span>
         <button type="button" class="link-btn ml-auto" onClick=${() => setSort(sort === "carbon" ? "recent" : "carbon")}>
-          <${Icon} name="ArrowDownWideNarrow" size=${14} />${sort === "carbon" ? "탄소 고정 높은 순" : "최신 순"}</button>
+          <${Icon} name="ArrowDownWideNarrow" size=${14} />${sort === "carbon" ? "추정값 높은 순" : "최신 순"}</button>
       </div>
       <div class="rank">
         ${filtered.slice(0, 40).map((r, i) => { const act = M.activity(r.weather.ppfd); return html`<button key=${r.id} type="button" class="rank-row" onClick=${() => onOpen(r.id)}>
@@ -2827,9 +2880,11 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
   </div>`;
 }
 
+const SHARE = (() => { try { return new URLSearchParams(location.search).has("share"); } catch (e) { return false; } })();
 const PUB_ID = (() => { try { return new URLSearchParams(location.search).get("p"); } catch (e) { return null; } })();
 function App() {
-  if (PUB_ID) return html`<${PlantPage} id=${PUB_ID} />`; // QR 이름표로 들어온 사람: 로그인 없이 식물 카드만 (페이지마다 고정이라 훅 순서가 바뀌지 않아요)
+  if (PUB_ID) return html`<${PlantPage} id=${PUB_ID} />`;
+  if (SHARE) return html`<${SharePage} />`; // QR 이름표로 들어온 사람: 로그인 없이 식물 카드만 (페이지마다 고정이라 훅 순서가 바뀌지 않아요)
   const saved = store.get(LS_SET, {});
   const [settings, setSettings] = useState({ apiKey: saved.apiKey || "", model: saved.model || DEFAULT_MODEL });
   const [auth, setAuth] = useState(() => { store.del("ecossam.v1.auth"); const a = store.get(LS_AUTH, null); return a && (RESEARCHERS.some((r) => r.name === a.name) || a.name === STUDENT.name) ? a : null; });
