@@ -35,7 +35,7 @@ static String wifiSsid, wifiPass;
 static Preferences prefs;
 #define WIFI_SSID wifiSsid.c_str()
 #define WIFI_PASS wifiPass.c_str()
-#define FW_VERSION "1.3.3"
+#define FW_VERSION "1.3.4"
 
 // 에코쌤즈 팀 저장소 (앱과 같은 공개 키 · 팀 비밀번호)
 const char* SB_URL   = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
@@ -60,10 +60,19 @@ static uint8_t addr = 0;
 static uint8_t crc8(const uint8_t* d, int n) { uint8_t c = 0xFF; for (int i = 0; i < n; i++) { c ^= d[i]; for (int b = 0; b < 8; b++) c = (c & 0x80) ? (c << 1) ^ 0x31 : (c << 1); } return c; }
 static bool cmd(uint16_t c) { Wire.beginTransmission(addr); Wire.write(c >> 8); Wire.write(c & 0xFF); return Wire.endTransmission() == 0; }
 static bool cmdArg(uint16_t c, uint16_t a) { uint8_t ab[2] = {(uint8_t)(a >> 8), (uint8_t)(a & 0xFF)}; Wire.beginTransmission(addr); Wire.write(c >> 8); Wire.write(c & 0xFF); Wire.write(ab[0]); Wire.write(ab[1]); Wire.write(crc8(ab, 2)); return Wire.endTransmission() == 0; }
+static int i2cDelay = 2;              // 명령 후 기다리는 시간(ms) — 맞는 값을 스스로 찾음
+static uint32_t i2cHz = 100000;
+static int dbgLeft = 6;               // 처음 몇 번은 받은 바이트를 그대로 보여 줌
 static bool readWords(uint16_t* out, int n) {
-  int bytes = n * 3; if (Wire.requestFrom((int)addr, bytes) != bytes) return false;
-  for (int i = 0; i < n; i++) { uint8_t b[3] = {(uint8_t)Wire.read(), (uint8_t)Wire.read(), (uint8_t)Wire.read()}; if (crc8(b, 2) != b[2]) return false; out[i] = (b[0] << 8) | b[1]; }
-  return true;
+  int bytes = n * 3;
+  int got = Wire.requestFrom((uint8_t)addr, (size_t)bytes, true);
+  uint8_t raw[18] = {0}; int k = 0; while (Wire.available() && k < 18) raw[k++] = Wire.read();
+  bool ok = (got == bytes && k == bytes);
+  for (int i = 0; ok && i < n; i++) { uint8_t* b = raw + i * 3; if (crc8(b, 2) != b[2]) ok = false; else out[i] = (b[0] << 8) | b[1]; }
+  if (!ok && dbgLeft > 0) { dbgLeft--;
+    String hx; for (int i = 0; i < k; i++) { char t[4]; snprintf(t, sizeof(t), "%02X ", raw[i]); hx += t; }
+    Serial.printf("[센서진단] %d바이트 요청 → %d바이트 받음 [%s] 기다림 %dms · %luHz\n", bytes, got, hx.c_str(), i2cDelay, (unsigned long)i2cHz); }
+  return ok;
 }
 static bool probe(uint8_t a) { Wire.beginTransmission(a); return Wire.endTransmission() == 0; }
 static bool findSensor() {
@@ -97,10 +106,10 @@ static uint32_t rdOk = 0, rdNotReady = 0, rdErr = 0; static const char* rdLast =
 static bool readSensor(uint16_t& co2, float& t, float& h) {
   uint16_t w[6];
   if (sensor == SCD4X) {
-    if (!cmd(0xE4B8)) { rdErr++; rdLast = "명령 실패(0xE4B8)"; return false; } delay(2);
+    if (!cmd(0xE4B8)) { rdErr++; rdLast = "명령 실패(0xE4B8)"; return false; } delay(i2cDelay);
     if (!readWords(w, 1)) { rdErr++; rdLast = "준비 상태 읽기 실패"; return false; }
     if ((w[0] & 0x07FF) == 0) { rdNotReady++; rdLast = "아직 측정 전"; return false; }
-    if (!cmd(0xEC05)) { rdErr++; rdLast = "명령 실패(0xEC05)"; return false; } delay(2);
+    if (!cmd(0xEC05)) { rdErr++; rdLast = "명령 실패(0xEC05)"; return false; } delay(i2cDelay);
     if (!readWords(w, 3)) { rdErr++; rdLast = "측정값 읽기 실패"; return false; }
     co2 = w[0]; t = -45.0f + 175.0f * w[1] / 65535.0f; h = 100.0f * w[2] / 65535.0f;
     if (!co2) { rdErr++; rdLast = "CO2 0"; return false; } rdOk++; rdLast = "성공"; return true;
@@ -366,7 +375,11 @@ void loop() {
   if (sensor != NONE && now - lastGood > 20000 && now > 20000) {
     lastGood = now; restarts++;
     Serial.printf("[센서] 20초 동안 값이 없어 센서를 다시 시작해요 (%u번째, 마지막: %s)\n", (unsigned)restarts, rdLast);
-    if (restarts % 3 == 0) { sensor = NONE; if (findSensor()) startSensor(); } else startSensor();
+    static const int delays[] = {2, 5, 20, 2, 5, 20, 2, 5, 20};
+    static const uint32_t hzs[] = {100000, 100000, 100000, 50000, 50000, 50000, 20000, 20000, 20000};
+    int idx = restarts % 9; i2cDelay = delays[idx]; i2cHz = hzs[idx]; Wire.setClock(i2cHz); dbgLeft = 2;
+    Serial.printf("[센서] 다른 방식으로 시도: 기다림 %dms · 속도 %luHz\n", i2cDelay, (unsigned long)i2cHz);
+    startSensor();
   }
   if (now - lastStat > 15000) { lastStat = now;
     Serial.printf("[상태] 센서 성공 %u · 측정 전 %u · 오류 %u (마지막: %s) · 지금 CO2 %u · 와이파이 %s · 시계 %s · 저장공간 %s\n",
