@@ -235,6 +235,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .air-rec i{width:9px;height:9px;border-radius:50%;background:#fff;animation:airblink 1.2s infinite}
 .air-rec.sm{padding:1px 8px;font-size:11px;vertical-align:middle}.air-rec.sm i{width:6px;height:6px}
 @keyframes airblink{50%{opacity:.25}}
+.air-bar{position:relative;height:16px;border-radius:999px;background:#EEF4E8;overflow:visible}
+.air-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;transition:width .6s ease}
+.air-bar u{position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1.5px;border-radius:2px;background:#1D3B2A;opacity:.55}
+.air-bar s{position:absolute;top:-5px;bottom:-5px;border-left:2px dashed #D9365A}
+.air-push{border-top:1.5px dashed var(--line-2);padding-top:12px}
 .air-detail{border-radius:16px;padding:12px;border:2px solid var(--grass);background:#fff}
 .air-thr{width:110px;text-align:center;font-family:var(--f-mono);font-size:18px;padding:8px;border-radius:12px;border:2px solid var(--line-2)}
 .air-scale{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:12px;font-size:12px;text-align:center}
@@ -531,7 +536,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>window.__BUILD__ = "20261126152521";</script>
+<script>window.__BUILD__ = "20261126153447";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -1617,7 +1622,7 @@ function toCSV(recs) {
 /* ---------- 아이콘 (Lucide) ---------- */
 function Icon({ name, size = 18, className = "", stroke = 2 }) {
   const lib = window.lucide && window.lucide.icons;
-  const ALIAS = { Loader2: "LoaderCircle", LoaderCircle: "Loader2", Table2: "Table", Settings2: "Settings", House: "Home", Home: "House", TrainFront: "Train" };
+  const ALIAS = { Loader2: "LoaderCircle", LoaderCircle: "Loader2", Table2: "Table", Settings2: "Settings", House: "Home", Home: "House", TrainFront: "Train", BarChart3: "ChartColumn", ChartColumn: "BarChart3" };
   let node = lib && (lib[name] || lib[ALIAS[name]]);
   if (!node) return html`<span style=${{ width: size, height: size, display: "inline-block" }}></span>`;
   if (node[0] === "svg") node = node[2] || [];
@@ -3157,6 +3162,32 @@ const airStats = (pts, k) => { if (!pts.length) return null; let mn = Infinity, 
 const itemPts = (it) => (it.points || []).map((p) => ({ ts: p[0], co2: p[1], t: p[2], h: p[3] }));
 /** 튀는 값 보정 (햄펠 필터): 앞뒤 3분(7개)의 중앙값에서 크게 벗어난 값은 이웃 중앙값으로 바꿔요.
  *  숨을 불거나 센서를 손에 쥐면 CO₂·온도·습도가 한꺼번에 튀므로, CO₂가 튀거나 온도·습도가 같이 튀면 그 1분을 통째로 보정. */
+/** 환기 알림(웹 푸시). 아이폰은 '홈 화면에 추가'한 에코쌤즈에서만 돼요(iOS 16.4+). */
+const VAPID_PUB = "BKbrXT4tbYr5qkQUTCi1lJk1skQr2owulH4IE6cX2eGQq_7IWYL8grseHlpcJoGXShNfiW5TPQVE0YlqymKuiAc";
+const airPush = {
+  isIOS: () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1),
+  standalone: () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true,
+  supported: () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window,
+  key: () => { const b = atob(VAPID_PUB.replace(/-/g, "+").replace(/_/g, "/") + "==".slice(0, (4 - VAPID_PUB.length % 4) % 4)); return Uint8Array.from(b, (c) => c.charCodeAt(0)); },
+  async current() { if (!airPush.supported()) return null; const r = await navigator.serviceWorker.getRegistration("/"); return r ? r.pushManager.getSubscription() : null; },
+  async save(sub, me, thr) {
+    const r = await fetch(SB_URL + "/rest/v1/air_push?on_conflict=endpoint", { method: "POST", headers: sbH({ "content-type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }),
+      body: JSON.stringify([{ endpoint: sub.endpoint, sub: sub.toJSON(), who: me, thr: Math.round(thr), ua: navigator.userAgent.slice(0, 200), updated_at: new Date().toISOString() }]) });
+    if (!r.ok) throw new Error("저장 실패 " + r.status);
+  },
+  async on(me, thr) {
+    const perm = await Notification.requestPermission(); if (perm !== "granted") throw new Error(perm === "denied" ? "denied" : "dismissed");
+    const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" }); await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: airPush.key() });
+    await airPush.save(sub, me, thr); return sub;
+  },
+  async off() { const sub = await airPush.current(); if (!sub) return;
+    await fetch(SB_URL + "/rest/v1/air_push?endpoint=eq." + encodeURIComponent(sub.endpoint), { method: "DELETE", headers: sbH() }).catch(() => {});
+    await sub.unsubscribe(); },
+  async test() { const sub = await airPush.current(); if (!sub) throw new Error("구독 없음");
+    const r = await fetch(SB_URL + "/functions/v1/air-alert", { method: "POST", headers: { "content-type": "application/json", "x-team-pin": TEAM_PIN, apikey: SB_KEY }, body: JSON.stringify({ test: true, endpoint: sub.endpoint }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) throw new Error(j.error || "보내기 실패"); },
+};
 const AIR_MIN_DEV = { co2: 300, t: 1.5, h: 6 };
 const median = (a) => { const b = [...a].sort((x, y) => x - y), n = b.length; return n ? (n % 2 ? b[n >> 1] : (b[n / 2 - 1] + b[n / 2]) / 2) : NaN; };
 function airClean(pts) {
@@ -3267,6 +3298,20 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
   const [fixOn, setFixOn] = useState(cfg.fix !== false);
   const toggleFix = () => { const v = !fixOn; setFixOn(v); airCfg.set({ fix: v }); };
   const clean = (ps) => fixOn ? airCleanSegs(ps) : ps;
+  // 환기 알림 상태: ios-home(홈 화면 추가 필요) / unsupported / denied / off / on
+  const [pushSt, setPushSt] = useState("…"), [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => { (async () => {
+    if (airPush.isIOS() && !airPush.standalone()) return setPushSt("ios-home");
+    if (!airPush.supported()) return setPushSt("unsupported");
+    if (Notification.permission === "denied") return setPushSt("denied");
+    const sub = await airPush.current().catch(() => null); setPushSt(sub ? "on" : "off");
+    if (sub) airPush.save(sub, me, thr).catch(() => {}); })(); }, []);
+  const pushOn = async () => { setPushBusy(true); try { await airPush.on(me, thr); setPushSt("on"); say("환기 알림을 켰어요"); }
+    catch (e) { if (e.message === "denied") { setPushSt("denied"); } else say("알림을 켜지 못했어요 · " + e.message); } finally { setPushBusy(false); } };
+  const pushOff = async () => { setPushBusy(true); try { await airPush.off(); setPushSt("off"); say("환기 알림을 껐어요"); } finally { setPushBusy(false); } };
+  const pushTest = async () => { setPushBusy(true); try { await airPush.test(); say("시험 알림을 보냈어요"); } catch (e) { say("시험 알림 실패 · " + e.message); } finally { setPushBusy(false); } };
+  // 장소 비교
+  const [cmpMetric, setCmpMetric] = useState("co2"), [cmpRange, setCmpRange] = useState("all");
   const now = Date.now();
   const groups = useMemo(() => groupAirs(airs), [airs]);
   const cfgs = useMemo(() => new Map(airs.filter((a) => a.kind === "air_cfg").map((c) => [c.dev, c])), [airs]);
@@ -3366,6 +3411,31 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
         html`<div key=${k} class="stat"><div class="lbl">${l}</div><b class="mono text-[17px]">${st ? f(st[k]) : "–"}</b></div>`)}</div>
     </section>
 
+    ${(() => { const since = cmpRange === "today" ? new Date(new Date().setHours(0, 0, 0, 0)).getTime() : cmpRange === "7d" ? now - 7 * 86400000 : 0;
+      const by = new Map();
+      for (const x of sessions) { if ((x.end || now) < since) continue; const ps = x.pts.filter((p) => p.ts >= since); if (!ps.length) continue;
+        const k = x.place.trim(), o = by.get(k) || { place: k, pts: [], n: 0 }; o.pts.push(...ps); o.n++; by.set(k, o); }
+      const rows = [...by.values()].map((o) => ({ ...o, st: airStats(o.pts, cmpMetric) })).sort((a, b) => b.st.avg - a.st.avg);
+      const unit = cmpMetric === "co2" ? "ppm" : cmpMetric === "t" ? "℃" : "%", f = cmpMetric === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
+      const top = Math.max(...rows.map((r) => r.st.mx), cmpMetric === "co2" ? Math.max(thr * 1.15, 1200) : cmpMetric === "t" ? 35 : 100, 1);
+      const col = (v) => cmpMetric === "co2" ? airLv(v)[2] : AIR_COL[cmpMetric];
+      return html`<section class="glass p-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="BarChart3" size=${18} />장소 비교</h2>
+        <span class="text-[12.5px] text-mist">측정 기록의 장소별 평균${fixOn ? " · 튀는 값 보정" : ""}</span></div>
+      <div class="flex justify-between gap-2 flex-wrap"><${MetricChips} v=${cmpMetric} set=${setCmpMetric} />
+        <div class="flex gap-1.5 flex-wrap">${[["today", "오늘"], ["7d", "7일"], ["all", "전체"]].map(([v, l]) =>
+          html`<button key=${v} type="button" class=${"chip" + (cmpRange === v ? " chip-on" : "")} aria-pressed=${cmpRange === v} onClick=${() => setCmpRange(v)}>${l}</button>`)}</div></div>
+      ${!rows.length ? html`<p class="text-[14px] text-mist py-5 text-center">이 기간에 측정 기록이 없어요. 장소를 바꿔 가며 측정하면 여기서 한눈에 비교돼요.</p>`
+        : html`<div class="grid gap-3 mt-3">${rows.map((r) => html`<div key=${r.place} class="grid gap-1">
+            <div class="flex items-baseline gap-2"><b class="truncate flex-1 min-w-0 text-[14.5px]">${r.place}</b>
+              <b class="mono text-[17px]">${f(r.st.avg)}</b><small class="text-mist">${unit} 평균</small></div>
+            <div class="air-bar"><i style=${{ width: (r.st.avg / top * 100).toFixed(1) + "%", background: col(r.st.avg) }}></i>
+              <u style=${{ left: (r.st.mx / top * 100).toFixed(1) + "%" }} title="최고"></u>
+              ${cmpMetric === "co2" && html`<s style=${{ left: (thr / top * 100).toFixed(1) + "%" }}></s>`}</div>
+            <small class="text-mist text-[12px]">최고 ${f(r.st.mx)} · 최저 ${f(r.st.mn)} · ${r.pts.length}분 · ${r.n}번 측정${cmpMetric === "co2" ? ` · 기준 넘은 시간 ${r.pts.filter((p) => p.co2 >= thr).length}분` : ""}</small></div>`)}</div>
+          <p class="text-[12px] text-mist mt-3">막대 = 평균, 세로 눈금 = 최고값${cmpMetric === "co2" ? ", 빨간 점선 = 알림 기준" : ""}</p>`}
+    </section>`; })()}
+
     <section class="glass p-4">
       <div class="flex items-center justify-between gap-2 flex-wrap mb-1"><h2 class="pill-h"><${Icon} name="School" size=${18} />우리 공기 기록</h2>
         <span class="text-[12.5px] text-mist">1분 평균 · 팀 모두 함께 봐요</span></div>
@@ -3442,8 +3512,24 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
     <section class="glass p-4">
       <h2 class="pill-h mb-3"><${Icon} name="Bell" size=${18} />알림 기준</h2>
       <div class="flex items-center gap-2 flex-wrap"><label for="airThr" class="text-[13px] text-mist">CO₂가 이 값을 넘으면 경고</label>
-        <input id="airThr" class="air-thr" type="number" min="400" max="40000" step="50" value=${thr} onChange=${(e) => { const v = +e.target.value || 1000; setThr(v); airCfg.set({ thr: v }); }} /><span class="text-[13px] text-mist">ppm</span></div>
+        <input id="airThr" class="air-thr" type="number" min="400" max="40000" step="50" value=${thr} onChange=${(e) => { const v = +e.target.value || 1000; setThr(v); airCfg.set({ thr: v }); if (pushSt === "on") airPush.current().then((sub) => sub && airPush.save(sub, me, v)).catch(() => {}); }} /><span class="text-[13px] text-mist">ppm</span></div>
       <div class="air-scale">${AIR_LV.map(([lim, l, c], i) => html`<div key=${l} style=${{ background: c }}>${l}<br/>${i === 0 ? "~800" : i === 3 ? "2,000~" : `${AIR_LV[i - 1][0].toLocaleString()}~${lim.toLocaleString()}`}</div>`)}</div>
+    
+      <div class="air-push mt-3">
+        <div class="flex items-center gap-2 flex-wrap"><b class="flex-1 min-w-0 text-[15px]"><${Icon} name="BellRing" size=${17} /> 휴대폰 환기 알림</b>
+          ${pushSt === "on" && html`<span class="air-conn on"><i></i>켜짐</span>`}</div>
+        <p class="text-[13px] text-mist mt-1">측정 중에 CO₂가 <b>2분 연속</b> 기준(${Number(thr).toLocaleString()}ppm)을 넘으면 앱을 닫아 둬도 알림이 와요. 다시 내려가면 한 번 더 알려 줘요. (30분에 한 번까지)</p>
+        ${pushSt === "ios-home" ? html`<ol class="list-decimal pl-5 mt-2 grid gap-1 text-[13.5px]">
+            <li>사파리 아래쪽 <b>공유 버튼</b>(네모에 위 화살표)을 누르세요.</li>
+            <li><b>홈 화면에 추가</b>를 누르세요.</li>
+            <li>홈 화면에 생긴 <b>에코쌤즈</b> 아이콘으로 열고, 여기서 <b>알림 켜기</b>를 누르세요.</li></ol>
+            <p class="text-[12.5px] text-mist mt-1">아이폰은 홈 화면에 추가한 앱에서만 알림을 받을 수 있어요. (네이버 앱 안에서는 안 돼요)</p>`
+        : pushSt === "unsupported" ? html`<p class="text-[13.5px] mt-2">이 브라우저는 알림을 지원하지 않아요. 크롬·사파리(홈 화면 앱)에서 열어 주세요.</p>`
+        : pushSt === "denied" ? html`<p class="text-[13.5px] mt-2">알림이 차단돼 있어요. 휴대폰 <b>설정 → 알림 → 에코쌤즈</b>에서 허용한 뒤 다시 열어 주세요.</p>`
+        : pushSt === "on" ? html`<div class="flex gap-2 mt-2 flex-wrap"><button type="button" class="btn-ghost" disabled=${pushBusy} onClick=${pushTest}><${Icon} name="Send" size=${15} />시험 알림 보내기</button>
+            <button type="button" class="btn-ghost" disabled=${pushBusy} onClick=${pushOff}><${Icon} name="BellOff" size=${15} />알림 끄기</button></div>`
+        : pushSt === "off" ? html`<button type="button" class="btn-save mt-2 w-full air-big" disabled=${pushBusy} onClick=${pushOn}><${Icon} name="Bell" size=${17} />알림 켜기</button>` : ""}
+      </div>
     </section>
 
     ${!isIOS() && html`<section class="glass p-4">
