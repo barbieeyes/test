@@ -636,8 +636,8 @@ function Hero({ children }) {
     <div class="hero-in">
       ${children}
       <h1 class="hero-title"><span class="y">기후행동 실천모임</span> <span class="w">에코쌤즈</span></h1>
-      <div class="hero-sub">각자의 관찰이 모여, 학교의 변화를 만들다</div>
-      <div class="hero-motto"><span class="m-solo">따로</span><span class="m-amp">피고,</span><span class="m-team">같이</span><span class="m-amp">숨 쉬다</span><span class="m-rest">따로 기록하고, 함께 바꾸다</span></div>
+      <div class="hero-sub">함께 배우고, 함께 실천하는 기후행동!</div>
+      <div class="hero-motto"><span class="m-solo">따로</span><span class="m-amp">기록하고,</span><span class="m-team">함께</span><span class="m-amp">바꾸다</span><span class="m-rest">각자의 관찰이 모여, 학교의 변화를 만들다</span></div>
     </div>
     <svg class="hero-art" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMax slice" role="img"
       aria-label="텀블러, 지구, 장바구니 캐릭터가 언덕과 풀잎 사이에서 웃고 있는 그림" dangerouslySetInnerHTML=${{ __html: ART }}></svg>
@@ -792,7 +792,7 @@ function SharePage() {
   const nSp = new Set((data ? data.records : []).map((r) => r.koreanName).filter(Boolean)).size;
   return html`<div class="app tab-is-rx">
     <div class="strip"><div class="strip-in"><span class="nav-logo"><span class="strip-team">기후행동 실천모임 <b>에코쌤즈</b> · 성과 공유</span>
-      <span class="strip-title"><${Icon} name="Sprout" size=${18} />따로 피고, 같이 숨 쉬다<small>따로 기록하고, 함께 바꾸다</small></span></span></div></div>
+      <span class="strip-title"><${Icon} name="Sprout" size=${18} />따로 기록하고, 함께 바꾸다<small>각자의 관찰이 모여, 학교의 변화를 만들다</small></span></span></div></div>
     <main class="wrap pb-12 pt-3 grid gap-4">
       ${!data ? html`<div class="boot" style=${{ minHeight: "40vh" }}>${err || "결과를 불러오는 중…"}</div>` : html`
       <section class="glass p-4">
@@ -897,7 +897,7 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say, read
   ];
   return html`<div class="grid gap-4">
     <section class="glass p-4">
-      <b class="font-display text-[17px]" style=${{ color: "var(--grass-deep)" }}>따로 기록하고, 함께 바꾸다</b>
+      <b class="font-display text-[17px]" style=${{ color: "var(--grass-deep)" }}>각자의 관찰이 모여, 학교의 변화를 만들다</b>
       <p class="text-[13px] text-mist mt-1">각자 사는 동네에서 따로 걸으며 문제를 발견하고, 학생들과 우리 학교에서 같이 확인하고 바꿔요.</p>
       <ol class="dg-steps mt-3">${steps.map(([n, t, s, ok]) => html`<li key=${n} class=${ok ? "ok" : ""}><span>${n}</span><b>${t}</b><small>${s}</small></li>`)}</ol>
       ${!readOnly && html`<button type="button" class="mini-btn mt-3" onClick=${() => setShowShare(!showShare)}><${Icon} name="Share2" size=${13} />성과 공유 페이지 (로그인 없이 보기)</button>
