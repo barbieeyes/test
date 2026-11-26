@@ -99,7 +99,7 @@ const TABS = [
   { id: "today", label: "오늘", icon: "Sun" },
   { id: "solo", label: "따로", icon: "House" },
   { id: "team", label: "같이", icon: "School" },
-  { id: "air", label: "공기", icon: "Wind" },
+  { id: "air", label: "공기질", icon: "Wind" },
   { id: "map", label: "지도", icon: "Map" },
   { id: "activity", label: "활동", icon: "Users" },
   { id: "archive", label: "아카이브", icon: "Film" },
@@ -643,7 +643,7 @@ function Hero({ children }) {
 /** 언제나 위에 있는 이동 막대: 뒤로 · 처음(로고) · 멤버 전환 · 설정 · 나가기 */
 function NavBar({ tab, name, canBack, onBack, onHome, onSwitch, onSettings, onLogout, hasKey }) {
   const t = TABS.find((x) => x.id === tab) || TABS[0];
-  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", air: "우리 교실 공기 탐사", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "따로 또 같이" }[tab];
+  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", air: "공기질 측정 · CO₂·온도·습도", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "따로 또 같이" }[tab];
   return html`<div class="strip">
     <div class="strip-in">
       <button type="button" class="nav-btn" onClick=${onBack} aria-label=${canBack ? "뒤로 가기" : "처음 화면으로"} disabled=${!canBack && tab === "today"}>
