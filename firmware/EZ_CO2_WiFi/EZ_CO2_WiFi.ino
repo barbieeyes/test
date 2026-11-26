@@ -35,7 +35,7 @@ static String wifiSsid, wifiPass;
 static Preferences prefs;
 #define WIFI_SSID wifiSsid.c_str()
 #define WIFI_PASS wifiPass.c_str()
-#define FW_VERSION "1.3.2"
+#define FW_VERSION "1.3.3"
 
 // 에코쌤즈 팀 저장소 (앱과 같은 공개 키 · 팀 비밀번호)
 const char* SB_URL   = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
@@ -76,7 +76,7 @@ static bool findSensor() {
 #endif
   for (auto& p : pairs) {
     if (p[0] < 0) continue;
-    Wire.end(); Wire.begin(p[0], p[1], 50000); delay(20);
+    Wire.end(); Wire.begin(p[0], p[1], 100000); delay(20);
     if (probe(0x62)) { sensor = SCD4X; addr = 0x62; } else if (probe(0x61)) { sensor = SCD30; addr = 0x61; }
     if (sensor != NONE) { Serial.printf("[센서] %s 발견 SDA=%d SCL=%d\n", sensor == SCD4X ? "SCD4x" : "SCD30", p[0], p[1]); return true; }
   }
@@ -84,17 +84,26 @@ static bool findSensor() {
   return false;
 }
 static void startSensor() {
-  if (sensor == SCD4X) { cmd(0x3F86); delay(500); cmd(0x21B1); }
+  if (sensor == SCD4X) {
+    cmd(0x36F6); delay(30);            // wake_up (절전 상태였을 때)
+    cmd(0x3F86); delay(500);           // stop_periodic_measurement
+    cmd(0x3646); delay(30);            // reinit
+    bool ok = cmd(0x21B1);             // start_periodic_measurement (5초마다)
+    Serial.printf("[센서] 측정 시작 %s\n", ok ? "OK" : "실패");
+  }
   else if (sensor == SCD30) { cmdArg(0x4600, 5); delay(20); cmdArg(0x0010, 0); }
 }
+static uint32_t rdOk = 0, rdNotReady = 0, rdErr = 0; static const char* rdLast = "-";
 static bool readSensor(uint16_t& co2, float& t, float& h) {
   uint16_t w[6];
   if (sensor == SCD4X) {
-    if (!cmd(0xE4B8)) return false; delay(2);
-    if (!readWords(w, 1) || (w[0] & 0x07FF) == 0) return false;
-    if (!cmd(0xEC05)) return false; delay(2);
-    if (!readWords(w, 3)) return false;
-    co2 = w[0]; t = -45.0f + 175.0f * w[1] / 65535.0f; h = 100.0f * w[2] / 65535.0f; return co2 > 0;
+    if (!cmd(0xE4B8)) { rdErr++; rdLast = "명령 실패(0xE4B8)"; return false; } delay(2);
+    if (!readWords(w, 1)) { rdErr++; rdLast = "준비 상태 읽기 실패"; return false; }
+    if ((w[0] & 0x07FF) == 0) { rdNotReady++; rdLast = "아직 측정 전"; return false; }
+    if (!cmd(0xEC05)) { rdErr++; rdLast = "명령 실패(0xEC05)"; return false; } delay(2);
+    if (!readWords(w, 3)) { rdErr++; rdLast = "측정값 읽기 실패"; return false; }
+    co2 = w[0]; t = -45.0f + 175.0f * w[1] / 65535.0f; h = 100.0f * w[2] / 65535.0f;
+    if (!co2) { rdErr++; rdLast = "CO2 0"; return false; } rdOk++; rdLast = "성공"; return true;
   }
   if (sensor == SCD30) {
     if (!cmd(0x0202)) return false; delay(4);
@@ -352,6 +361,16 @@ void loop() {
     if (readSensor(co2, t, h)) { if (!winN) winStart = now; winN++; sc += co2; st += t; sh += h; lastCo2 = co2; lastT = t; lastH = h; }
   }
   if (winN && now - winStart >= 60000) closeWindow();
+  static uint32_t lastStat = 0, lastGood = 0, lastOkN = 0, restarts = 0;
+  if (rdOk != lastOkN) { lastOkN = rdOk; lastGood = now; }
+  if (sensor != NONE && now - lastGood > 20000 && now > 20000) {
+    lastGood = now; restarts++;
+    Serial.printf("[센서] 20초 동안 값이 없어 센서를 다시 시작해요 (%u번째, 마지막: %s)\n", (unsigned)restarts, rdLast);
+    if (restarts % 3 == 0) { sensor = NONE; if (findSensor()) startSensor(); } else startSensor();
+  }
+  if (now - lastStat > 15000) { lastStat = now;
+    Serial.printf("[상태] 센서 성공 %u · 측정 전 %u · 오류 %u (마지막: %s) · 지금 CO2 %u · 와이파이 %s · 시계 %s · 저장공간 %s\n",
+      (unsigned)rdOk, (unsigned)rdNotReady, (unsigned)rdErr, rdLast, lastCo2, WiFi.status() == WL_CONNECTED ? "연결" : "끊김", timeOk() ? "맞음" : "아직", fsOk ? "OK" : "메모리"); }
   flushPre();
 
   // 올리기 · 장소 확인
