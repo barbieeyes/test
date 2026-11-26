@@ -576,6 +576,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 .sd{display:grid;gap:2px;text-align:left;border-radius:16px;padding:10px 12px}.sd span{font:800 13px var(--f-display)}.sd b{font-size:14px;color:#14301F}.sd small{font-size:11.5px;color:#5F7368}.sd i{font-style:normal;font:700 15px "JetBrains Mono",monospace;margin:2px 0}
 .sd-eco{background:#EEF7F0}.sd-eco span,.sd-eco i{color:#1F7A3E}.sd-air{background:#EAF2FB}.sd-air span,.sd-air i{color:#2563A8}
 .st-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.st-acts button{display:grid;justify-items:center;gap:3px;background:#F2F8F3;border-radius:12px;padding:8px 4px;text-align:center;color:#1F7A3E}.st-acts b{font-size:12.5px;color:#14301F;line-height:1.25}.st-acts small{font-size:11px;color:#5F7368}
+.scale-big{display:flex;align-items:baseline;justify-content:center;gap:10px;flex-wrap:wrap;background:#14301F;color:#fff;border-radius:16px;padding:14px;margin-top:10px;font-family:var(--f-display);font-size:18px}.scale-big b{color:#E8A33D;font-size:22px}.scale-big em{font-style:normal;font-size:30px;color:#FFD58A}
 /* QR 식물 카드 */
 .pp{max-width:520px;margin:0 auto;padding:16px 16px 40px;display:grid;gap:14px}
 .pp-top{display:grid;gap:2px}.pp-top b{font-size:22px;color:#14301F}
@@ -596,7 +597,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script>window.__BUILD__ = "20261127012210";</script>
+<script>window.__BUILD__ = "20261127012613";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -3821,6 +3822,8 @@ function co2Slope(pts) {
   let sxy = 0, sxx = 0; for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; }
   return { rate: sxx ? sxy / sxx : 0, delta: ys[n - 1] - ys[0], first: ys[0], last: ys[n - 1], min: xs[n - 1] };
 }
+/** 규모 비교: ppm/분 × 부피(L) → g CO₂/분 (25℃, 1기압: 1mol = 24.45L, CO₂ 44.01g) */
+const gPerMin = (rate, liters) => Math.abs(rate) * 1e-6 * liters / 24.45 * 44.01;
 function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, say }) {
   const [, force] = useState(0);
   useEffect(() => { AIR.init(); return AIR.sub(() => force((n) => n + 1)); }, []);
@@ -3834,6 +3837,8 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
   const [editDev, setEditDev] = useState(null), [editPlace, setEditPlace] = useState("");
   const [boardSel, setBoardSel] = useState(null);
   const [newPlace, setNewPlace] = useState(""), [busy, setBusy] = useState(false);
+  const [boxL, setBoxL] = useState(cfg.boxL || 5), [room, setRoom] = useState(cfg.room || [7, 9, 3]);
+  const [scP, setScP] = useState(""), [scR, setScR] = useState("");
   const [mkind, setMkind] = useState("place"), [cond, setCond] = useState("light"), [plant, setPlant] = useState("");
   const [fixOn, setFixOn] = useState(cfg.fix !== false);
   const toggleFix = () => { const v = !fixOn; setFixOn(v); airCfg.set({ fix: v }); };
@@ -3983,6 +3988,28 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
           <small class="text-mist text-[12px]">${fmtDay(x.start)} ${hhmm(x.start)} · ${Math.round(r.min)}분 동안 ${Math.round(r.first).toLocaleString()} → ${Math.round(r.last).toLocaleString()}ppm (${r.delta > 0 ? "+" : ""}${Math.round(r.delta)}) · ${dn ? "줄었어요" : Math.abs(r.rate) < 0.5 ? "거의 그대로" : "늘었어요"}</small>`}</div>`; })}</div>
       <p class="text-[12px] text-mist mt-3 leading-relaxed">빛 있음에서 줄고(초록), 어둡게에서 늘고(주황), 빈 용기는 거의 그대로면 → 식물의 광합성과 호흡이 확인된 거예요. 같은 식물로 빛·어둡게를 번갈아 재면 비교가 쉬워요.</p>
     </section>`}
+    ${(() => {
+      const plants = exps.filter((x) => x.cond === "light").map((x) => ({ x, r: co2Slope(x.pts) })).filter((o) => o.r && o.r.rate < 0);
+      const rooms = sessions.filter((x) => x.type !== "exp").map((x) => ({ x, r: co2Slope(x.pts) })).filter((o) => o.r && o.r.rate > 0).sort((a, b) => b.r.rate - a.r.rate);
+      const pSel = plants.find((o) => o.x.id === scP) || plants[0], rSel = rooms.find((o) => o.x.id === scR) || rooms[0];
+      const vol = room[0] * room[1] * room[2] * 1000;
+      const gP = pSel ? gPerMin(pSel.r.rate, boxL) : 0, gR = rSel ? gPerMin(rSel.r.rate, vol) : 0, n = gP ? gR / gP : 0;
+      const setNum = (fn) => (e) => fn(Math.max(0.1, +e.target.value || 0));
+      return html`<section class="glass p-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-2"><h2 class="pill-h"><${Icon} name="Scale" size=${18} />규모 비교: 교실 하나 = 화분 몇 개?</h2></div>
+      <p class="text-[13px] text-mist">식물 실험(빛 있음)에서 줄어든 속도와 교실에서 늘어난 속도를 같은 단위(g CO₂/분)로 바꿔 비교해요. 탄소 흡수는 화분 몇 개가 아니라 녹지의 규모와 질로 키워야 한다는 근거예요.</p>
+      <div class="grid grid-cols-2 gap-2 mt-3">
+        <label class="fld"><span class="lbl">실험 용기 부피 (L)</span><input type="number" step="0.5" min="0.1" value=${boxL} onInput=${setNum((v) => { setBoxL(v); airCfg.set({ boxL: v }); })} /></label>
+        <div class="fld"><span class="lbl">교실 가로·세로·높이 (m)</span><div class="flex gap-1">${[0, 1, 2].map((i) => html`<input key=${i} type="number" step="0.1" min="0.1" style=${{ width: "33%" }} value=${room[i]} onInput=${setNum((v) => { const r = room.slice(); r[i] = v; setRoom(r); airCfg.set({ room: r }); })} />`)}</div></div></div>
+      ${!plants.length || !rooms.length ? html`<p class="text-[13.5px] mt-3" style=${{ color: "#B8651A" }}>${!plants.length ? "· '식물 실험 · 빛 있음'에서 CO₂가 줄어든 기록이 필요해요. " : ""}${!rooms.length ? "· 교실에서 CO₂가 오른 '장소 비교' 기록이 필요해요." : ""}</p>` : html`
+      <div class="grid gap-1.5 mt-3 text-[13px]">
+        <label class="flex items-center gap-2"><span class="text-mist shrink-0">식물</span><select class="flex-1 min-w-0" value=${pSel.x.id} onChange=${(e) => setScP(e.target.value)}>${plants.map((o) => html`<option key=${o.x.id} value=${o.x.id}>${o.x.plant || o.x.place} · ${o.r.rate.toFixed(1)}ppm/분 · ${fmtDay(o.x.start)}</option>`)}</select></label>
+        <label class="flex items-center gap-2"><span class="text-mist shrink-0">교실</span><select class="flex-1 min-w-0" value=${rSel.x.id} onChange=${(e) => setScR(e.target.value)}>${rooms.map((o) => html`<option key=${o.x.id} value=${o.x.id}>${o.x.place} · +${o.r.rate.toFixed(1)}ppm/분 · ${fmtDay(o.x.start)}</option>`)}</select></label></div>
+      <div class="dg-ba mt-3"><div><small>화분 1개 흡수</small><b class="mono">${(gP * 1000).toFixed(3)}</b><small>mg CO₂/분</small></div><span class="text-mist">vs</span><div><small>교실 증가</small><b class="mono">${gR.toFixed(2)}</b><small>g CO₂/분</small></div></div>
+      <div class="scale-big"><span>교실 하나</span><b>=</b><span>화분 약 <em class="mono">${n >= 100 ? Math.round(n / 10) * 10 : Math.round(n)}</em>개</span></div>
+      <details class="text-[12px] text-mist mt-1"><summary>계산식</summary><div class="mono leading-relaxed mt-1">g CO₂/분 = ppm/분 × 10⁻⁶ × 부피(L) ÷ 24.45 × 44.01<br/>화분: ${Math.abs(pSel.r.rate).toFixed(1)} × 10⁻⁶ × ${boxL} ÷ 24.45 × 44.01 = ${(gP * 1000).toFixed(4)} mg<br/>교실: ${rSel.r.rate.toFixed(1)} × 10⁻⁶ × ${vol.toLocaleString()} ÷ 24.45 × 44.01 = ${gR.toFixed(3)} g</div>
+        <p class="mt-1">25℃·1기압 기준 어림값이에요. 교실 값은 창문을 닫고 수업할 때 잰 기록을 고르세요.</p></details>`}
+    </section>`; })()}
     ${(() => { const since = cmpRange === "today" ? new Date(new Date().setHours(0, 0, 0, 0)).getTime() : cmpRange === "7d" ? now - 7 * 86400000 : 0;
       const by = new Map();
       for (const x of sessions) { if (x.type === "exp" || (x.end || now) < since) continue; const ps = x.pts.filter((p) => p.ts >= since); if (!ps.length) continue;
