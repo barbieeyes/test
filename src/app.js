@@ -2089,6 +2089,41 @@ const AIR = {
 setInterval(() => { if (AIR.buckets.size) AIR.flush(false); }, 20000);
 const airStats = (pts, k) => { if (!pts.length) return null; let mn = Infinity, mx = -Infinity, s = 0; for (const p of pts) { const v = p[k]; if (v < mn) mn = v; if (v > mx) mx = v; s += v; } return { mn, mx, avg: s / pts.length }; };
 const itemPts = (it) => (it.points || []).map((p) => ({ ts: p[0], co2: p[1], t: p[2], h: p[3] }));
+/** 튀는 값 보정 (햄펠 필터): 앞뒤 3분(7개)의 중앙값에서 크게 벗어난 값은 이웃 중앙값으로 바꿔요.
+ *  숨을 불거나 센서를 손에 쥐면 CO₂·온도·습도가 한꺼번에 튀므로, CO₂가 튀거나 온도·습도가 같이 튀면 그 1분을 통째로 보정. */
+const AIR_MIN_DEV = { co2: 300, t: 1.5, h: 6 };
+const median = (a) => { const b = [...a].sort((x, y) => x - y), n = b.length; return n ? (n % 2 ? b[n >> 1] : (b[n / 2 - 1] + b[n / 2]) / 2) : NaN; };
+function airClean(pts) {
+  const n = pts.length; if (n < 5) return pts.map((p) => ({ ...p }));
+  const bad = new Array(n).fill(false), K = 3;
+  for (let pass = 0; pass < 1; pass++) {
+    const flag = { co2: [], t: [], h: [] };
+    for (const m of ["co2", "t", "h"]) for (let i = 0; i < n; i++) {
+      const w = []; let lft = 0, rgt = 0;
+      for (let j = Math.max(0, i - K); j <= Math.min(n - 1, i + K); j++) if (j !== i && !bad[j]) { w.push(pts[j][m]); if (j < i) lft++; else rgt++; }
+      // 양쪽 이웃이 다 있어야 판단 (끝자락·급변 구간을 잘못 고치지 않게)
+      if (w.length < 3 || (i > 0 && i < n - 1 && (!lft || !rgt))) { flag[m][i] = false; continue; }
+      const md = median(w), mad = median(w.map((v) => Math.abs(v - md))), dev = Math.abs(pts[i][m] - md);
+      flag[m][i] = dev > Math.max(3 * 1.4826 * mad, AIR_MIN_DEV[m]);
+    }
+    for (let i = 0; i < n; i++) if (flag.co2[i] || (flag.t[i] && flag.h[i])) bad[i] = true;
+  }
+  // 튄 뒤 천천히 빠지는 꼬리: 튀기 전 값의 1.5배가 넘으면서 계속 줄어드는 동안은 같이 보정
+  for (let i = 1; i < n; i++) if (!bad[i] && bad[i - 1]) {
+    const before = []; for (let j = i - 1; j >= 0 && before.length < K; j--) if (!bad[j]) before.push(pts[j].co2);
+    const base = before.length ? median(before) : NaN;
+    if (base > 0 && pts[i].co2 > base * 1.5 && pts[i].co2 < pts[i - 1].co2) bad[i] = true;
+  }
+  return pts.map((p, i) => { if (!bad[i]) return { ...p };
+    const q = { ...p, fix: true, raw: { co2: p.co2, t: p.t, h: p.h } };
+    for (const m of ["co2", "t", "h"]) { const w = []; for (let j = Math.max(0, i - K); j <= Math.min(n - 1, i + K); j++) if (!bad[j]) w.push(pts[j][m]);
+      if (w.length) q[m] = m === "co2" ? Math.round(median(w)) : Math.round(median(w) * 10) / 10; }
+    return q; });
+}
+/** 측정 구간(seg)마다 따로 보정해서 장소가 바뀌는 경계를 넘어 섞이지 않게 */
+const airCleanSegs = (pts) => { const out = []; let cur = [];
+  for (const p of pts) { if (cur.length && (cur[cur.length - 1].seg !== p.seg || p.ts - cur[cur.length - 1].ts > 300000)) { out.push(...airClean(cur)); cur = []; } cur.push(p); }
+  out.push(...airClean(cur)); return out; };
 
 function drawAirChart(cv, pts, metric, t0, t1, thr) {
   const W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1; if (!W) return;
@@ -2098,7 +2133,7 @@ function drawAirChart(cv, pts, metric, t0, t1, thr) {
   const maxN = Math.max(60, Math.floor(W));
   if (ps.length > maxN) { const step = ps.length / maxN, o = [];
     for (let i = 0; i < maxN; i++) { const s = ps.slice(Math.floor(i * step), Math.floor((i + 1) * step)); if (!s.length) continue;
-      o.push({ ts: s[s.length >> 1].ts, co2: s.reduce((a, b) => a + b.co2, 0) / s.length, t: s.reduce((a, b) => a + b.t, 0) / s.length, h: s.reduce((a, b) => a + b.h, 0) / s.length }); } ps = o; }
+      o.push({ ts: s[s.length >> 1].ts, seg: s[s.length >> 1].seg, fix: s.some((q) => q.fix), co2: s.reduce((a, b) => a + b.co2, 0) / s.length, t: s.reduce((a, b) => a + b.t, 0) / s.length, h: s.reduce((a, b) => a + b.h, 0) / s.length }); } ps = o; }
   const L = W < 420 ? 42 : 54, R = 12, T = 14, B = 28;
   if (!ps.length) { g.fillStyle = mute; g.textAlign = "center"; g.font = '16px Jua,sans-serif'; g.fillText("이 기간에 기록이 없어요", W / 2, H / 2); return; }
   let lo = Math.min(...ps.map((p) => p[metric])), hi = Math.max(...ps.map((p) => p[metric]));
@@ -2114,8 +2149,11 @@ function drawAirChart(cv, pts, metric, t0, t1, thr) {
     g.fillText(lab, Math.min(W - R - 16, Math.max(L + 16, x(ts))), H - B + 9); }
   if (metric === "co2" && thr > lo && thr < hi) { g.setLineDash([5, 4]); g.strokeStyle = "#D9365A"; g.beginPath(); g.moveTo(L, y(thr)); g.lineTo(W - R, y(thr)); g.stroke(); g.setLineDash([]); }
   g.strokeStyle = AIR_COL[metric]; g.lineWidth = 2.5; g.lineJoin = "round"; g.lineCap = "round"; g.beginPath(); let prev = null;
-  for (const p of ps) { const X = x(p.ts), Y = y(p[metric]); if (!prev || p.ts - prev > 300000) g.moveTo(X, Y); else g.lineTo(X, Y); prev = p.ts; }
+  let pseg;
+  for (const p of ps) { const X = x(p.ts), Y = y(p[metric]); if (!prev || p.ts - prev > 300000 || p.seg !== pseg) g.moveTo(X, Y); else g.lineTo(X, Y); prev = p.ts; pseg = p.seg; }
   g.stroke();
+  // 보정한 1분: 주황 동그라미
+  g.strokeStyle = "#E07B12"; g.lineWidth = 2; for (const p of ps) if (p.fix) { g.beginPath(); g.arc(x(p.ts), y(p[metric]), 4, 0, 7); g.stroke(); }
   const lp = ps[ps.length - 1]; g.fillStyle = "#fff"; g.strokeStyle = AIR_COL[metric]; g.beginPath(); g.arc(x(lp.ts), y(lp[metric]), 4.5, 0, 7); g.fill(); g.stroke();
 }
 function AirChart({ pts, metric, t0, t1, thr }) {
@@ -2127,8 +2165,8 @@ function AirChart({ pts, metric, t0, t1, thr }) {
 }
 const MetricChips = ({ v, set }) => html`<div class="flex gap-1.5 flex-wrap">${[["co2", "CO₂"], ["t", "온도"], ["h", "습도"]].map(([k, l]) =>
   html`<button key=${k} type="button" class=${"chip" + (v === k ? " chip-on" : "")} aria-pressed=${v === k} onClick=${() => set(k)}>${l}</button>`)}</div>`;
-const airCsv = (pts) => "﻿시간,CO2(ppm),온도(C),습도(%)\n" + pts.map((p) => { const d = new Date(p.ts), q = (n) => String(n).padStart(2, "0");
-  return `${ymd(p.ts)} ${q(d.getHours())}:${q(d.getMinutes())}:${q(d.getSeconds())},${Math.round(p.co2)},${p.t},${p.h}`; }).join("\n");
+const airCsv = (pts) => "﻿시간,CO2(ppm),온도(C),습도(%),보정,원래 CO2,원래 온도,원래 습도\n" + pts.map((p) => { const d = new Date(p.ts), q = (n) => String(n).padStart(2, "0");
+  return `${ymd(p.ts)} ${q(d.getHours())}:${q(d.getMinutes())}:${q(d.getSeconds())},${Math.round(p.co2)},${p.t},${p.h},${p.fix ? "튀는 값 보정" : ""},${p.fix ? Math.round(p.raw.co2) + "," + p.raw.t + "," + p.raw.h : ",,"}`; }).join("\n");
 
 /** 같은 보드(휴대폰)·같은 날·같은 장소의 기록(와이파이 보드는 1시간 단위)을 하나로 묶기 */
 function groupAirs(airs) {
@@ -2160,6 +2198,9 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
   const [editDev, setEditDev] = useState(null), [editPlace, setEditPlace] = useState("");
   const [boardSel, setBoardSel] = useState(null);
   const [newPlace, setNewPlace] = useState(""), [busy, setBusy] = useState(false);
+  const [fixOn, setFixOn] = useState(cfg.fix !== false);
+  const toggleFix = () => { const v = !fixOn; setFixOn(v); airCfg.set({ fix: v }); };
+  const clean = (ps) => fixOn ? airCleanSegs(ps) : ps;
   const now = Date.now();
   const groups = useMemo(() => groupAirs(airs), [airs]);
   const cfgs = useMemo(() => new Map(airs.filter((a) => a.kind === "air_cfg").map((c) => [c.dev, c])), [airs]);
@@ -2173,7 +2214,8 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
   const devPts = (dev) => groups.filter((x) => x.dev === dev).flatMap((x) => itemPts(x));
   const sessions = useMemo(() => airs.filter((a) => a.kind === "air_sess").map((s) => { const e = s.end || Infinity;
     const pts = devPts(s.dev).filter((p) => p.ts >= s.start - 60000 && p.ts <= e).sort((a, b) => a.ts - b.ts);
-    const m = new Map(pts.map((p) => [p.ts, p])); return { ...s, pts: [...m.values()] }; }).sort((a, b) => b.start - a.start), [airs, groups]);
+    const m = new Map(pts.map((p) => [p.ts, { ...p, seg: s.id }])); const raw = [...m.values()];
+    return { ...s, raw, pts: fixOn ? airClean(raw) : raw }; }).sort((a, b) => b.start - a.start), [airs, groups, fixOn]);
   const curSess = board ? sessions.find((s) => s.dev === board.dev && !s.end) : null;
   const recentPlaces = [...new Set(sessions.map((s) => s.place).concat(boards.map((b) => (cfgs.get(b.dev) || {}).place || b.place)))].filter(Boolean).slice(0, 6);
   const hhmm = (t) => { const d = new Date(t), q = (n) => String(n).padStart(2, "0"); return `${q(d.getHours())}:${q(d.getMinutes())}`; };
@@ -2191,8 +2233,14 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
   const savePlace = (v) => { setPlace(v); airCfg.set({ place: v }); };
   // 실시간 그래프: 블루투스 값이 있으면 그것, 없으면 선택한 보드의 기록
   const blePts = AIR.recent.filter((p) => p.ts >= now - range);
-  const boardPts = board ? groups.filter((x) => x.dev === board.dev).flatMap((x) => itemPts(x)).filter((p) => p.ts >= now - range).sort((a, b) => a.ts - b.ts) : [];
-  const chartPts = blePts.length ? blePts : boardPts;
+  // 측정 중이면 그 측정(장소)의 값만, 아니면 보드 값을 측정 구간별로 끊어서
+  const boardPts = useMemo(() => { if (!board) return [];
+    if (curSess) return curSess.pts;
+    const ss = sessions.filter((x) => x.dev === board.dev), m = new Map();
+    for (const p of devPts(board.dev)) { const se = ss.find((x) => p.ts >= x.start - 60000 && p.ts <= (x.end || Infinity)); m.set(p.ts, { ...p, seg: se ? se.id : "-" }); }
+    return clean([...m.values()].sort((a, b) => a.ts - b.ts)); }, [board, curSess, sessions, groups, fixOn]);
+  const chartPts = blePts.length ? blePts : boardPts.filter((p) => p.ts >= now - range);
+  const nFix = chartPts.filter((p) => p.fix).length;
   const st = airStats(chartPts, metric);
   const f = metric === "co2" ? (v) => Math.round(v).toLocaleString() : (v) => v.toFixed(1);
   const srcLabel = bleLive ? "블루투스 · 5초마다" : board ? `보드 ${board.dev.toUpperCase()} · ${(cfgs.get(board.dev) || {}).place || board.place} · 1분 평균` : "";
@@ -2240,11 +2288,14 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
 
     <section class="glass p-4">
       <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Activity" size=${18} />실시간 그래프</h2>
-        <span class="text-[12.5px] text-mist">${blePts.length ? "블루투스 5초 값" : board ? "보드 1분 평균" : ""}</span></div>
+        <span class="text-[12.5px] text-mist">${blePts.length ? "블루투스 5초 값" : curSess ? `지금 측정: ${curSess.place} · ${hhmm(curSess.start)}부터` : board ? "보드 1분 평균 · 측정마다 끊어서" : ""}</span></div>
       <div class="flex justify-between gap-2 flex-wrap"><${MetricChips} v=${metric} set=${setMetric} />
         <div class="flex gap-1.5 flex-wrap">${[[3600000, "1시간"], [21600000, "6시간"], [86400000, "24시간"]].map(([v, l]) =>
           html`<button key=${v} type="button" class=${"chip" + (range === v ? " chip-on" : "")} aria-pressed=${range === v} onClick=${() => setRange(v)}>${l}</button>`)}</div></div>
-      <${AirChart} pts=${chartPts} metric=${metric} t0=${now - range} t1=${now} thr=${thr} />
+      <${AirChart} pts=${chartPts} metric=${metric} t0=${curSess && !blePts.length ? Math.max(now - range, curSess.start - 60000) : now - range} t1=${now} thr=${thr} />
+      <div class="flex items-center gap-2 flex-wrap mt-1.5">
+        <button type="button" class=${"chip" + (fixOn ? " chip-on" : "")} aria-pressed=${fixOn} onClick=${toggleFix}>튀는 값 보정 ${fixOn ? "켬" : "끔"}</button>
+        <span class="text-[12.5px] text-mist">${fixOn ? (nFix ? html`<span style=${{ color: "#C0620A", fontWeight: 700 }}>○ ${nFix}분</span> 튀는 값을 앞뒤 값으로 보정했어요 (숨·손 닿음 등)` : "튀는 값 없음") : "보정 없이 원래 값 그대로"}</span></div>
       <div class="grid grid-cols-3 gap-2 mt-2 text-center">${[["최저", "mn"], ["평균", "avg"], ["최고", "mx"]].map(([l, k]) =>
         html`<div key=${k} class="stat"><div class="lbl">${l}</div><b class="mono text-[17px]">${st ? f(st[k]) : "–"}</b></div>`)}</div>
     </section>
@@ -2269,7 +2320,8 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
           <${AirChart} pts=${pts} metric=${m2} t0=${openSess.start - 60000} t1=${t1 + 60000} thr=${thr} />
           <div class="grid grid-cols-3 gap-2 mt-2 text-center">${[["최저", "mn"], ["평균", "avg"], ["최고", "mx"]].map(([l, k]) =>
             html`<div key=${k} class="stat"><div class="lbl">${l}</div><b class="mono text-[17px]">${s2 ? f2(s2[k]) : "–"}</b></div>`)}</div>
-          <p class="text-[13px] text-mist mt-2">${over ? `기준(${Number(thr).toLocaleString()}ppm)을 넘은 시간: 약 ${over}분` : `기준(${Number(thr).toLocaleString()}ppm)을 넘은 적 없어요`}</p>
+          <p class="text-[13px] text-mist mt-2">${over ? `기준(${Number(thr).toLocaleString()}ppm)을 넘은 시간: 약 ${over}분` : `기준(${Number(thr).toLocaleString()}ppm)을 넘은 적 없어요`}
+            ${fixOn && pts.some((p) => p.fix) ? html`<br/><span style=${{ color: "#C0620A" }}>튀는 값 보정: ${pts.filter((p) => p.fix).map((p) => `${hhmm(p.ts)} (${Math.round(p.raw.co2).toLocaleString()}→${p.co2.toLocaleString()}ppm)`).join(", ")}</span>` : ""}</p>
           <div class="flex gap-2 mt-2 flex-wrap">
             <button type="button" class="btn-ghost" disabled=${!pts.length} onClick=${() => saveFile(`공기_${openSess.place}_${ymd(openSess.start)}_${hhmm(openSess.start).replace(":", "")}.csv`, airCsv(pts), "text/csv")}><${Icon} name="Download" size=${15} />1분 평균 CSV</button>
             ${openSess.end && html`<button type="button" class="btn-ghost ml-auto" style=${{ color: "var(--rose)" }} onClick=${() => setAsk({ sess: openSess, place: openSess.place, ts: openSess.start })}><${Icon} name="Trash2" size=${15} />이 기록 지우기</button>`}</div>
