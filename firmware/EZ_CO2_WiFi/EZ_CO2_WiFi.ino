@@ -35,7 +35,7 @@ static String wifiSsid, wifiPass;
 static Preferences prefs;
 #define WIFI_SSID wifiSsid.c_str()
 #define WIFI_PASS wifiPass.c_str()
-#define FW_VERSION "1.3.4"
+#define FW_VERSION "1.3.5"
 
 // 에코쌤즈 팀 저장소 (앱과 같은 공개 키 · 팀 비밀번호)
 const char* SB_URL   = "https://hcvaaxxwqqrbpnloyjzr.supabase.co";
@@ -75,21 +75,49 @@ static bool readWords(uint16_t* out, int n) {
   return ok;
 }
 static bool probe(uint8_t a) { Wire.beginTransmission(a); return Wire.endTransmission() == 0; }
-static bool findSensor() {
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
-  const int pairs[][2] = {{FORCE_SDA, FORCE_SCL}, {SDA, SCL}, {8, 9}, {9, 8}, {1, 2}, {2, 1}, {4, 5}, {5, 4}, {6, 7}, {7, 6}, {11, 12}, {12, 11}, {17, 18}, {18, 17}, {38, 39}, {39, 38}, {41, 42}, {42, 41}};
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  const int pairs[][2] = {{FORCE_SDA, FORCE_SCL}, {SDA, SCL}, {8, 9}, {9, 8}, {4, 5}, {5, 4}, {6, 7}, {7, 6}, {0, 1}, {1, 0}, {2, 3}, {3, 2}, {10, 3}};
-#else
-  const int pairs[][2] = {{FORCE_SDA, FORCE_SCL}, {21, 22}, {22, 21}, {18, 19}, {19, 18}, {32, 33}, {33, 32}, {25, 26}, {26, 25}, {26, 27}, {27, 26}, {4, 5}, {5, 4}, {13, 14}, {14, 13}, {23, 22}, {4, 15}, {15, 4}, {2, 4}, {12, 13}};
-#endif
-  for (auto& p : pairs) {
-    if (p[0] < 0) continue;
-    Wire.end(); Wire.begin(p[0], p[1], 100000); delay(20);
-    if (probe(0x62)) { sensor = SCD4X; addr = 0x62; } else if (probe(0x61)) { sensor = SCD30; addr = 0x61; }
-    if (sensor != NONE) { Serial.printf("[센서] %s 발견 SDA=%d SCL=%d\n", sensor == SCD4X ? "SCD4x" : "SCD30", p[0], p[1]); return true; }
+// 진짜 센서인지 확인: 없는 주소에도 '대답'하면 선이 LOW에 붙은 가짜 → 건너뜀.
+// SCD4x면 실제로 준비 상태(3바이트+CRC)를 읽어 봄.
+static bool verifyBus() {
+  if (probe(0x0F) || probe(0x7E) || probe(0x33)) return false;   // 아무 주소나 대답 = 가짜
+  if (sensor == SCD4X) {
+    cmd(0x36F6); delay(30); cmd(0x3F86); delay(500);            // 깨우고 측정 멈춤
+    uint16_t w[3];   // 측정을 멈춘 상태에서 일련번호(3워드+CRC)를 읽어 봄
+    for (int i = 0; i < 3; i++) { if (cmd(0x3682)) { delay(5); if (readWords(w, 3)) return true; } delay(50); }
+    return false;
   }
-  Serial.println("[센서] 찾지 못했어요. 케이블을 확인하거나 FORCE_SDA/SCL을 지정해 보세요.");
+  return true;
+}
+static bool tryPins(int sda, int scl) {
+  if (sda < 0 || scl < 0 || sda == scl) return false;
+  Wire.end(); Wire.begin(sda, scl, 100000); delay(20);
+  sensor = NONE;
+  if (probe(0x62)) { sensor = SCD4X; addr = 0x62; } else if (probe(0x61)) { sensor = SCD30; addr = 0x61; }
+  if (sensor == NONE) return false;
+  dbgLeft = 0;
+  if (!verifyBus()) { Serial.printf("[센서] SDA=%d SCL=%d 는 가짜 대답이라 건너뜀\n", sda, scl); sensor = NONE; return false; }
+  dbgLeft = 6;
+  Serial.printf("[센서] %s 확인 완료 SDA=%d SCL=%d\n", sensor == SCD4X ? "SCD4x" : "SCD30", sda, scl);
+  prefs.putInt("sda", sda); prefs.putInt("scl", scl);
+  return true;
+}
+static bool findSensor() {
+  // 지난번에 찾은 핀부터
+  int ps = prefs.getInt("sda", -1), pc = prefs.getInt("scl", -1);
+  if (tryPins(FORCE_SDA, FORCE_SCL) || tryPins(ps, pc)) return true;
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+  const int pins[] = {SDA, SCL, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 38, 39, 40, 41, 42, 47, 48};
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  const int pins[] = {SDA, SCL, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 21};     // 18·19는 USB라 제외
+#else
+  const int pins[] = {21, 22, 18, 19, 32, 33, 25, 26, 27, 4, 5, 13, 14, 15, 16, 17, 23, 2, 12};
+#endif
+  const int n = sizeof(pins) / sizeof(pins[0]);
+  for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+    if (pins[i] == pins[j]) continue;
+    if (tryPins(pins[i], pins[j])) return true;
+  }
+  Serial.println("[센서] 찾지 못했어요. 케이블이 SENSOR 소켓에 끝까지 꽂혔는지 확인해 주세요.");
+  sensor = NONE;
   return false;
 }
 static void startSensor() {
