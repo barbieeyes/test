@@ -636,8 +636,8 @@ function Hero({ children }) {
     <div class="hero-in">
       ${children}
       <h1 class="hero-title"><span class="y">기후행동 실천모임</span> <span class="w">에코쌤즈</span></h1>
-      <div class="hero-sub">함께 배우고, 함께 실천하는 기후행동!</div>
-      <div class="hero-motto"><span class="m-solo">따로</span><span class="m-amp">피고,</span><span class="m-team">같이</span><span class="m-amp">숨 쉬다</span><span class="m-rest">생활권과 학교의 생태·공기 데이터로 진단하고 실천하는 학교 기후행동</span></div>
+      <div class="hero-sub">각자의 관찰이 모여, 학교의 변화를 만들다</div>
+      <div class="hero-motto"><span class="m-solo">따로</span><span class="m-amp">피고,</span><span class="m-team">같이</span><span class="m-amp">숨 쉬다</span><span class="m-rest">따로 기록하고, 함께 바꾸다</span></div>
     </div>
     <svg class="hero-art" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMax slice" role="img"
       aria-label="텀블러, 지구, 장바구니 캐릭터가 언덕과 풀잎 사이에서 웃고 있는 그림" dangerouslySetInnerHTML=${{ __html: ART }}></svg>
