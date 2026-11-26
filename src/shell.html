@@ -199,7 +199,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .tab-is-today .wrap{padding-top:14px}
 
 /* 아래 탭 */
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:900;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:#fff;border-top:3px solid var(--grass);
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:900;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));background:#fff;border-top:3px solid var(--grass);
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);box-shadow:0 -6px 20px rgba(30,127,74,.12)}
 .tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;font-size:12px;font-weight:700;color:var(--mist);position:relative}
 .tab-ic{position:relative;display:grid;place-items:center;width:44px;height:30px;border-radius:999px;transition:background .2s}
@@ -209,7 +209,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .tab-archive.tab-on .tab-ic{background:#FFF3B0}
 .tab-activity.tab-on{color:#B4600E} .tab-activity.tab-on .tab-ic{background:#FDE8D4}
 .tab-air.tab-on{color:#1C6E9C} .tab-air.tab-on .tab-ic{background:#DDF0FA}
-@media (max-width:420px){.tabbar .tab{font-size:10.5px;padding-inline:0}.tabbar .tab-ic{width:36px}}
+@media (max-width:420px){.tabbar .tab{font-size:10px;padding-inline:0;letter-spacing:-.3px}.tabbar .tab-ic{width:32px}}
 /* 공기 탐사 */
 .air-conn{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--mist);background:#F3F8EC;border:1.5px solid var(--line-2)}
 .air-conn i{width:9px;height:9px;border-radius:50%;background:#B8C7BD}
@@ -525,6 +525,34 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 .theme-origin{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .theme-origin i{font-style:normal;font-size:11.5px;font-weight:800;padding:2px 9px;border-radius:999px;color:#fff}
 .theme-origin i.u{background:#C9D3CC;color:var(--grass-ink)}
+
+/* 진단·처방 */
+.dg-steps{list-style:none;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:0;margin:0}
+.dg-steps li{background:#F1F5F2;border-radius:12px;padding:8px 6px;text-align:center;display:grid;gap:2px}
+.dg-steps li span{font:700 11px "JetBrains Mono",monospace;color:#8A9A90}.dg-steps li b{font-size:13px;color:#33453B}.dg-steps li small{font-size:10.5px;color:#5F7A68;line-height:1.3}
+.dg-steps li.ok{background:#E3F1E6}.dg-steps li.ok span{color:#1F7A3E}.dg-steps li.ok b{color:#14301F}
+.dg-bar{height:10px;border-radius:99px;background:#EEF3EF;overflow:hidden;display:flex}.dg-bar i{display:block;height:100%}
+.dg-flag{font-size:11.5px;font-weight:700;color:#fff;background:#E07B12;border-radius:99px;padding:1px 8px;white-space:nowrap}
+.dg-school{background:#FFF6E6;border-radius:12px;padding:6px 8px;margin:0 -8px}
+.dg-exp{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;background:#F4F8F5;border-radius:12px;padding:8px 12px;font-size:13.5px}
+.dg-insight{background:#14301F;color:#E6F2E9;border-radius:20px;padding:16px 18px}.dg-insight ul{margin:8px 0 6px;padding-left:18px;display:grid;gap:6px;font-size:14px;line-height:1.5}.dg-insight small{font-size:11.5px;color:#A9C4B2}
+.dg-h{display:flex;align-items:center;gap:8px;font-family:Jua,sans-serif;font-weight:400;font-size:21px;color:#A8651A;margin:4px 2px -4px}
+.dg-n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#E8A33D;color:#fff;font-size:13px;margin-right:4px}
+.dg-form{display:grid;gap:10px;background:#FFF9EE;border:1.5px solid #F1D9B0;border-radius:14px;padding:12px;margin-top:10px}
+.dg-card{background:#fff;border:1.5px solid #E5ECE7;border-radius:14px;padding:10px 12px}
+.dg-st{font-size:11px;font-weight:700;color:#fff;border-radius:99px;padding:1px 8px;vertical-align:2px}
+.dg-ba{display:flex;align-items:center;gap:10px;margin:8px 0 4px}.dg-ba>div{flex:1;background:#F4F8F5;border-radius:10px;padding:6px 10px;display:grid}.dg-ba small{font-size:11.5px;color:#5F7A68}.dg-ba b{font-size:18px}
+.dg-tags{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;max-height:420px;overflow:auto;padding:2px}
+.dg-tag{background:#fff;border:2px solid #E5ECE7;border-radius:12px;padding:5px;display:grid;gap:2px;text-align:left}.dg-tag.on{border-color:#1F7A3E;box-shadow:0 0 0 3px rgba(31,122,62,.18)}
+.dg-tag img,.dg-noimg{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:grid;place-items:center;background:#EEF3EF;color:#7FB38F}.dg-tag b{font-size:12.5px;line-height:1.2}.dg-tag small{font-size:10.5px}
+/* QR 식물 카드 */
+.pp{max-width:520px;margin:0 auto;padding:16px 16px 40px;display:grid;gap:14px}
+.pp-top{display:grid;gap:2px}.pp-top b{font-size:22px;color:#14301F}
+.pp-card{background:#fff;border:3px solid var(--c);border-radius:22px;overflow:hidden}.pp-card img{width:100%;max-height:60vh;object-fit:cover;display:block}
+.pp-body{padding:14px 16px 16px}.pp-o{display:inline-block;background:var(--c);color:#fff;border-radius:99px;padding:2px 10px;font-size:12.5px;font-weight:700}
+.pp-body h1{font-size:30px;color:#14301F;margin:6px 0 0}.pp-role{font-size:15px;line-height:1.55;margin-top:10px;background:#F4F8F5;border-radius:12px;padding:10px 12px}
+.pp-dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin-top:12px;font-size:13.5px}.pp-dl dt{color:#5F7A68}.pp-dl dd{margin:0}
+.pp-go{display:block;text-align:center;background:#1F7A3E;color:#fff;border-radius:14px;padding:12px;font-weight:700;text-decoration:none}
 </style>
 </head>
 <body>
@@ -536,6 +564,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>window.__BUILD__ = "__BUILD_ID__";</script>
 <script>
 /*__MODEL__*/

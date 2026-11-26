@@ -199,7 +199,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .tab-is-today .wrap{padding-top:14px}
 
 /* 아래 탭 */
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:900;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:#fff;border-top:3px solid var(--grass);
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:900;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));background:#fff;border-top:3px solid var(--grass);
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);box-shadow:0 -6px 20px rgba(30,127,74,.12)}
 .tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;font-size:12px;font-weight:700;color:var(--mist);position:relative}
 .tab-ic{position:relative;display:grid;place-items:center;width:44px;height:30px;border-radius:999px;transition:background .2s}
@@ -209,7 +209,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .tab-archive.tab-on .tab-ic{background:#FFF3B0}
 .tab-activity.tab-on{color:#B4600E} .tab-activity.tab-on .tab-ic{background:#FDE8D4}
 .tab-air.tab-on{color:#1C6E9C} .tab-air.tab-on .tab-ic{background:#DDF0FA}
-@media (max-width:420px){.tabbar .tab{font-size:10.5px;padding-inline:0}.tabbar .tab-ic{width:36px}}
+@media (max-width:420px){.tabbar .tab{font-size:10px;padding-inline:0;letter-spacing:-.3px}.tabbar .tab-ic{width:32px}}
 /* 공기 탐사 */
 .air-conn{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--mist);background:#F3F8EC;border:1.5px solid var(--line-2)}
 .air-conn i{width:9px;height:9px;border-radius:50%;background:#B8C7BD}
@@ -525,6 +525,34 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 .theme-origin{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .theme-origin i{font-style:normal;font-size:11.5px;font-weight:800;padding:2px 9px;border-radius:999px;color:#fff}
 .theme-origin i.u{background:#C9D3CC;color:var(--grass-ink)}
+
+/* 진단·처방 */
+.dg-steps{list-style:none;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:0;margin:0}
+.dg-steps li{background:#F1F5F2;border-radius:12px;padding:8px 6px;text-align:center;display:grid;gap:2px}
+.dg-steps li span{font:700 11px "JetBrains Mono",monospace;color:#8A9A90}.dg-steps li b{font-size:13px;color:#33453B}.dg-steps li small{font-size:10.5px;color:#5F7A68;line-height:1.3}
+.dg-steps li.ok{background:#E3F1E6}.dg-steps li.ok span{color:#1F7A3E}.dg-steps li.ok b{color:#14301F}
+.dg-bar{height:10px;border-radius:99px;background:#EEF3EF;overflow:hidden;display:flex}.dg-bar i{display:block;height:100%}
+.dg-flag{font-size:11.5px;font-weight:700;color:#fff;background:#E07B12;border-radius:99px;padding:1px 8px;white-space:nowrap}
+.dg-school{background:#FFF6E6;border-radius:12px;padding:6px 8px;margin:0 -8px}
+.dg-exp{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;background:#F4F8F5;border-radius:12px;padding:8px 12px;font-size:13.5px}
+.dg-insight{background:#14301F;color:#E6F2E9;border-radius:20px;padding:16px 18px}.dg-insight ul{margin:8px 0 6px;padding-left:18px;display:grid;gap:6px;font-size:14px;line-height:1.5}.dg-insight small{font-size:11.5px;color:#A9C4B2}
+.dg-h{display:flex;align-items:center;gap:8px;font-family:Jua,sans-serif;font-weight:400;font-size:21px;color:#A8651A;margin:4px 2px -4px}
+.dg-n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#E8A33D;color:#fff;font-size:13px;margin-right:4px}
+.dg-form{display:grid;gap:10px;background:#FFF9EE;border:1.5px solid #F1D9B0;border-radius:14px;padding:12px;margin-top:10px}
+.dg-card{background:#fff;border:1.5px solid #E5ECE7;border-radius:14px;padding:10px 12px}
+.dg-st{font-size:11px;font-weight:700;color:#fff;border-radius:99px;padding:1px 8px;vertical-align:2px}
+.dg-ba{display:flex;align-items:center;gap:10px;margin:8px 0 4px}.dg-ba>div{flex:1;background:#F4F8F5;border-radius:10px;padding:6px 10px;display:grid}.dg-ba small{font-size:11.5px;color:#5F7A68}.dg-ba b{font-size:18px}
+.dg-tags{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;max-height:420px;overflow:auto;padding:2px}
+.dg-tag{background:#fff;border:2px solid #E5ECE7;border-radius:12px;padding:5px;display:grid;gap:2px;text-align:left}.dg-tag.on{border-color:#1F7A3E;box-shadow:0 0 0 3px rgba(31,122,62,.18)}
+.dg-tag img,.dg-noimg{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:grid;place-items:center;background:#EEF3EF;color:#7FB38F}.dg-tag b{font-size:12.5px;line-height:1.2}.dg-tag small{font-size:10.5px}
+/* QR 식물 카드 */
+.pp{max-width:520px;margin:0 auto;padding:16px 16px 40px;display:grid;gap:14px}
+.pp-top{display:grid;gap:2px}.pp-top b{font-size:22px;color:#14301F}
+.pp-card{background:#fff;border:3px solid var(--c);border-radius:22px;overflow:hidden}.pp-card img{width:100%;max-height:60vh;object-fit:cover;display:block}
+.pp-body{padding:14px 16px 16px}.pp-o{display:inline-block;background:var(--c);color:#fff;border-radius:99px;padding:2px 10px;font-size:12.5px;font-weight:700}
+.pp-body h1{font-size:30px;color:#14301F;margin:6px 0 0}.pp-role{font-size:15px;line-height:1.55;margin-top:10px;background:#F4F8F5;border-radius:12px;padding:10px 12px}
+.pp-dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin-top:12px;font-size:13.5px}.pp-dl dt{color:#5F7A68}.pp-dl dd{margin:0}
+.pp-go{display:block;text-align:center;background:#1F7A3E;color:#fff;border-radius:14px;padding:12px;font-weight:700;text-decoration:none}
 </style>
 </head>
 <body>
@@ -536,7 +564,8 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>window.__BUILD__ = "20261126231756";</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>window.__BUILD__ = "20261127000134";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -1171,6 +1200,7 @@ const TABS = [
   { id: "solo", label: "따로", icon: "House" },
   { id: "team", label: "같이", icon: "School" },
   { id: "air", label: "CO₂", icon: "Wind" },
+  { id: "rx", label: "진단", icon: "Stethoscope" },
   { id: "map", label: "지도", icon: "Map" },
   { id: "activity", label: "활동", icon: "Users" },
   { id: "archive", label: "아카이브", icon: "Film" },
@@ -1714,7 +1744,7 @@ function Hero({ children }) {
 /** 언제나 위에 있는 이동 막대: 뒤로 · 처음(로고) · 멤버 전환 · 설정 · 나가기 */
 function NavBar({ tab, name, canBack, onBack, onHome, onSwitch, onSettings, onLogout, hasKey }) {
   const t = TABS.find((x) => x.id === tab) || TABS[0];
-  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", air: "식물과 이산화탄소 · 실험과 장소 비교", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "따로 또 같이" }[tab];
+  const sub = { solo: "각자 우리 동네에서", team: "학교에서 다 같이", air: "식물과 이산화탄소 · 실험과 장소 비교", rx: "따로 기록하고, 함께 바꾸다 · 진단과 처방", map: "따로 또 같이, 한 장의 지도", activity: "우리가 함께한 순간", archive: "사진·영상·데이터로 남기기", today: "따로 기록하고, 함께 바꾸다" }[tab];
   return html`<div class="strip">
     <div class="strip-in">
       <button type="button" class="nav-btn" onClick=${onBack} aria-label=${canBack ? "뒤로 가기" : "처음 화면으로"} disabled=${!canBack && tab === "today"}>
@@ -1752,6 +1782,290 @@ function TabBar({ tab, setTab, counts }) {
       onClick=${() => setTab(t.id)} aria-current=${tab === t.id ? "page" : null}>
       <span class="tab-ic"><${Icon} name=${t.icon} size=${21} />${counts[t.id] ? html`<i>${counts[t.id]}</i>` : null}</span>${t.label}</button>`)}
   </nav>`;
+}
+
+/* ===== 학교 환경 진단 · 실천 처방전 =====
+ * 조사(식물 기록 + CO₂ 측정) → 진단(구역·장소별) → 처방(환기 규칙 · 녹지 처방전 · 자생식물 이름표) */
+const APP_URL = "https://ecossam-map.vercel.app";
+// 구역별로 학교에 심기 알맞은 우리 자생식물 (제안 출발점: 학교 여건에 맞게 고르기)
+const NATIVE_RX = {
+  "화단": ["구절초", "벌개미취", "비비추", "원추리", "붓꽃", "섬초롱꽃", "쑥부쟁이"],
+  "운동장 가장자리": ["수크령", "억새", "패랭이꽃", "기린초", "띠"],
+  "담장·울타리": ["담쟁이덩굴", "인동덩굴", "으아리"],
+  "텃밭·생태정원": ["참취", "곰취", "두메부추", "꽃창포", "미나리"],
+  "교정 나무": ["산딸나무", "팥배나무", "때죽나무", "화살나무", "조팝나무"],
+  "틈새": ["기린초", "돌나물", "제비꽃"],
+};
+const RX_STATUS = [["plan", "제안", "#94A3B8"], ["sent", "학교에 전달", "#E8A33D"], ["done", "실행 완료", "#2FA463"]];
+const VENT_PRESETS = ["쉬는 시간마다 창문 2곳 열기", "CO₂ 1,000ppm 알림이 오면 5분 환기", "점심시간에 앞뒤 창문 모두 열기", "수업 시작 전 3분 맞바람 환기"];
+
+/** 측정(시작~종료) 구간마다 보드 1분 평균 값을 묶기 (CO₂ 탭과 같은 방식) */
+function airSessionsOf(airs) {
+  const groups = groupAirs(airs), fix = airCfg.get().fix !== false;
+  return airs.filter((a) => a.kind === "air_sess").map((s) => {
+    const e = s.end || Date.now(), m = new Map();
+    for (const g of groups) if (g.dev === s.dev) for (const p of itemPts(g)) if (p.ts >= s.start - 60000 && p.ts <= e) m.set(p.ts, p);
+    const raw = [...m.values()].sort((a, b) => a.ts - b.ts);
+    return { ...s, pts: fix ? airClean(raw) : raw };
+  }).sort((a, b) => b.start - a.start);
+}
+/** 점 묶음의 CO₂ 요약: 평균·최고·기준 넘은 분 */
+function co2Sum(pts, thr) {
+  if (!pts.length) return null;
+  let s = 0, mx = -Infinity, over = 0; for (const p of pts) { s += p.co2; if (p.co2 > mx) mx = p.co2; if (p.co2 >= thr) over++; }
+  return { avg: s / pts.length, mx, over, n: pts.length, share: over / pts.length };
+}
+const pct = (v) => `${Math.round(v * 100)}%`;
+const dayTxt = (t) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
+
+/** 이름표 인쇄 창: QR → 공개 식물 카드(?p=기록 id) */
+function printTags(list) {
+  const qrSvg = (url) => { try { const q = window.qrcode(0, "M"); q.addData(url); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) { return `<small>${url}</small>`; } };
+  const esc = (s) => String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const cards = list.map((r) => { const o = EM.ORIGIN_INFO[r.origin];
+    return `<div class="tag" style="--c:${o ? o.color : "#5F7A68"}"><div class="t"><span class="o">${o ? esc(o.label) : "식물"}</span><b>${esc(r.koreanName)}</b><i>${esc(r.scientificName)}</i>
+      <p>${esc(plantRole(r))}</p><small>에코쌤즈 × 송그린 · 학교 식물 이름표</small></div><div class="q">${qrSvg(`${APP_URL}/?p=${encodeURIComponent(r.id)}`)}<small>찍어서 더 보기</small></div></div>`; }).join("");
+  const w = window.open("", "_blank"); if (!w) return false;
+  w.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>자생식물 이름표</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;600&display=swap" rel="stylesheet">
+<style>@page{size:A4;margin:10mm}body{margin:0;font-family:"IBM Plex Sans KR",sans-serif;word-break:keep-all}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:5mm}.tag{border:1.2mm solid var(--c);border-radius:5mm;padding:4mm;display:grid;grid-template-columns:1fr 30mm;gap:3mm;break-inside:avoid;height:58mm;box-sizing:border-box}
+.o{display:inline-block;background:var(--c);color:#fff;border-radius:99px;padding:.6mm 3mm;font-size:9pt;font-weight:600}
+b{display:block;font-family:Jua,sans-serif;font-weight:400;font-size:22pt;line-height:1.1;margin:1.5mm 0 .5mm;color:#14301F}i{font-size:9.5pt;color:#5F7A68}
+p{font-size:9.5pt;line-height:1.45;margin:2mm 0 0;color:#22302A}.t small{display:block;font-size:7.5pt;color:#8A9A90;margin-top:1.5mm}
+.q{text-align:center;align-self:center}.q svg{width:30mm;height:30mm;display:block}.q small{font-size:7.5pt;color:#5F7A68}
+.bar{padding:6mm 0;text-align:center}button{font-size:14pt;padding:3mm 8mm;border-radius:3mm;border:0;background:#1F7A3E;color:#fff}@media print{.bar{display:none}}</style></head>
+<body><div class="bar"><button onclick="print()">인쇄하기</button></div><div class="grid">${cards}</div></body></html>`);
+  w.document.close(); return true;
+}
+/** 이름표에 쓰는 '하는 일' 한 줄 */
+function plantRole(r) {
+  const tree = r.growthForm === "목본", wild = r.origin === "wild";
+  if (wild) return tree ? "우리 땅에서 저절로 자란 나무. 그늘을 만들고 새와 곤충의 집이 돼요." : "우리 땅에서 저절로 자란 풀. 흙을 붙잡고 곤충의 먹이와 쉼터가 돼요.";
+  return tree ? "사람이 심어 가꾸는 나무. 교정에 그늘을 만들고 광합성으로 탄소를 붙잡아요." : "사람이 심어 가꾸는 꽃·풀. 교정을 꾸미고 광합성으로 탄소를 붙잡아요.";
+}
+
+/** QR로 들어온 사람을 위한 식물 카드 (로그인 없이 보기) */
+function PlantPage({ id }) {
+  const [r, setR] = useState(null), [err, setErr] = useState("");
+  useEffect(() => { (async () => {
+    try { const q = await fetch(`${SB_URL}/rest/v1/eco_items?id=eq.${encodeURIComponent(id)}&select=data,deleted`, { headers: sbH(), cache: "no-store" });
+      const rows = await q.json(); if (!rows.length || rows[0].deleted) throw new Error("없음"); setR(rows[0].data); }
+    catch (e) { setErr("이 식물 기록을 찾지 못했어요."); } })(); }, []);
+  const o = r && EM.ORIGIN_INFO[r.origin];
+  return html`<div class="pp">
+    <div class="pp-top"><small style=${{ color: "#5F7A68", fontSize: "13px" }}>기후행동 실천모임 에코쌤즈 × 송그린</small><b class="font-display">학교 식물 이름표</b></div>
+    ${!r ? html`<div class="boot" style=${{ minHeight: "40vh" }}>${err || "불러오는 중…"}</div>`
+      : html`<article class="pp-card" style=${{ "--c": o ? o.color : "#5F7A68" }}>
+        ${r.photo && html`<img src=${r.photo} alt=${r.koreanName} />`}
+        <div class="pp-body">
+          ${o && html`<span class="pp-o">${o.label} · ${o.long}</span>`}
+          <h1 class="font-display">${r.koreanName || "이름 모름"}</h1>
+          <i>${r.scientificName}</i>${r.ai && r.ai.family ? html` <span class="text-mist text-[13px]">· ${r.ai.family}</span>` : null}
+          <p class="pp-role">${plantRole(r)}</p>
+          <dl class="pp-dl">
+            <dt>자라는 곳</dt><dd>${r.habitat || r.place || "학교"}</dd>
+            <dt>생김새</dt><dd>${r.growthForm || "-"} · 광합성 ${r.psType || "-"}</dd>
+            ${r.ai && r.ai.note ? html`<dt>알아본 근거</dt><dd>${r.ai.note}</dd>` : null}
+            <dt>기록</dt><dd>${fmtDate(r.ts)} · ${r.researcher}</dd>
+          </dl>
+          <p class="text-[12px] text-mist mt-3">AI로 이름을 찾은 탐사 기록이에요. 틀린 곳이 보이면 선생님께 알려 주세요.</p>
+        </div></article>`}
+    <a class="pp-go" href=${APP_URL}>에코쌤즈 광합성 지도 열기</a>
+  </div>`;
+}
+
+function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
+  const thr = airCfg.get().thr || 1000;
+  const team = useMemo(() => records.filter((r) => r.mode === "team" && !r.sample), [records]);
+  const allReal = useMemo(() => records.filter((r) => !r.sample), [records]);
+  const sessions = useMemo(() => airSessionsOf(airs), [airs]);
+  const placeSess = sessions.filter((s) => s.type !== "exp");
+  const exps = sessions.filter((s) => s.type === "exp");
+  // 녹지 진단: 구역별
+  const zones = useMemo(() => TEAM_HABITATS.map((h) => {
+    const rs = team.filter((r) => r.habitat === h), wild = rs.filter((r) => r.origin === "wild").length, sp = new Set(rs.map((r) => r.koreanName)).size;
+    const why = rs.length <= 3 ? "기록이 적어요 (더 조사하거나 녹지 보완)" : wild === 0 ? "자생식물이 하나도 없어요" : wild / rs.length < 0.2 ? `자생식물이 ${pct(wild / rs.length)}뿐이에요` : "";
+    return { h, n: rs.length, wild, sp, why };
+  }), [team]);
+  const noZone = team.filter((r) => !r.habitat).length;
+  const tWild = team.filter((r) => r.origin === "wild").length, tPl = team.filter((r) => r.origin === "planted").length;
+  const spCount = useMemo(() => { const m = new Map(); team.forEach((r) => m.set(r.koreanName, (m.get(r.koreanName) || 0) + 1)); return [...m.entries()].sort((a, b) => b[1] - a[1]); }, [team]);
+  const nSp = spCount.length;
+  // 공기 진단: 장소별
+  const places = useMemo(() => { const m = new Map();
+    for (const s of placeSess) { const k = (s.place || "").trim(); if (!k) continue; const o = m.get(k) || { place: k, pts: [], n: 0 }; o.pts.push(...s.pts); o.n++; m.set(k, o); }
+    return [...m.values()].map((o) => ({ ...o, st: co2Sum(o.pts, thr) })).filter((o) => o.st).sort((a, b) => b.st.avg - a.st.avg); }, [placeSess, thr]);
+  const ventNeed = places.filter((p) => p.st.avg >= thr || p.st.share >= 0.2);
+  const expBy = (c) => { const rs = exps.filter((x) => x.cond === c).map((x) => co2Slope(x.pts)).filter(Boolean); return rs.length ? rs.reduce((a, b) => a + b.rate, 0) / rs.length : null; };
+  const eL = expBy("light"), eD = expBy("dark"), eE = expBy("empty");
+  // 처방
+  const vents = rxs.filter((x) => x.type === "vent").sort((a, b) => b.ts - a.ts);
+  const greens = rxs.filter((x) => x.type === "green").sort((a, b) => b.ts - a.ts);
+  const tagsDone = rxs.filter((x) => x.type === "tag");
+  const taggedIds = new Set(tagsDone.flatMap((x) => x.ids || []));
+  // 따로: 동네(탐구 지역)별 비교 — 도심에서 산까지 이어지는 서울 생활권 기준선
+  const hoods = useMemo(() => { const m = new Map();
+    for (const r of allReal) { if (r.mode !== "solo") continue; const t = recTheme(r); if (!t) continue; const k = r.researcher + "/" + t.key;
+      const o = m.get(k) || { k, who: r.researcher, place: t.place, tag: t.tag, rs: [] }; o.rs.push(r); m.set(k, o); }
+    return [...m.values()].map((o) => { const wild = o.rs.filter((r) => r.origin === "wild"), sp = new Set(o.rs.map((r) => r.koreanName)).size;
+      return { ...o, n: o.rs.length, sp, wild: wild.length, share: wild.length / o.rs.length, natives: [...new Set(wild.map((r) => r.koreanName).filter(Boolean))] }; })
+      .filter((o) => o.n >= 3).sort((a, b) => a.share - b.share); }, [allReal]);
+  const schoolShare = team.length ? tWild / team.length : null;
+  const nearest = schoolShare == null || !hoods.length ? null : hoods.reduce((a, b) => (Math.abs(b.share - schoolShare) < Math.abs(a.share - schoolShare) ? b : a));
+  // 동네에서 직접 찾은 자생식물 → 학교 녹지 처방의 재료 (어디서 찾았는지 함께)
+  const nativesSeen = useMemo(() => { const m = new Map();
+    for (const r of allReal) { if (r.origin !== "wild" || !r.koreanName) continue; const t = recTheme(r); const where = t ? t.place : "학교";
+      const o = m.get(r.koreanName) || new Set(); o.add(where); m.set(r.koreanName, o); }
+    return [...m.entries()].map(([name, w]) => ({ name, where: [...w] })).sort((a, b) => b.where.length - a.where.length).slice(0, 40); }, [allReal]);
+  const flagged = zones.filter((z) => z.why);
+  // 통합 해석 문장
+  const insights = [];
+  if (team.length) insights.push(`교정 식물 ${team.length}건·${nSp}종 중 자생은 ${tWild}건(${pct(tWild / Math.max(1, team.length))})이에요. ${tPl > tWild ? "교정은 사람이 심은 조경 식물 위주예요." : "자생식물이 꽤 자리 잡고 있어요."}`);
+  if (spCount.length && spCount[0][1] >= 3) insights.push(`가장 많이 기록된 식물은 ${spCount.slice(0, 3).map(([k, v]) => `${k}(${v})`).join(", ")}예요. 같은 조경수가 반복되면 생물다양성이 낮아져요.`);
+  if (nearest && hoods.length > 1) insights.push(`우리 학교 자생 비율(${pct(schoolShare)})은 따로 조사한 동네 중 '${nearest.place}'(${nearest.tag}, ${pct(nearest.share)})와 가장 비슷해요. 자생 비율은 ${hoods[0].place} ${pct(hoods[0].share)}에서 ${hoods[hoods.length - 1].place} ${pct(hoods[hoods.length - 1].share)}까지 벌어져요.`);
+  if (flagged.length) insights.push(`녹지 보완 후보 구역: ${flagged.map((z) => z.h).join(", ")}.`);
+  if (places.length) insights.push(`CO₂를 잰 ${places.length}곳 중 ${ventNeed.length}곳이 기준(${thr.toLocaleString()}ppm)을 자주 넘어요${ventNeed.length ? `: ${ventNeed.map((p) => p.place).join(", ")}` : ""}. ${ventNeed.length ? "사람이 모인 실내는 화분보다 환기가 먼저예요." : ""}`);
+  if (eL != null || eD != null) insights.push(`밀폐 실험: 빛 있음 ${eL != null ? `${eL.toFixed(1)}ppm/분` : "-"}, 어둡게 ${eD != null ? `${eD > 0 ? "+" : ""}${eD.toFixed(1)}ppm/분` : "-"}${eE != null ? `, 빈 용기 ${eE.toFixed(1)}ppm/분` : ""}. ${eL != null && eL < 0 && eD != null && eD > 0 ? "빛에서 줄고 어둠에서 늘어 광합성과 호흡이 확인됐어요." : ""}`);
+  // 폼 상태
+  const [vf, setVf] = useState(null), [gf, setGf] = useState(null), [pick, setPick] = useState(() => new Set());
+  const saveVent = async () => { if (!vf.place.trim() || !vf.rule.trim()) { say("장소와 규칙을 적어 주세요"); return; }
+    await onSaveRx({ id: "rx_" + uid(), kind: "rx", type: "vent", place: vf.place.trim(), rule: vf.rule.trim(), start: vf.start || Date.now(), ts: Date.now(), researcher: me, status: "done" }); setVf(null); say("환기 규칙을 만들었어요"); };
+  const saveGreen = async () => { if (!gf.zone || !gf.plants.length) { say("구역과 심을 식물을 골라 주세요"); return; }
+    const z = zones.find((x) => x.h === gf.zone);
+    await onSaveRx({ id: "rx_" + uid(), kind: "rx", type: "green", zone: gf.zone, plants: gf.plants, memo: gf.memo.trim(), basis: z ? `기록 ${z.n}건 · 자생 ${z.wild}건${z.why ? " · " + z.why : ""}` : "", status: "plan", ts: Date.now(), researcher: me }); setGf(null); say("녹지 처방을 추가했어요"); };
+  const tagList = useMemo(() => { const m = new Map(); for (const r of team) { const k = r.koreanName; if (!k) continue; const o = m.get(k); if (!o || (r.photo && !o.photo)) m.set(k, r); }
+    return [...m.values()].sort((a, b) => (b.origin === "wild") - (a.origin === "wild") || a.koreanName.localeCompare(b.koreanName, "ko")); }, [team]);
+  const doPrint = async () => { const list = tagList.filter((r) => pick.has(r.id)); if (!list.length) { say("이름표로 만들 식물을 골라 주세요"); return; }
+    if (!printTags(list)) { say("새 창이 막혔어요. 팝업을 허용해 주세요"); return; }
+    await onSaveRx({ id: "rx_" + uid(), kind: "rx", type: "tag", ids: list.map((r) => r.id), names: list.map((r) => r.koreanName), ts: Date.now(), researcher: me, status: "done" }); setPick(new Set()); };
+  const steps = [
+    ["01", "문제 발견", "막연한 환경 활동", true],
+    ["02", "데이터 수집", `식물 ${allReal.length}건 · CO₂ ${sessions.length}회`, allReal.length > 0],
+    ["03", "진단", `보완 ${flagged.length} · 환기 ${ventNeed.length}`, team.length > 0 || places.length > 0],
+    ["04", "실천", `처방 ${vents.length + greens.length} · 이름표 ${taggedIds.size}`, vents.length + greens.length + tagsDone.length > 0],
+    ["05", "공유", "지도 · 전시 · 보고서", false],
+  ];
+  return html`<div class="grid gap-4">
+    <section class="glass p-4">
+      <b class="font-display text-[17px]" style=${{ color: "var(--grass-deep)" }}>따로 기록하고, 함께 바꾸다</b>
+      <p class="text-[13px] text-mist mt-1">각자 사는 동네에서 따로 모은 기록으로 서울 생활권을 견주고, 그 눈으로 우리 학교를 진단해 함께 바꿔요.</p>
+      <ol class="dg-steps mt-3">${steps.map(([n, t, s, ok]) => html`<li key=${n} class=${ok ? "ok" : ""}><span>${n}</span><b>${t}</b><small>${s}</small></li>`)}</ol>
+    </section>
+
+    <section class="glass p-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="House" size=${18} />따로: 서울 생활권 비교</h2>
+        <span class="text-[12.5px] text-mist">자생식물 비율 · 도심 → 산</span></div>
+      <p class="text-[12.5px] text-mist mb-2">네 선생님이 각자 사는 동네에서 모은 기록이에요. 학교를 어디에 견줄지 정하는 기준선이 되고, 동네에서 찾은 자생식물은 학교 녹지 처방의 재료가 돼요.</p>
+      ${!hoods.length ? html`<p class="text-[14px] text-mist py-3 text-center">'따로' 기록이 3건 이상인 동네가 생기면 여기서 비교돼요.</p>` : html`
+      <div class="grid gap-2.5">${[...hoods.map((h) => ({ ...h, me: false })), ...(schoolShare != null ? [{ k: "school", place: "우리 학교", tag: "같이 · 교정", who: "송그린·에코쌤즈", n: team.length, sp: nSp, wild: tWild, share: schoolShare, natives: [], me: true }] : [])]
+        .sort((a, b) => a.share - b.share).map((h) => html`<div key=${h.k} class=${"grid gap-1" + (h.me ? " dg-school" : "")}>
+          <div class="flex items-baseline gap-2"><${Dot} color=${h.me ? "#E8A33D" : rColor(h.who)} size=${9} /><b class="text-[14.5px] truncate">${h.place}</b><small class="text-mist truncate flex-1 min-w-0">${h.tag}</small>
+            <b class="mono">${pct(h.share)}</b><small class="text-mist">자생</small></div>
+          <div class="dg-bar"><i style=${{ width: (h.share * 100) + "%", background: h.me ? "#E8A33D" : EM.ORIGIN_INFO.wild.color }}></i></div>
+          <small class="text-mist text-[12px]">${h.n}건 · ${h.sp}종${h.natives.length ? " · 자생: " + h.natives.slice(0, 5).join(", ") : ""}</small></div>`)}</div>
+      <p class="text-[12px] text-mist mt-2">같은 방법(사진 → AI 동정 → 식재/자생 구분)으로 모아서 동네끼리, 그리고 학교와 견줄 수 있어요. 동네별 조사일이 달라 '경향'으로 봐요.</p>`}
+    </section>
+
+    <section class="glass p-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Sprout" size=${18} />같이: 학교 녹지 진단</h2>
+        <span class="text-[12.5px] text-mist">'같이' 기록 · 교정 구역별</span></div>
+      ${!team.length ? html`<p class="text-[14px] text-mist py-4 text-center">아직 학교 식물 기록이 없어요. '같이' 탭에서 교정 식물을 기록해 주세요.</p>` : html`
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="stat"><div class="lbl">기록 · 종</div><b class="mono text-[18px]">${team.length}</b><small class="text-mist"> · ${nSp}종</small></div>
+        <div class="stat"><div class="lbl">식재</div><b class="mono text-[18px]" style=${{ color: EM.ORIGIN_INFO.planted.color }}>${pct(tPl / team.length)}</b></div>
+        <div class="stat"><div class="lbl">자생</div><b class="mono text-[18px]" style=${{ color: EM.ORIGIN_INFO.wild.color }}>${pct(tWild / team.length)}</b></div></div>
+      <div class="grid gap-2.5 mt-3">${zones.map((z) => html`<div key=${z.h} class="grid gap-1">
+        <div class="flex items-baseline gap-2"><b class="text-[14.5px] flex-1 min-w-0 truncate">${z.h}</b>
+          ${z.why ? html`<span class="dg-flag">보완 후보</span>` : null}<small class="text-mist">${z.n}건 · ${z.sp}종 · 자생 ${z.wild}</small></div>
+        <div class="dg-bar"><i style=${{ width: (z.n ? (z.n - z.wild) / Math.max(...zones.map((x) => x.n), 1) * 100 : 0) + "%", background: EM.ORIGIN_INFO.planted.color }}></i><i style=${{ width: (z.wild / Math.max(...zones.map((x) => x.n), 1) * 100) + "%", background: EM.ORIGIN_INFO.wild.color }}></i></div>
+        ${z.why ? html`<small class="text-[12px]" style=${{ color: "#B8651A" }}>${z.why}</small>` : null}</div>`)}</div>
+      ${noZone ? html`<p class="text-[12px] text-mist mt-2">구역을 안 고른 기록 ${noZone}건은 빠져 있어요. 기록 상세의 '고치기'에서 구역을 정하면 진단이 더 정확해져요.</p>` : null}
+      <p class="text-[12px] text-mist mt-2">기록 수는 탐사한 만큼만 보여요. 기록이 적은 구역은 '식물이 적다'일 수도, '더 조사가 필요하다'일 수도 있어요.</p>`}
+    </section>
+
+    <section class="glass p-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Wind" size=${18} />같이: 학교 공기 진단</h2>
+        <span class="text-[12.5px] text-mist">CO₂ 탭 장소 측정 · 기준 ${thr.toLocaleString()}ppm</span></div>
+      ${!places.length ? html`<p class="text-[14px] text-mist py-4 text-center">아직 장소 측정이 없어요. CO₂ 탭에서 교실·복도·운동장을 재 주세요.</p>`
+        : html`<div class="grid gap-2.5">${places.map((p) => html`<div key=${p.place} class="grid gap-1">
+          <div class="flex items-baseline gap-2"><b class="text-[14.5px] flex-1 min-w-0 truncate">${p.place}</b>
+            ${ventNeed.includes(p) ? html`<span class="dg-flag">환기 필요</span>` : null}
+            <b class="mono">${Math.round(p.st.avg).toLocaleString()}</b><small class="text-mist">ppm 평균</small></div>
+          <div class="dg-bar"><i style=${{ width: Math.min(100, p.st.avg / (thr * 2) * 100) + "%", background: airLv(p.st.avg)[2] }}></i></div>
+          <small class="text-mist text-[12px]">최고 ${Math.round(p.st.mx).toLocaleString()} · 기준 넘은 시간 ${p.st.over}분 (${pct(p.st.share)}) · ${p.n}번 측정</small></div>`)}</div>`}
+      ${(eL != null || eD != null) && html`<div class="dg-exp mt-3"><b>밀폐 실험</b>
+        <span>빛 있음 <b class="mono" style=${{ color: "#2FA463" }}>${eL != null ? eL.toFixed(1) : "-"}</b></span>
+        <span>어둡게 <b class="mono" style=${{ color: "#C0620A" }}>${eD != null ? (eD > 0 ? "+" : "") + eD.toFixed(1) : "-"}</b></span>
+        ${eE != null ? html`<span>빈 용기 <b class="mono">${eE.toFixed(1)}</b></span>` : null}<small>ppm/분</small></div>`}
+      <p class="text-[12px] text-mist mt-2">ppm은 그 공간 공기 속 CO₂ '농도'예요. 학교의 탄소 '배출량'이 아니라 공기환경 지표로 봐요.</p>
+    </section>
+
+    ${insights.length > 0 && html`<section class="dg-insight"><b class="font-display text-[17px]">통합 해석</b>
+      <ul>${insights.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul>
+      <small>식물 흡수량은 종류·날씨로 계산한 추정값이에요. 기록 건수만으로 학교 전체 흡수량을 말하지 않아요.</small></section>`}
+
+    <h2 class="dg-h"><${Icon} name="ClipboardCheck" size=${20} />실천 처방전</h2>
+
+    <section class="glass p-4 dg-rx">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-2"><h3 class="pill-h"><span class="dg-n">1</span>교실 환기 규칙</h3>
+        ${!vf && html`<button type="button" class="mini-btn" onClick=${() => setVf({ place: (ventNeed[0] || places[0] || {}).place || "", rule: VENT_PRESETS[0], start: Date.now() })}><${Icon} name="Plus" size=${13} />규칙 만들기</button>`}</div>
+      <p class="text-[12.5px] text-mist">규칙을 정한 날 전후로 같은 장소의 CO₂를 비교해요. 감으로 하던 환기를 데이터로 바꿔요.</p>
+      ${vf && html`<div class="dg-form">
+        <label class="fld"><span class="lbl">장소</span><input type="text" maxlength="30" value=${vf.place} list="dgPlaces" onInput=${(e) => setVf({ ...vf, place: e.target.value })} placeholder="예: 3학년 1반 교실" />
+          <datalist id="dgPlaces">${places.map((p) => html`<option key=${p.place} value=${p.place} />`)}</datalist></label>
+        <div class="flex gap-1.5 flex-wrap">${VENT_PRESETS.map((t) => html`<${Chip} key=${t} on=${vf.rule === t} onClick=${() => setVf({ ...vf, rule: t })}>${t}</${Chip}>`)}</div>
+        <label class="fld"><span class="lbl">우리 반 규칙</span><input type="text" maxlength="80" value=${vf.rule} onInput=${(e) => setVf({ ...vf, rule: e.target.value })} /></label>
+        <label class="fld"><span class="lbl">시작한 날</span><input type="date" value=${new Date(vf.start - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)} onInput=${(e) => { const t = new Date(e.target.value + "T00:00").getTime(); if (t) setVf({ ...vf, start: t }); }} /></label>
+        <div class="flex gap-2"><button type="button" class="btn-save flex-1" onClick=${saveVent}>저장</button><button type="button" class="btn-ghost" onClick=${() => setVf(null)}>취소</button></div></div>`}
+      <div class="grid gap-2 mt-3">${vents.map((v) => { const ss = placeSess.filter((s) => (s.place || "").trim() === v.place);
+        const before = co2Sum(ss.filter((s) => s.start < v.start).flatMap((s) => s.pts), thr), after = co2Sum(ss.filter((s) => s.start >= v.start).flatMap((s) => s.pts), thr);
+        return html`<div key=${v.id} class="dg-card">
+          <div class="flex items-start gap-2"><div class="flex-1 min-w-0"><b>${v.place}</b><p class="text-[13.5px]">${v.rule}</p><small class="text-mist">${dayTxt(v.start)}부터 · ${v.researcher}</small></div>
+            <button type="button" class="icon-btn" aria-label="지우기" onClick=${() => onDelRx(v)}><${Icon} name="Trash2" size=${15} /></button></div>
+          <div class="dg-ba"><div><small>규칙 전</small>${before ? html`<b class="mono">${pct(before.share)}</b><small>기준 초과 · 평균 ${Math.round(before.avg)}</small>` : html`<small class="text-mist">측정 없음</small>`}</div>
+            <${Icon} name="ArrowRight" size=${18} />
+            <div><small>규칙 후</small>${after ? html`<b class="mono" style=${{ color: before && after.share < before.share ? "#2FA463" : "inherit" }}>${pct(after.share)}</b><small>기준 초과 · 평균 ${Math.round(after.avg)}</small>` : html`<small class="text-mist">규칙 후에 같은 장소를 재 주세요</small>`}</div></div>
+          ${before && after ? html`<small class="text-[12.5px]" style=${{ color: after.share < before.share ? "#2FA463" : "#C0620A" }}>${after.share < before.share ? `기준 넘는 시간이 ${pct(before.share)} → ${pct(after.share)}로 줄었어요` : "아직 줄지 않았어요. 규칙을 다시 살펴봐요"}</small>` : null}</div>`; })}</div>
+    </section>
+
+    <section class="glass p-4 dg-rx">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-2"><h3 class="pill-h"><span class="dg-n">2</span>교정 녹지 처방전</h3>
+        ${!gf && html`<button type="button" class="mini-btn" onClick=${() => setGf({ zone: (flagged[0] || zones[0] || {}).h || TEAM_HABITATS[0], plants: [], memo: "" })}><${Icon} name="Plus" size=${13} />처방 추가</button>`}</div>
+      <p class="text-[12.5px] text-mist">진단에서 보완 후보로 나온 구역에, 그 자리에 맞는 우리 자생식물을 심자고 제안해요.</p>
+      ${gf && html`<div class="dg-form">
+        <div class="flex gap-1.5 flex-wrap">${TEAM_HABITATS.map((h) => { const z = zones.find((x) => x.h === h); return html`<${Chip} key=${h} on=${gf.zone === h} onClick=${() => setGf({ ...gf, zone: h, plants: [] })}>${h}${z && z.why ? " ⚑" : ""}</${Chip}>`; })}</div>
+        ${(() => { const z = zones.find((x) => x.h === gf.zone); return z ? html`<small class="text-[12.5px]" style=${{ color: "#B8651A" }}>근거: 기록 ${z.n}건 · 자생 ${z.wild}건${z.why ? " · " + z.why : ""}</small>` : null; })()}
+        <div class="lbl">이 구역에 맞는 자생식물</div>
+        <div class="flex gap-1.5 flex-wrap">${(NATIVE_RX[gf.zone] || []).map((p) => html`<${Chip} key=${p} on=${gf.plants.includes(p)} color="#2E8B57" onClick=${() => setGf({ ...gf, plants: gf.plants.includes(p) ? gf.plants.filter((x) => x !== p) : [...gf.plants, p] })}>${p}</${Chip}>`)}</div>
+        ${nativesSeen.length > 0 && html`<div class="lbl">우리가 동네·학교에서 직접 찾은 자생식물 (따로 → 같이)</div>
+          <div class="flex gap-1.5 flex-wrap">${nativesSeen.map(({ name: p, where }) => html`<${Chip} key=${p} on=${gf.plants.includes(p)} color="#2E8B57" onClick=${() => setGf({ ...gf, plants: gf.plants.includes(p) ? gf.plants.filter((x) => x !== p) : [...gf.plants, p] })}>${p}<small class="opacity-70"> · ${where.join("·")}</small></${Chip}>`)}</div>`}
+        <label class="fld"><span class="lbl">메모 (어디에, 어떻게)</span><input type="text" maxlength="100" value=${gf.memo} onInput=${(e) => setGf({ ...gf, memo: e.target.value })} placeholder="예: 본관 앞 화단 가장자리 2m, 봄에 모종으로" /></label>
+        <div class="flex gap-2"><button type="button" class="btn-save flex-1" onClick=${saveGreen}>저장</button><button type="button" class="btn-ghost" onClick=${() => setGf(null)}>취소</button></div></div>`}
+      <div class="grid gap-2 mt-3">${greens.map((g) => { const st = RX_STATUS.find((s) => s[0] === g.status) || RX_STATUS[0];
+        return html`<div key=${g.id} class="dg-card">
+          <div class="flex items-start gap-2"><div class="flex-1 min-w-0"><b>${g.zone}</b> <span class="dg-st" style=${{ background: st[2] }}>${st[1]}</span>
+            <p class="text-[14px] mt-1">${g.plants.join(" · ")}</p>${g.memo ? html`<p class="text-[13px] text-mist">${g.memo}</p>` : null}
+            <small class="text-mist">${g.basis ? g.basis + " · " : ""}${dayTxt(g.ts)} · ${g.researcher}</small></div>
+            <button type="button" class="icon-btn" aria-label="지우기" onClick=${() => onDelRx(g)}><${Icon} name="Trash2" size=${15} /></button></div>
+          <div class="flex gap-1.5 mt-2">${RX_STATUS.map(([k, l]) => html`<${Chip} key=${k} on=${g.status === k} onClick=${() => onSaveRx({ ...g, status: k, ts: g.ts })}>${l}</${Chip}>`)}</div></div>`; })}</div>
+    </section>
+
+    <section class="glass p-4 dg-rx">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-2"><h3 class="pill-h"><span class="dg-n">3</span>자생식물 이름표</h3>
+        <span class="text-[12.5px] text-mist">만든 이름표 ${taggedIds.size}종</span></div>
+      <p class="text-[12.5px] text-mist">교정 식물을 골라 QR 이름표를 인쇄해요. QR을 찍으면 로그인 없이 그 식물의 사진과 정보가 열려요.</p>
+      ${!tagList.length ? html`<p class="text-[14px] text-mist py-3 text-center">학교 식물 기록이 생기면 여기서 고를 수 있어요.</p>` : html`
+      <div class="flex gap-1.5 flex-wrap mt-2">
+        <button type="button" class="mini-btn" onClick=${() => setPick(new Set(tagList.filter((r) => r.origin === "wild").map((r) => r.id)))}>자생식물 모두</button>
+        <button type="button" class="mini-btn" onClick=${() => setPick(new Set())}>선택 해제</button></div>
+      <div class="dg-tags mt-2">${tagList.map((r) => { const on = pick.has(r.id), o = EM.ORIGIN_INFO[r.origin];
+        return html`<button key=${r.id} type="button" class=${"dg-tag" + (on ? " on" : "")} onClick=${() => { const s = new Set(pick); on ? s.delete(r.id) : s.add(r.id); setPick(s); }}>
+          ${r.photo ? html`<img src=${r.photo} alt="" loading="lazy" />` : html`<span class="dg-noimg"><${Icon} name="Leaf" size=${18} /></span>`}
+          <b>${r.koreanName}</b><small style=${{ color: o ? o.color : "#5F7A68" }}>${o ? o.label : "모름"}${taggedIds.has(r.id) ? " · 만듦" : ""}</small></button>`; })}</div>
+      <button type="button" class="btn-save w-full mt-3" onClick=${doPrint}><${Icon} name="Printer" size=${16} />이름표 ${pick.size ? pick.size + "장 " : ""}인쇄하기</button>`}
+    </section>
+  </div>`;
 }
 
 /* ---------- 입장 (연구원별 로그인) ---------- */
@@ -3597,7 +3911,9 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, sa
   </div>`;
 }
 
+const PUB_ID = (() => { try { return new URLSearchParams(location.search).get("p"); } catch (e) { return null; } })();
 function App() {
+  if (PUB_ID) return html`<${PlantPage} id=${PUB_ID} />`; // QR 이름표로 들어온 사람: 로그인 없이 식물 카드만 (페이지마다 고정이라 훅 순서가 바뀌지 않아요)
   const saved = store.get(LS_SET, {});
   const [settings, setSettings] = useState({ apiKey: saved.apiKey || "", model: saved.model || DEFAULT_MODEL });
   const [auth, setAuth] = useState(() => { store.del("ecossam.v1.auth"); const a = store.get(LS_AUTH, null); return a && (RESEARCHERS.some((r) => r.name === a.name) || a.name === STUDENT.name) ? a : null; });
@@ -3608,6 +3924,7 @@ function App() {
   const [actEdit, setActEdit] = useState(null);
   const [meetings, setMeetings] = useState([]);
   const [airs, setAirs] = useState([]);
+  const [rxs, setRxs] = useState([]);
   const airRef = useRef(airs); airRef.current = airs;
   const [meetEdit, setMeetEdit] = useState(null);
   const [teamSub, setTeamSub] = useState("plants");
@@ -3656,7 +3973,7 @@ function App() {
     if (old && Array.isArray(old)) { for (const r of old) { if (!r.sample) await db.put({ mode: "team", ...r }); } store.del(LS_OLD); all = await db.all(); }
     if (!all.length && !store.get("ecossam.v2.seeded", false)) { for (const r of sampleRecords()) await db.put(r); store.set("ecossam.v2.seeded", true); all = await db.all(); }
     all.sort((a, b) => upKey(b) - upKey(a));
-    setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting")); setAirs(all.filter((r) => r.kind === "air" || r.kind === "air_cfg" || r.kind === "air_sess")); setLoaded(true);
+    setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting")); setAirs(all.filter((r) => r.kind === "air" || r.kind === "air_cfg" || r.kind === "air_sess")); setRxs(all.filter((r) => r.kind === "rx")); setLoaded(true);
     syncNow();
   })(); }, []);
 
@@ -3668,6 +3985,7 @@ function App() {
     if (!all.filter((r) => !r.sample).length && recRef.current.some((r) => !r.sample)) return; // 저장소가 잠깐 비어 보여도 화면의 기록은 지키기
     setRecords(all.filter((r) => !r.kind)); setActs(all.filter((r) => r.kind === "activity")); setMeetings(all.filter((r) => r.kind === "meeting"));
     // 이 휴대폰이 지금 쓰는 공기 기록은 메모리의 최신본을 우선(동기화 중 덮어쓰기 방지)
+    setRxs(all.filter((r) => r.kind === "rx"));
     setAirs(all.filter((r) => r.kind === "air" || r.kind === "air_cfg" || r.kind === "air_sess").map((a) => { const m = AIR.mine.get(a.id); return m && (m.points || []).length > (a.points || []).length ? m : a; }));
   };
   const syncNow = async () => {
@@ -3727,6 +4045,8 @@ function App() {
       if (n) { await reloadFromDb(); say(`사진 ${n}장에 식재·자생 테두리를 새로 입혔어요`); setTimeout(syncNow, 300); }
     } finally { migrating.current = false; }
   };
+  const putRx = async (it) => { setRxs((xs) => [it, ...xs.filter((x) => x.id !== it.id)]); await putLocal(it); setTimeout(syncNow, 200); };
+  const delRx = async (it) => { await db.del(it.id); delCloud(it.id, "rx"); setTimeout(syncNow, 200); setRxs((xs) => xs.filter((x) => x.id !== it.id)); say("처방을 지웠어요"); };
   const delCloud = (id, kind) => { const q = store.get(LS_DELQ, []); q.push({ id, kind }); store.set(LS_DELQ, q); };
   // 공기 탐사: 1분 평균 기록을 저장하고 팀 저장소로 올리기
   const airSyncT = useRef(null);
@@ -3862,6 +4182,7 @@ function App() {
         : tab === "team" ? html`<${TeamView} records=${records} meetings=${meetings} sub=${teamSub} setSub=${setTeamSub} onAdd=${addRecord} onOpen=${setOpenId}
             onAddMeeting=${() => setMeetEdit({ isNew: true })} onOpenMeeting=${(m) => setMeetEdit(m)} onExportMinutes=${exportMinutes} />`
         : tab === "air" ? html`<${AirView} me=${me} airs=${airs} onDelete=${deleteAir} onSaveCfg=${saveAirCfg} onStart=${startAirSess} onStop=${stopAirSess} onDelSess=${delAirSess} say=${say} />`
+        : tab === "rx" ? html`<${DiagView} me=${me} records=${records} airs=${airs} rxs=${rxs} onSaveRx=${putRx} onDelRx=${delRx} onOpen=${setOpenId} say=${say} />`
         : tab === "activity" ? html`<${ActivityView} me=${me} acts=${acts} onAdd=${() => setActEdit({ isNew: true })} onOpen=${(a) => setActEdit(a)} />`
         : tab === "map" ? html`<${MapView} records=${records} gps=${gps} follow=${follow} setFollow=${setFollow} onMapPick=${onMapPick} onOpen=${setOpenId} openId=${openId} />`
         : html`<${ArchiveView} records=${records} acts=${acts} meetings=${meetings} onOpen=${setOpenId} onOpenAct=${(a) => setActEdit(a)} onOpenMeeting=${(m) => setMeetEdit(m)} onClearSamples=${clearSamples} onImport=${importJSON} sync=${sync} onSync=${syncNow} />`}
