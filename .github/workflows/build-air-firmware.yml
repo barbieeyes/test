@@ -18,9 +18,10 @@ jobs:
       - name: 빌드 (ESP32 / S3 / C3)
         run: |
           set -e
-          for t in esp32 esp32s3 esp32c3; do
-            arduino-cli compile --fqbn esp32:esp32:$t --output-dir out/$t firmware/EZ_CO2_WiFi
-          done
+          arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir out/esp32 firmware/EZ_CO2_WiFi
+          # S3·C3는 내장 USB(USB JTAG/serial)로 시리얼을 주고받도록
+          arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc --output-dir out/esp32s3 firmware/EZ_CO2_WiFi
+          arduino-cli compile --fqbn esp32:esp32:esp32c3:CDCOnBoot=cdc --output-dir out/esp32c3 firmware/EZ_CO2_WiFi
           ls -la out/*
       - name: 합친 바이너리를 브랜치에 저장
         run: |
