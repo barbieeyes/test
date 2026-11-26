@@ -1,8 +1,0 @@
-{
-  "framework": null,
-  "installCommand": "",
-  "buildCommand": "",
-  "outputDirectory": ".",
-  "cleanUrls": true,
-  "functions": { "api/ai.js": { "maxDuration": 120 } }
-}
