@@ -545,6 +545,9 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 .dg-tags{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;max-height:420px;overflow:auto;padding:2px}
 .dg-tag{background:#fff;border:2px solid #E5ECE7;border-radius:12px;padding:5px;display:grid;gap:2px;text-align:left}.dg-tag.on{border-color:#1F7A3E;box-shadow:0 0 0 3px rgba(31,122,62,.18)}
 .dg-tag img,.dg-noimg{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:grid;place-items:center;background:#EEF3EF;color:#7FB38F}.dg-tag b{font-size:12.5px;line-height:1.2}.dg-tag small{font-size:10.5px}
+.dg-find{background:#F2F8F3;border-radius:12px;padding:10px 12px;margin-top:12px}.dg-find b{color:#1F7A3E;font-size:13.5px}.dg-find ul{margin:4px 0 0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;line-height:1.5}
+.dg-same{font-size:12.5px;background:#FBEFE3;color:#A8651A;border-radius:99px;padding:2px 10px}.dg-same small{opacity:.75}
+.dg-bridge{display:flex;align-items:center;justify-content:center;gap:6px;font-family:Jua,sans-serif;font-size:19px;color:#A8651A;margin:-4px 0}
 /* QR 식물 카드 */
 .pp{max-width:520px;margin:0 auto;padding:16px 16px 40px;display:grid;gap:14px}
 .pp-top{display:grid;gap:2px}.pp-top b{font-size:22px;color:#14301F}
@@ -565,7 +568,7 @@ footer{overflow-wrap:anywhere;word-break:keep-all}
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script>window.__BUILD__ = "20261127000134";</script>
+<script>window.__BUILD__ = "20261127000439";</script>
 <script>
 /* ===== 광합성 추정 모델 (투명하게 공개하는 계산식) =====
  * 1) 광합성유효광량자속밀도 PPFD(µmol/m²/s) ≈ 전천일사량 SW(W/m²) × 0.45(PAR 비율) × 4.57(µmol/J)
@@ -1912,7 +1915,14 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
       return { ...o, n: o.rs.length, sp, wild: wild.length, share: wild.length / o.rs.length, natives: [...new Set(wild.map((r) => r.koreanName).filter(Boolean))] }; })
       .filter((o) => o.n >= 3).sort((a, b) => a.share - b.share); }, [allReal]);
   const schoolShare = team.length ? tWild / team.length : null;
-  const nearest = schoolShare == null || !hoods.length ? null : hoods.reduce((a, b) => (Math.abs(b.share - schoolShare) < Math.abs(a.share - schoolShare) ? b : a));
+  // 여러 동네에서 똑같이 심겨 있던 조경수 (도시 조경의 획일화)
+  const sameTrees = useMemo(() => { const m = new Map();
+    for (const h of hoods) for (const r of h.rs) if (r.origin === "planted" && r.koreanName) { const o = m.get(r.koreanName) || new Set(); o.add(h.place); m.set(r.koreanName, o); }
+    const school = new Set(team.filter((r) => r.origin === "planted").map((r) => r.koreanName));
+    return [...m.entries()].filter(([, w]) => w.size >= 2).map(([name, w]) => ({ name, n: w.size, inSchool: school.has(name) })).sort((a, b) => b.n - a.n).slice(0, 8); }, [hoods, team]);
+  const finds = [];
+  if (hoods.length >= 2) finds.push(`자생식물 비율이 ${hoods[0].place} ${pct(hoods[0].share)}에서 ${hoods[hoods.length - 1].place} ${pct(hoods[hoods.length - 1].share)}까지 벌어져요. 도심일수록 저절로 자라는 식물이 사라져요.`);
+  if (sameTrees.length) finds.push(`${sameTrees.slice(0, 4).map((t) => t.name).join(", ")}처럼 동네가 달라도 똑같은 조경수가 심겨 있어요.`);
   // 동네에서 직접 찾은 자생식물 → 학교 녹지 처방의 재료 (어디서 찾았는지 함께)
   const nativesSeen = useMemo(() => { const m = new Map();
     for (const r of allReal) { if (r.origin !== "wild" || !r.koreanName) continue; const t = recTheme(r); const where = t ? t.place : "학교";
@@ -1923,7 +1933,8 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
   const insights = [];
   if (team.length) insights.push(`교정 식물 ${team.length}건·${nSp}종 중 자생은 ${tWild}건(${pct(tWild / Math.max(1, team.length))})이에요. ${tPl > tWild ? "교정은 사람이 심은 조경 식물 위주예요." : "자생식물이 꽤 자리 잡고 있어요."}`);
   if (spCount.length && spCount[0][1] >= 3) insights.push(`가장 많이 기록된 식물은 ${spCount.slice(0, 3).map(([k, v]) => `${k}(${v})`).join(", ")}예요. 같은 조경수가 반복되면 생물다양성이 낮아져요.`);
-  if (nearest && hoods.length > 1) insights.push(`우리 학교 자생 비율(${pct(schoolShare)})은 따로 조사한 동네 중 '${nearest.place}'(${nearest.tag}, ${pct(nearest.share)})와 가장 비슷해요. 자생 비율은 ${hoods[0].place} ${pct(hoods[0].share)}에서 ${hoods[hoods.length - 1].place} ${pct(hoods[hoods.length - 1].share)}까지 벌어져요.`);
+  if (schoolShare != null && hoods.length) { const same = sameTrees.filter((t) => t.inSchool).map((t) => t.name);
+    insights.push(`동네에서 발견한 문제가 학교에도 있어요: 교정 자생 비율 ${pct(schoolShare)}${same.length ? `, 동네마다 반복되던 ${same.slice(0, 3).join("·")}도 교정에 심겨 있어요` : ""}.`); }
   if (flagged.length) insights.push(`녹지 보완 후보 구역: ${flagged.map((z) => z.h).join(", ")}.`);
   if (places.length) insights.push(`CO₂를 잰 ${places.length}곳 중 ${ventNeed.length}곳이 기준(${thr.toLocaleString()}ppm)을 자주 넘어요${ventNeed.length ? `: ${ventNeed.map((p) => p.place).join(", ")}` : ""}. ${ventNeed.length ? "사람이 모인 실내는 화분보다 환기가 먼저예요." : ""}`);
   if (eL != null || eD != null) insights.push(`밀폐 실험: 빛 있음 ${eL != null ? `${eL.toFixed(1)}ppm/분` : "-"}, 어둡게 ${eD != null ? `${eD > 0 ? "+" : ""}${eD.toFixed(1)}ppm/분` : "-"}${eE != null ? `, 빈 용기 ${eE.toFixed(1)}ppm/분` : ""}. ${eL != null && eL < 0 && eD != null && eD > 0 ? "빛에서 줄고 어둠에서 늘어 광합성과 호흡이 확인됐어요." : ""}`);
@@ -1940,35 +1951,37 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
     if (!printTags(list)) { say("새 창이 막혔어요. 팝업을 허용해 주세요"); return; }
     await onSaveRx({ id: "rx_" + uid(), kind: "rx", type: "tag", ids: list.map((r) => r.id), names: list.map((r) => r.koreanName), ts: Date.now(), researcher: me, status: "done" }); setPick(new Set()); };
   const steps = [
-    ["01", "문제 발견", "막연한 환경 활동", true],
+    ["01", "따로 · 발견", `${hoods.length}개 동네 탐사`, hoods.length > 0],
     ["02", "데이터 수집", `식물 ${allReal.length}건 · CO₂ ${sessions.length}회`, allReal.length > 0],
-    ["03", "진단", `보완 ${flagged.length} · 환기 ${ventNeed.length}`, team.length > 0 || places.length > 0],
+    ["03", "같이 · 진단", `보완 ${flagged.length} · 환기 ${ventNeed.length}`, team.length > 0 || places.length > 0],
     ["04", "실천", `처방 ${vents.length + greens.length} · 이름표 ${taggedIds.size}`, vents.length + greens.length + tagsDone.length > 0],
     ["05", "공유", "지도 · 전시 · 보고서", false],
   ];
   return html`<div class="grid gap-4">
     <section class="glass p-4">
       <b class="font-display text-[17px]" style=${{ color: "var(--grass-deep)" }}>따로 기록하고, 함께 바꾸다</b>
-      <p class="text-[13px] text-mist mt-1">각자 사는 동네에서 따로 모은 기록으로 서울 생활권을 견주고, 그 눈으로 우리 학교를 진단해 함께 바꿔요.</p>
+      <p class="text-[13px] text-mist mt-1">각자 사는 동네에서 따로 걸으며 문제를 발견하고, 학생들과 우리 학교에서 같이 확인하고 바꿔요.</p>
       <ol class="dg-steps mt-3">${steps.map(([n, t, s, ok]) => html`<li key=${n} class=${ok ? "ok" : ""}><span>${n}</span><b>${t}</b><small>${s}</small></li>`)}</ol>
     </section>
 
     <section class="glass p-4">
-      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="House" size=${18} />따로: 서울 생활권 비교</h2>
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="House" size=${18} />따로: 동네에서 발견한 문제</h2>
         <span class="text-[12.5px] text-mist">자생식물 비율 · 도심 → 산</span></div>
-      <p class="text-[12.5px] text-mist mb-2">네 선생님이 각자 사는 동네에서 모은 기록이에요. 학교를 어디에 견줄지 정하는 기준선이 되고, 동네에서 찾은 자생식물은 학교 녹지 처방의 재료가 돼요.</p>
+      <p class="text-[12.5px] text-mist mb-2">네 선생님이 각자 사는 서울 동네를 걸으며 같은 방법(사진 → AI 동정 → 식재/자생 구분)으로 모은 기록이에요.</p>
       ${!hoods.length ? html`<p class="text-[14px] text-mist py-3 text-center">'따로' 기록이 3건 이상인 동네가 생기면 여기서 비교돼요.</p>` : html`
-      <div class="grid gap-2.5">${[...hoods.map((h) => ({ ...h, me: false })), ...(schoolShare != null ? [{ k: "school", place: "우리 학교", tag: "같이 · 교정", who: "송그린·에코쌤즈", n: team.length, sp: nSp, wild: tWild, share: schoolShare, natives: [], me: true }] : [])]
-        .sort((a, b) => a.share - b.share).map((h) => html`<div key=${h.k} class=${"grid gap-1" + (h.me ? " dg-school" : "")}>
-          <div class="flex items-baseline gap-2"><${Dot} color=${h.me ? "#E8A33D" : rColor(h.who)} size=${9} /><b class="text-[14.5px] truncate">${h.place}</b><small class="text-mist truncate flex-1 min-w-0">${h.tag}</small>
+      <div class="grid gap-2.5">${hoods.map((h) => html`<div key=${h.k} class="grid gap-1">
+          <div class="flex items-baseline gap-2"><${Dot} color=${rColor(h.who)} size=${9} /><b class="text-[14.5px] truncate">${h.place}</b><small class="text-mist truncate flex-1 min-w-0">${h.tag}</small>
             <b class="mono">${pct(h.share)}</b><small class="text-mist">자생</small></div>
-          <div class="dg-bar"><i style=${{ width: (h.share * 100) + "%", background: h.me ? "#E8A33D" : EM.ORIGIN_INFO.wild.color }}></i></div>
+          <div class="dg-bar"><i style=${{ width: (h.share * 100) + "%", background: EM.ORIGIN_INFO.wild.color }}></i></div>
           <small class="text-mist text-[12px]">${h.n}건 · ${h.sp}종${h.natives.length ? " · 자생: " + h.natives.slice(0, 5).join(", ") : ""}</small></div>`)}</div>
-      <p class="text-[12px] text-mist mt-2">같은 방법(사진 → AI 동정 → 식재/자생 구분)으로 모아서 동네끼리, 그리고 학교와 견줄 수 있어요. 동네별 조사일이 달라 '경향'으로 봐요.</p>`}
+      ${finds.length > 0 && html`<div class="dg-find"><b>발견</b><ul>${finds.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul></div>`}
+      ${sameTrees.length > 0 && html`<div class="flex gap-1.5 flex-wrap mt-2">${sameTrees.map((t) => html`<span key=${t.name} class="dg-same">${t.name} <small>${t.n}곳</small></span>`)}</div>`}
+      <p class="text-[12px] text-mist mt-2">동네별 조사일이 달라 '경향'으로 봐요.</p>`}
     </section>
+    <div class="dg-bridge"><${Icon} name="ArrowDown" size=${18} />그럼 우리 학교는?</div>
 
     <section class="glass p-4">
-      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Sprout" size=${18} />같이: 학교 녹지 진단</h2>
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Sprout" size=${18} />같이: 우리 학교 녹지</h2>
         <span class="text-[12.5px] text-mist">'같이' 기록 · 교정 구역별</span></div>
       ${!team.length ? html`<p class="text-[14px] text-mist py-4 text-center">아직 학교 식물 기록이 없어요. '같이' 탭에서 교정 식물을 기록해 주세요.</p>` : html`
       <div class="grid grid-cols-3 gap-2 text-center">
@@ -1985,7 +1998,7 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
     </section>
 
     <section class="glass p-4">
-      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Wind" size=${18} />같이: 학교 공기 진단</h2>
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h2 class="pill-h"><${Icon} name="Wind" size=${18} />같이: 우리 학교 공기</h2>
         <span class="text-[12.5px] text-mist">CO₂ 탭 장소 측정 · 기준 ${thr.toLocaleString()}ppm</span></div>
       ${!places.length ? html`<p class="text-[14px] text-mist py-4 text-center">아직 장소 측정이 없어요. CO₂ 탭에서 교실·복도·운동장을 재 주세요.</p>`
         : html`<div class="grid gap-2.5">${places.map((p) => html`<div key=${p.place} class="grid gap-1">
@@ -2038,7 +2051,7 @@ function DiagView({ me, records, airs, rxs, onSaveRx, onDelRx, onOpen, say }) {
         ${(() => { const z = zones.find((x) => x.h === gf.zone); return z ? html`<small class="text-[12.5px]" style=${{ color: "#B8651A" }}>근거: 기록 ${z.n}건 · 자생 ${z.wild}건${z.why ? " · " + z.why : ""}</small>` : null; })()}
         <div class="lbl">이 구역에 맞는 자생식물</div>
         <div class="flex gap-1.5 flex-wrap">${(NATIVE_RX[gf.zone] || []).map((p) => html`<${Chip} key=${p} on=${gf.plants.includes(p)} color="#2E8B57" onClick=${() => setGf({ ...gf, plants: gf.plants.includes(p) ? gf.plants.filter((x) => x !== p) : [...gf.plants, p] })}>${p}</${Chip}>`)}</div>
-        ${nativesSeen.length > 0 && html`<div class="lbl">우리가 동네·학교에서 직접 찾은 자생식물 (따로 → 같이)</div>
+        ${nativesSeen.length > 0 && html`<div class="lbl">우리가 동네와 학교에서 직접 찾은 자생식물</div>
           <div class="flex gap-1.5 flex-wrap">${nativesSeen.map(({ name: p, where }) => html`<${Chip} key=${p} on=${gf.plants.includes(p)} color="#2E8B57" onClick=${() => setGf({ ...gf, plants: gf.plants.includes(p) ? gf.plants.filter((x) => x !== p) : [...gf.plants, p] })}>${p}<small class="opacity-70"> · ${where.join("·")}</small></${Chip}>`)}</div>`}
         <label class="fld"><span class="lbl">메모 (어디에, 어떻게)</span><input type="text" maxlength="100" value=${gf.memo} onInput=${(e) => setGf({ ...gf, memo: e.target.value })} placeholder="예: 본관 앞 화단 가장자리 2m, 봄에 모종으로" /></label>
         <div class="flex gap-2"><button type="button" class="btn-save flex-1" onClick=${saveGreen}>저장</button><button type="button" class="btn-ghost" onClick=${() => setGf(null)}>취소</button></div></div>`}
