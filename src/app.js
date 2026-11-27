@@ -2927,9 +2927,10 @@ function AirView({ me, airs, onDelete, onSaveCfg, onStart, onStop, onDelSess, on
         const over = pts.filter((p) => p.co2 >= thr).length, t1 = openSess.end || now;
         return html`<div class="air-detail mt-3">
           <div class="flex items-center gap-2 flex-wrap mb-2">${rn && rn.id === openSess.id
-              ? html`<form class="flex gap-1.5 flex-1 min-w-0" onSubmit=${async (e) => { e.preventDefault(); const v = rn.v.trim(); if (!v) { say("장소 이름을 적어 주세요"); return; } await onRenameSess(openSess, v); setRn(null); }}>
-                  <input class="air-place flex-1 min-w-0" type="text" maxlength="40" value=${rn.v} onInput=${(e) => setRn({ ...rn, v: e.target.value })} autoFocus />
-                  <button type="submit" class="mini-btn on">저장</button><button type="button" class="mini-btn" onClick=${() => setRn(null)}>취소</button></form>`
+              ? html`<form class="flex gap-1.5 items-center" style=${{ flex: "1 1 100%", minWidth: 0 }} onSubmit=${async (e) => { e.preventDefault(); const v = rn.v.trim(); if (!v) { say("장소 이름을 적어 주세요"); return; } await onRenameSess(openSess, v); setRn(null); }}>
+                  <input type="text" maxlength="40" value=${rn.v} onInput=${(e) => setRn({ ...rn, v: e.target.value })} autoFocus
+                    style=${{ flex: "1 1 auto", minWidth: 0, width: "100%", fontSize: 16, padding: "8px 12px", border: "2px solid #1F7A3E", borderRadius: 12, background: "#fff" }} />
+                  <button type="submit" class="mini-btn on" style=${{ whiteSpace: "nowrap", flex: "none" }}>저장</button><button type="button" class="mini-btn" style=${{ whiteSpace: "nowrap", flex: "none" }} onClick=${() => setRn(null)}>취소</button></form>`
               : html`<b class="font-display text-[19px]" style=${{ color: "var(--grass-deep)" }}>${openSess.place}</b>
                 <button type="button" class="mini-btn" onClick=${() => setRn({ id: openSess.id, v: openSess.place })}><${Icon} name="Pencil" size=${12} />이름 고치기</button>`}
             <span class="text-[13px] text-mist">${fmtDay(openSess.start)} ${hhmm(openSess.start)}–${openSess.end ? hhmm(openSess.end) : "지금"}</span>
